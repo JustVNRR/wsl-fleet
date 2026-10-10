@@ -26,9 +26,7 @@ $DistroName = $Distro.Name
 Write-Host ""
 Write-Host "==> Starting '$DistroName'..." -ForegroundColor (Get-MessageColour info)
 try {
-    # Hand the gesture over to the engine - the one door every interface calls;
-    # the state moves on the instance itself.
-    $null = $Manager.Start($Distro)
+    $Distro = $Manager.Start($Distro)
 } catch {
     Write-Host ""
     Write-Host "[ERROR] $($_.Exception.Message)" -ForegroundColor (Get-MessageColour error)

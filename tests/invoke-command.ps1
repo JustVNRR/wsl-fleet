@@ -3,7 +3,7 @@
 # any more, they run through the entry and use what it imported. The manager
 # travels in as a parameter, typed and bound from the command's first line -
 # and for the commands whose questions live in the console's conversation
-# (archive, restore, duplicate, unregister, shrink, migrate, stop), the
+# (archive, restore, duplicate, unregister, shrink, migrate, stop, restart), the
 # controller is mounted and asked here, and the form it renders travels in
 # too: the entry's two roles, played the same way.
 #
@@ -58,6 +58,9 @@ if ($Key -eq "archive") {
 } elseif ($Key -eq "stop") {
     . (Join-Path $PSScriptRoot "..\src\windows\cli\Controllers\Stop.ps1")
     $Form = Read-StopAnswers -Manager $Manager -Options @()
+} elseif ($Key -eq "restart") {
+    . (Join-Path $PSScriptRoot "..\src\windows\cli\Controllers\Restart.ps1")
+    $Form = Read-RestartAnswers -Manager $Manager -Options @()
 } else {
     $Asks = $false
 }

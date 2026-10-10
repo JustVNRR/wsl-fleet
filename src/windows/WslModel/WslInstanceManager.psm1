@@ -30,10 +30,8 @@
 #   - it RETURNS a report, or THROWS - the interface decides what either
 #     means on screen, messages and exit codes included.
 #
-# Nothing without a caller lives here: StopAll and the single-gesture Restart
-# were cut - no command calls the first, and the restart command composes Stop
-# and Start so each half keeps its own failure line. A method waits until a
-# command calls it.
+# Nothing without a caller lives here: StopAll was cut - no command calls it.
+# A method waits until a command calls it.
 #
 # theme is both, and the split is the same as everywhere: WHAT it edits is a
 # gesture of the instance, like a stop, and the engine carries the operations
@@ -380,12 +378,8 @@ class WslInstanceManager {
     # start / stop - the menu's engine side, and nothing more than the route:
     # the gesture, the state it moves and the failure it throws all belong to
     # the instance's own Start()/Stop() - the state moves only once the gesture
-    # succeeded, and the throw travels. Nothing here pretends otherwise: the
-    # interface catches what it catches, and says it.
-    #
-    # No Restart: the restart command composes these two, because each half
-    # fails on its own and the interface keeps a line for each. A single route
-    # would have to guess which half broke.
+    # succeeded, and the throw travels. The instance comes back, so a flow can
+    # be written as a chain.
     [WslInstance] Start([WslInstance]$Instance) {
         $Instance.Start()
         return $Instance
@@ -393,6 +387,24 @@ class WslInstanceManager {
 
     [WslInstance] Stop([WslInstance]$Instance) {
         $Instance.Stop()
+        return $Instance
+    }
+
+    # restart - the two gestures, in the one order that makes the second a
+    # fresh boot. A half that fails throws with the half named and the
+    # instance's standing said: the interface cannot see inside, and
+    # guessing is not its business.
+    [WslInstance] Restart([WslInstance]$Instance) {
+        try {
+            $Instance = $this.Stop($Instance)
+        } catch {
+            throw "The stop did not complete - '$($Instance.Name)' may still be running, and was not started again. $($_.Exception.Message)"
+        }
+        try {
+            $Instance = $this.Start($Instance)
+        } catch {
+            throw "The start did not complete - '$($Instance.Name)' is stopped. $($_.Exception.Message)"
+        }
         return $Instance
     }
 

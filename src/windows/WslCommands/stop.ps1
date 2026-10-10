@@ -22,7 +22,7 @@ $DistroName = $Distro.Name
 Write-Host ""
 Write-Host "==> Stopping '$DistroName'..." -ForegroundColor (Get-MessageColour info)
 try {
-    $null = $Manager.Stop($Distro)
+    $Distro = $Manager.Stop($Distro)
 } catch {
     Write-Host ""
     Write-Host "[ERROR] $($_.Exception.Message)" -ForegroundColor (Get-MessageColour error)

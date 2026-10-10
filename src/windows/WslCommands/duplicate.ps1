@@ -7,42 +7,20 @@ param (
     # in the entry. A command is never run by hand any more: the entry loads
     # the module and hands this over, and the `using` above names the type, so
     # it binds from the first line.
-    [WslInstanceManager]$Manager
-)
+    [WslInstanceManager]$Manager,
 
-# No parameter on purpose: the source comes from the list, never from the
-# command line, and the copy's name is asked for.
+    # The answers, whole - the console's conversation (src\windows\cli\
+    # Controllers\Duplicate.ps1) renders them: the source, the copy's name,
+    # and the Docker word. This file never asks.
+    [object]$Form
+)
 
 $ErrorActionPreference = "Stop"
 
-# 0. Which instance to copy
-$Source = Select-Distro -Manager $Manager
+$Source = $Form.Instance
 $SourceDistro = $Source.Name
-
-# 0-bis. The copy's name: typed, because there is nothing to pick from. The
-# question comes back until the name is usable.
-$NewDistroName = Read-InstanceName "Name of the copy" -What "created"
-
-# This script never unregisters anything, so a name already taken is a dead
-# end, not something to resolve - the engine answers whether the name is free.
-if (-not $Manager.IsNameAvailable($NewDistroName)) {
-    Write-Host ""
-    Write-Host "[ABORT] An instance named '$NewDistroName' already exists." -ForegroundColor (Get-MessageColour error)
-    Write-Host "        Pick another name." -ForegroundColor (Get-MessageColour hint)
-    Write-Host "        Nothing was modified." -ForegroundColor (Get-MessageColour muted)
-    exit 1
-}
-
-# The export stops the source - WSL terminates it to read a consistent disk -
-# and unsaved work is gone: ask rather than surprise. The yes is the word the
-# engine's own copy acts on: the instance stops itself for the export and
-# comes back up when the stopping was ours to do.
-if ($Source.State -eq [WslState]::Running) {
-    Write-Host ""
-    Write-Host "  '$SourceDistro' is running, and this needs it stopped." -ForegroundColor (Get-MessageColour warning)
-    Write-Host "  Save what you have open in there: stopping it loses anything unsaved." -ForegroundColor (Get-MessageColour warning)
-    if (-not (Confirm-YesNo "Stop it now?")) { Stop-Cancelled }
-}
+$NewDistroName = $Form.Name
+$AddDocker = $Form.AddDocker
 
 # 1-2. What it costs, measured by the engine: the copy reads the instance into
 # an archive and unpacks it into the new folder, both at the same time - twice
@@ -65,16 +43,6 @@ Write-Host "  * Install folder   : $($Cost.InstallPath)" -ForegroundColor (Get-M
 # are the instance's own. The temporary image is removed by the engine's own
 # copy, in all cases - it is worth twice the disk, and leaving it would eat
 # the room just checked for.
-
-# Docker Desktop: adding the copy's name restarts Docker, so the [y/N] is
-# the user's - the engine answers whether the question is due, and the
-# answer rides into the copy.
-$Carried = $Manager.DockerStateOf($Source)
-$AddDocker = $false
-if ($Manager.DockerQuestionDue($Carried, $NewDistroName)) {
-    Write-Host ""
-    if (Confirm-YesNo "Add '$NewDistroName' to Docker Desktop? (it restarts Docker)" -DefaultNo) { $AddDocker = $true }
-}
 
 try {
     Write-Host "==> 1. Reading the source (the source itself is not modified)..." -ForegroundColor (Get-MessageColour info)

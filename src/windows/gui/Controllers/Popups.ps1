@@ -1334,7 +1334,7 @@ function Show-Appearance {
 # it applies: the export stops the source, the console's own sentence. Enter
 # duplicates, Escape cancels, an empty name is a cancel.
 function Show-DuplicatePrompt {
-    param([string]$InstanceName, [bool]$IsRunning, [string]$ProposedName, $Manager)
+    param([string]$InstanceName, [bool]$IsRunning, [string]$ProposedName, [string[]]$ExistingNames)
 
     [xml]$dupXaml = [System.IO.File]::ReadAllText((Join-Path $GuiRoot "Views\Popups\Duplicate.xaml"))
 
@@ -1351,22 +1351,22 @@ function Show-DuplicatePrompt {
 
     $prompt.Add_ContentRendered({ $null = $txtName.Focus(); $txtName.SelectAll() })
 
-    # The live check, the engine's own guard: usable, and free in the whole
-    # inventory - the source itself included, so a copy onto it is refused
-    # here as it would be there.
+    # The live warning, from what the window already holds - the names the
+    # list shows, and the class's own rule of names. No question travels from
+    # here: the engine refuses for real when the job runs, and the trail says
+    # it - the button below warns, it does not gate.
     $CheckName = {
         $name = $txtName.Text.Trim()
         $problem = ""
         if (-not $name) {
             $problem = "Give a name."
-        } elseif (-not $Manager.IsNameUsable($name)) {
+        } elseif (-not (Test-InstanceName $name)) {
             $problem = "Letters, digits, '.', '_' and '-' only."
-        } elseif (-not $Manager.IsNameAvailable($name)) {
+        } elseif ($ExistingNames -contains $name) {
             $problem = "An instance named '$name' already exists."
         }
         $txtNameError.Text = $problem
         $txtNameError.Visibility = if ($problem) { [System.Windows.Visibility]::Visible } else { [System.Windows.Visibility]::Collapsed }
-        $script:DupNameOk = (-not $problem)
     }
     $txtName.Add_TextChanged($CheckName)
     & $CheckName
@@ -1375,10 +1375,8 @@ function Show-DuplicatePrompt {
     $prompt.FindName("BtnDupCancel").Add_Click({ $script:DupResult = $null; $prompt.Close() })
     $prompt.FindName("BtnDupGo").Add_Click({
         & $CheckName
-        if ($script:DupNameOk) {
-            $script:DupResult = $txtName.Text.Trim()
-            $prompt.Close()
-        }
+        $script:DupResult = $txtName.Text.Trim()
+        $prompt.Close()
     })
 
     Set-WindowFitToContent -Win $prompt

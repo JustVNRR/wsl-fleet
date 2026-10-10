@@ -325,10 +325,12 @@ $RowAction = [System.Windows.RoutedEventHandler]{
         return
     }
     if ($button.Name -eq "BtnRowDuplicate") {
-        # The name first - "-copy" behind the source's own - then the row goes
-        # quiet: the copy is long, and the runner stops the source, checks the
-        # room and starts it again when it is over.
-        $name = Show-DuplicatePrompt $inst.Name ($row.Status -eq "Running") "$($inst.Name)-copy" $Manager
+        # The name first - "-copy" behind the source's own - warned about
+        # from the names the list holds, then the row goes quiet: the copy is
+        # long, and the engine's own gesture stops the source for a
+        # consistent read and puts it back when it is over.
+        $names = @($lstInstances.Items | ForEach-Object { $_.Name })
+        $name = Show-DuplicatePrompt $inst.Name ($row.Status -eq "Running") "$($inst.Name)-copy" $names
         if (-not $name) { return }
         & $MarkRow $button
         & $SetBusyState $true "Duplicating '$($inst.Name)' as '$name'..."

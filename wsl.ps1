@@ -188,6 +188,11 @@ if ($Chosen.Key -eq "restore") {
     $Answers = Read-RestoreAnswers -Manager $Manager -Options $RemainingArgs
     if ($null -eq $Answers) { exit 1 }
 }
+if ($Chosen.Key -eq "duplicate") {
+    . (Join-Path $CommandFiles "..\cli\Controllers\Duplicate.ps1")
+    $Answers = Read-DuplicateAnswers -Manager $Manager -Options $RemainingArgs
+    if ($null -eq $Answers) { exit 1 }
+}
 
 # Whatever followed the command travels in this run context: the gesture
 # rebuilds it into named parameters and loose values (see above), so a command

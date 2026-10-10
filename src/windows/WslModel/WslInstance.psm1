@@ -242,13 +242,14 @@ class WslInstance {
     # Copies the instance under another name: the export to a temporary tar,
     # the import at THIS instance's version, the marker, and a fresh capture
     # of the recipe - look and Docker's answer - for the caller to re-apply
-    # once the copy exists. The export reads a still disk, so a running
-    # instance stops itself for it and starts again after, whatever the
-    # export did - the stopping's word was gathered by whoever asked. The
-    # room the copy needs was checked before, by the manager the gesture is
-    # commanded through. Returns the copy's folder, that recipe, that answer,
-    # and whether the stopping was ours.
-    [PSCustomObject] Duplicate([string]$newName) {
+    # once the copy exists. The folder the copy takes is TOLD - the manager
+    # spells the path once - and the temporary tar lands beside it. The
+    # export reads a still disk, so a running instance stops itself for it
+    # and starts again after, whatever the export did - the stopping's word
+    # was gathered by whoever asked, the room was checked before by the
+    # manager. Returns the copy's folder, that recipe, that answer, and
+    # whether the stopping was ours.
+    [PSCustomObject] Duplicate([string]$newName, [string]$newFolder) {
         # What Windows shows now, captured before the export; the icon's
         # recipe rides along (KeepIconRecipe).
         $this.Recipe.Look = $this.KeepIconRecipe((Get-InstanceAppearance -Name $this.Name))
@@ -260,18 +261,16 @@ class WslInstance {
             $stopped = $true
         }
 
-        $targetRoot = Split-Path $this.Path -Parent
-        $newPath = Join-Path $targetRoot $newName
-        $tempTar = Join-Path $targetRoot "$newName-export.tar.gz"
+        $tempTar = Join-Path (Split-Path $newFolder -Parent) "$newName-export.tar.gz"
 
         try {
             Invoke-External { wsl.exe --export $this.Name $tempTar --format tar.gz } "The export failed."
             # The copy is imported as the version of its source.
-            Invoke-External { wsl.exe --import $newName $newPath $tempTar --version $this.Version } "The import failed."
+            Invoke-External { wsl.exe --import $newName $newFolder $tempTar --version $this.Version } "The import failed."
 
             # Ours from here on, whatever happens next.
-            New-InstanceMarker -Folder $newPath -By "duplicate"
-            return [PSCustomObject]@{ Path = $newPath; Recipe = $this.Recipe; Docker = $Docker; Stopped = $stopped }
+            New-InstanceMarker -Folder $newFolder -By "duplicate"
+            return [PSCustomObject]@{ Path = $newFolder; Recipe = $this.Recipe; Docker = $Docker; Stopped = $stopped }
         } finally {
             # The temporary image goes in all cases - it is worth twice the
             # disk - and the source, found running, is put back running.

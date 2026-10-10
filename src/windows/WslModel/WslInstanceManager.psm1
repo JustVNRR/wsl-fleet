@@ -708,8 +708,9 @@ class WslInstanceManager {
         }
 
         # The source is only read; the temporary image is removed by the copy
-        # itself, in all cases - it is worth twice the disk.
-        $Copy = $Instance.Duplicate($Name)
+        # itself, in all cases - it is worth twice the disk. The folder is
+        # spelled here, once, and told to the gesture.
+        $Copy = $Instance.Duplicate($Name, $FullDestination)
 
         $CopyVhdx = Join-Path $FullDestination "ext4.vhdx"
         $CopyBytes = if (Test-Path $CopyVhdx) { (Get-Item $CopyVhdx).Length } else { 0 }

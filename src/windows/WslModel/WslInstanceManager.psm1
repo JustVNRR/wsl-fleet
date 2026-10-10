@@ -562,7 +562,7 @@ class WslInstanceManager {
             }
         }
 
-        $Removed = $Instance.Unregister($false)
+        $Removed = $Instance.Unregister()
         return [PSCustomObject]@{ Archive = $ArchiveReport; Removed = $Removed }
     }
 

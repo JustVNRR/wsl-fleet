@@ -7,59 +7,20 @@ param (
     # in the entry. A command is never run by hand any more: the entry loads
     # the module and hands this over, and the `using` above names the type, so
     # it binds from the first line.
-    [WslInstanceManager]$Manager
-)
+    [WslInstanceManager]$Manager,
 
-# No parameter on purpose: the instance comes from the list, never from the
-# command line, and the removal asks for the name to be typed before anything
-# happens. This script never chooses its own target.
+    # The answers, whole - the console's conversation (src\windows\cli\
+    # Controllers\Unregister.ps1) renders them: the instance, and whether a
+    # copy is taken before it goes. This file never asks.
+    [object]$Form
+)
 
 $ErrorActionPreference = "Stop"
 
-# Where the instances live, provided by the engine. Read here, not higher: the
-# manager may be the one the load just settled.
-$Root = $Manager.InstancesRoot
-
-# ==============================================================================
-# 1. WHICH DISTRO (from the list, always)
-# ==============================================================================
-# The list is the only way in. A folder left behind by an earlier removal is
-# deleted by hand, not by naming it here.
-$Ours = @($Manager.WslRegisteredInstances())
-if ($Ours.Count -eq 0) {
-    Write-Host ""
-    Write-Host "[ABORT] No instance of this template is registered on this machine." -ForegroundColor (Get-MessageColour error)
-    Write-Host "        Nothing to remove." -ForegroundColor (Get-MessageColour hint)
-    Write-Host "        Build one with  .\wsl.ps1 build" -ForegroundColor (Get-MessageColour hint)
-    Write-Host "        (A folder left behind by an earlier removal is deleted by hand: $Root)" -ForegroundColor (Get-MessageColour muted)
-    exit 1
-}
-
-$Distro = Select-Distro -Manager $Manager
-if (-not $Distro) { Stop-Cancelled }
-
+$Distro = $Form.Instance
+$ArchiveFirst = $Form.ArchiveFirst
 $DistroName = $Distro.Name
 $InstallPath = $Distro.Path
-
-# ==============================================================================
-# 2. CONFIRMATION (destructive) - the gate build asks too, written once.
-# ==============================================================================
-if (-not (Confirm-Destruction -DistroName $DistroName -Lead "The WSL distribution '$DistroName' and ALL its data will be deleted:")) {
-    Write-Host "[ABORT] Operation cancelled. No data was modified." -ForegroundColor (Get-MessageColour warning)
-    exit 0
-}
-
-# The last moment to take a copy. Handed to the engine via Unregister($Instance, $ArchiveFirst).
-Write-Host ""
-$ArchiveFirst = Confirm-YesNo "Archive it before deleting?" -DefaultNo
-
-# The same name is replaced without a word, otherwise - said, not quiet.
-if ($ArchiveFirst) {
-    $ArchiveDir = Join-Path $Manager.ArchivesRoot $DistroName
-    if (Test-Path $ArchiveDir) {
-        Write-Host "  '$DistroName' exists: replacing its archive." -ForegroundColor (Get-MessageColour warning)
-    }
-}
 
 Write-Host "==> Stopping the distro processes..." -ForegroundColor (Get-MessageColour info)
 Write-Host "==> Unregistering the distro..." -ForegroundColor (Get-MessageColour info)

@@ -111,10 +111,10 @@ $script:ChildExit = 0
 
 # The commands are driven through invoke-command.ps1: a fresh pwsh has nothing
 # loaded, and a command takes its manager as a parameter - the invoker loads
-# the module first, as wsl.ps1 does, and hands one over. For archive and
-# restore, whose questions live in the console's conversation, the invoker
-# mounts the controller and asks it on standard input, then hands the form -
-# the entry's two roles.
+# the module first, as wsl.ps1 does, and hands one over. For archive, restore
+# and duplicate, whose questions live in the console's conversation, the
+# invoker mounts the controller and asks it on standard input, then hands the
+# form - the entry's two roles.
 $Invoker = Join-Path $PSScriptRoot "invoke-command.ps1"
 
 function Invoke-Child {

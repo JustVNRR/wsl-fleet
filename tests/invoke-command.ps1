@@ -3,9 +3,9 @@
 # any more, they run through the entry and use what it imported. The manager
 # travels in as a parameter, typed and bound from the command's first line -
 # and for the commands whose questions live in the console's conversation
-# (archive, restore, duplicate), the controller is mounted and asked here, and
-# the form it renders travels in too: the entry's two roles, played the same
-# way.
+# (archive, restore, duplicate, unregister), the controller is mounted and
+# asked here, and the form it renders travels in too: the entry's two roles,
+# played the same way.
 #
 # The suites drive their commands through this file. The answers travel on
 # standard input, as they always did. $LASTEXITCODE is zeroed before the
@@ -46,6 +46,9 @@ if ($Key -eq "archive") {
 } elseif ($Key -eq "duplicate") {
     . (Join-Path $PSScriptRoot "..\src\windows\cli\Controllers\Duplicate.ps1")
     $Form = Read-DuplicateAnswers -Manager $Manager -Options @()
+} elseif ($Key -eq "unregister") {
+    . (Join-Path $PSScriptRoot "..\src\windows\cli\Controllers\Unregister.ps1")
+    $Form = Read-UnregisterAnswers -Manager $Manager -Options @()
 } else {
     $Asks = $false
 }

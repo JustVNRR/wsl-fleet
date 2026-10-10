@@ -288,16 +288,8 @@ class WslInstance {
     # answer to the one question the stopping deserves (whatever was not
     # saved is lost) - and started again after, when the stopping was ours
     # to do. The report says what happened: the archive folder, and whether
-    # the instance went down and back up. Two signatures because a class
-    # method takes no default: one argument is the ordinary tar.gz, under
-    # the instance's own root - spelled here once, for the removal that
-    # archives before it destroys; the full call is told its folder.
-    [string] Archive([string]$name) {
-        $folder = Join-Path (Split-Path $this.Path -Parent) "archives\$name"
-        $report = $this.Archive($name, "tar.gz", $true, $folder)
-        return $report.Path
-    }
-
+    # the instance went down and back up. The folder is TOLD - the manager's
+    # one spell of the archive paths.
     [object] Archive([string]$name, [string]$format, [bool]$mayStop, [string]$folder) {
         $stopped = $false
         if ((Get-DistroNames -Running) -contains $this.Name) {
@@ -365,24 +357,18 @@ class WslInstance {
 
     # Removes the instance from WSL and from the Windows side: the stop whose
     # own failure is ignored - a distro half gone must not block its own
-    # removal - the archive when asked for, the unregister, what is left of
-    # the install folder, and the Terminal and Docker traces, whose mechanics
-    # are the shared cleanup functions' (the build prunes the same ghosts the
-    # same way). Returns what the caller reports: the folder's fate, the
-    # counts, Docker's answer.
-    [object] Unregister([bool]$toArchive) {
+    # removal - the unregister, what is left of the install folder, and the
+    # Terminal and Docker traces, whose mechanics are the shared cleanup
+    # functions' (the build prunes the same ghosts the same way). No archive
+    # here: the copy, when the user asked for one, is the manager's act,
+    # taken before this runs. Returns what the caller reports: the folder's
+    # fate, the counts, Docker's answer.
+    [object] Unregister() {
         # The raw terminate, failure ignored on purpose, then the pause the
         # command always took: wsl --unregister right after would run too
         # early.
         $null = & wsl.exe --terminate $this.Name 2>$null
         Start-Sleep -Seconds 1
-
-        # The archive first, when asked for: the copy exists before anything
-        # is destroyed.
-        if ($toArchive) {
-            $ArchiveDir = $this.Archive($this.Name)
-            [void]$this.ArchiveLook($ArchiveDir)
-        }
 
         $FolderExisted = $this.Path -and (Test-Path $this.Path)
         Invoke-External { wsl.exe --unregister $this.Name } "WSL unregister failed."
@@ -964,16 +950,6 @@ class WslInstance {
         # Ours from here on, whatever happens next.
         New-InstanceMarker -Folder $installPath -By "restore"
         return $instance
-    }
-
-    static [void] Unregister([string]$name, [bool]$toArchive) {
-        $instance = [WslInstance]::GetByName($name)
-        if ($instance) {
-            $instance.Unregister($toArchive)
-        } else {
-            # No metadata to archive from: unregister only.
-            & wsl.exe --unregister $name
-        }
     }
 
     static [WslInstance] GetByName([string]$name) {

@@ -16,7 +16,7 @@ param (
 $ErrorActionPreference = "Stop"
 
 # 1. Which instance to open a shell in
-$Distro = Select-Distro
+$Distro = Select-Distro -Manager $Manager
 $DistroName = $Distro.Name
 
 Write-Host ""

@@ -16,7 +16,7 @@ param (
 $ErrorActionPreference = "Stop"
 
 # 0. Which instance to copy
-$Source = Select-Distro
+$Source = Select-Distro -Manager $Manager
 $SourceDistro = $Source.Name
 
 # 0-bis. The copy's name: typed, because there is nothing to pick from. The
@@ -34,25 +34,23 @@ if (-not $Manager.IsNameAvailable($NewDistroName)) {
 }
 
 # The export stops the source - WSL terminates it to read a consistent disk -
-# and unsaved work is gone: ask rather than surprise.
-$StoppedByUs = $false
-if ((Get-DistroNames -Running) -contains $SourceDistro) {
+# and unsaved work is gone: ask rather than surprise. The yes is the word the
+# engine's own copy acts on: the instance stops itself for the export and
+# comes back up when the stopping was ours to do.
+if ($Source.State -eq [WslState]::Running) {
     Write-Host ""
     Write-Host "  '$SourceDistro' is running, and this needs it stopped." -ForegroundColor (Get-MessageColour warning)
     Write-Host "  Save what you have open in there: stopping it loses anything unsaved." -ForegroundColor (Get-MessageColour warning)
     if (-not (Confirm-YesNo "Stop it now?")) { Stop-Cancelled }
-    $null = $Manager.Stop($Source)
-    Write-Host "  Stopped." -ForegroundColor (Get-MessageColour muted)
-    $StoppedByUs = $true
 }
 
 # 1-2. What it costs, measured by the engine: the copy reads the instance into
 # an archive and unpacks it into the new folder, both at the same time - twice
-# the disk is the peak checked here. The archive route rather than a raw disk
-# copy (`--format vhd`): a vhd export is refused with ERROR_SHARING_VIOLATION
-# while the WSL virtual machine is up - `--terminate` does not release it, only
-# a full `--shutdown` does, and that stops every other instance. The copy pays
-# the compression instead.
+# the disk is the peak the engine's own copy refuses past. The archive route
+# rather than a raw disk copy (`--format vhd`): a vhd export is refused with
+# ERROR_SHARING_VIOLATION while the WSL virtual machine is up - `--terminate`
+# does not release it, only a full `--shutdown` does, and that stops every
+# other instance. The copy pays the compression instead.
 $Cost = $Manager.DuplicationCost($Source, $NewDistroName)
 
 Write-Host ""
@@ -62,23 +60,26 @@ Write-Host "  * Needed on $($Cost.DriveLetter)`:      : $(Format-Size $Cost.Need
 Write-Host "  * Free on $($Cost.DriveLetter)`:        : $(Format-Size $Cost.FreeBytes)" -ForegroundColor (Get-MessageColour muted)
 Write-Host "  * Install folder   : $($Cost.InstallPath)" -ForegroundColor (Get-MessageColour muted)
 
-if ($Cost.FreeBytes -lt $Cost.NeededBytes) {
+# 3. Copy: the source is only read. The room is the engine's own refusal - it
+# comes back through the catch below - and the stopping and the coming back up
+# are the instance's own. The temporary image is removed by the engine's own
+# copy, in all cases - it is worth twice the disk, and leaving it would eat
+# the room just checked for.
+
+# Docker Desktop: adding the copy's name restarts Docker, so the [y/N] is
+# the user's - the engine answers whether the question is due, and the
+# answer rides into the copy.
+$Carried = $Manager.DockerStateOf($Source)
+$AddDocker = $false
+if ($Manager.DockerQuestionDue($Carried, $NewDistroName)) {
     Write-Host ""
-    Write-Host "[ABORT] Not enough room on $($Cost.DriveLetter)`:" -ForegroundColor (Get-MessageColour error)
-    Write-Host "        Needed: $(Format-Size $Cost.NeededBytes) - free: $(Format-Size $Cost.FreeBytes)." -ForegroundColor (Get-MessageColour warning)
-    Write-Host "        Free some space, then run this again." -ForegroundColor (Get-MessageColour hint)
-    Write-Host "        Nothing was modified." -ForegroundColor (Get-MessageColour muted)
-    exit 1
+    if (Confirm-YesNo "Add '$NewDistroName' to Docker Desktop? (it restarts Docker)" -DefaultNo) { $AddDocker = $true }
 }
 
-# 3. Copy: the source is only read. The temporary image is removed by the
-# engine's own copy, in all cases - it is worth twice the disk, and leaving it
-# would eat the room just checked for. Headless is false: this road has a
-# console, so Docker's question is asked here.
 try {
     Write-Host "==> 1. Reading the source (the source itself is not modified)..." -ForegroundColor (Get-MessageColour info)
     Write-Host "==> 2. Registering '$NewDistroName' from it..." -ForegroundColor (Get-MessageColour info)
-    $Report = $Manager.Duplicate($Source, $NewDistroName, $false)
+    $Report = $Manager.Duplicate($Source, $NewDistroName, $AddDocker)
 } catch {
     Write-Host ""
     Write-Host "[ERROR] $($_.Exception.Message)" -ForegroundColor (Get-MessageColour error)
@@ -88,6 +89,27 @@ try {
         Write-Host "        remove it with  .\wsl.ps1 unregister        (pick '$NewDistroName' in the list)" -ForegroundColor (Get-MessageColour hint)
     }
     exit 1
+}
+
+# What the setup did, on the screen - its own report, read here.
+$Setup = $Report.Setup
+if ($Setup.LookApplied) {
+    Write-Host "  * Look             : font '$($Setup.Font)', colours '$($Setup.ColorScheme)', icon re-applied" -ForegroundColor (Get-MessageColour success)
+} else {
+    Write-Host "  * Look             : $($Setup.LookNote)" -ForegroundColor (Get-MessageColour warning)
+}
+if ($Setup.FontMissing) {
+    Write-Host "                       Not installed on Windows: '$($Setup.Font)'." -ForegroundColor (Get-MessageColour warning)
+    Write-Host "                       The prompt will show boxes until it is installed." -ForegroundColor (Get-MessageColour warning)
+}
+if ($Setup.DockerOutcome -eq "added") {
+    Write-Host "  * Docker Desktop   : added, and restarted to pick it up" -ForegroundColor (Get-MessageColour success)
+} elseif ($Setup.DockerOutcome -eq "added-late") {
+    Write-Host "  * Docker Desktop   : added - restart it for it to notice" -ForegroundColor (Get-MessageColour hint)
+} elseif ($Setup.DockerOutcome -eq "failed") {
+    Write-Host "  * Docker Desktop   : could not be updated ($($Setup.DockerError))" -ForegroundColor (Get-MessageColour warning)
+} elseif ($Setup.DockerOutcome -eq "not-added") {
+    Write-Host "  * Docker Desktop   : not added - its settings can take it later" -ForegroundColor (Get-MessageColour muted)
 }
 
 Write-Host ""
@@ -103,13 +125,11 @@ Write-Host "  Windows Terminal: the copy gets a profile of its own, with the ico
 Write-Host "  the font and the colours of the source. Restart Terminal to see it." -ForegroundColor (Get-MessageColour muted)
 Write-Host ""
 
-# Left the way it was found.
-if ($StoppedByUs) {
-    try {
-        $null = $Manager.Start($Source)
-        Write-Host "'$SourceDistro' is running again." -ForegroundColor (Get-MessageColour success)
-    } catch {
-        Write-Host "Could not restart '$SourceDistro' - start it with: wsl -d $SourceDistro" -ForegroundColor (Get-MessageColour warning)
-    }
-    Write-Host ""
+# Left the way it was found - the copy put the source back itself: found
+# running, running again; the report says whether it had to.
+if ($Report.Stopped) {
+    Write-Host "'$SourceDistro' is running again." -ForegroundColor (Get-MessageColour success)
+} else {
+    Write-Host "'$SourceDistro' is left stopped." -ForegroundColor (Get-MessageColour muted)
 }
+Write-Host ""

@@ -20,11 +20,11 @@ $ErrorActionPreference = "Stop"
 $Root = $Manager.InstancesRoot
 
 # 1. Which instance
-$Distro = Select-Distro
+$Distro = Select-Distro -Manager $Manager
 if (-not $Distro) { Stop-Cancelled }
 $DistroName = $Distro.Name
 
-$BeforeBytes = Get-VhdxSize $Distro.Path
+$BeforeBytes = $Distro.DiskBytes()
 
 Write-Host ""
 Write-Host "==> Reclaiming space in '$DistroName'" -ForegroundColor (Get-MessageColour info)
@@ -47,7 +47,7 @@ if (-not (Confirm-YesNo "Archive it first?")) {
     }
     try {
         Write-Host "==> Creating safety archive..." -ForegroundColor (Get-MessageColour info)
-        $null = $Manager.Archive($Distro, $DistroName, "tar.gz")
+        $null = $Manager.Archive($Distro, $DistroName, "tar.gz", $true)
     } catch {
         Write-Host ""
         Write-Host "[ABORT] The archive did not complete - nothing was compacted: $($_.Exception.Message)" -ForegroundColor (Get-MessageColour error)

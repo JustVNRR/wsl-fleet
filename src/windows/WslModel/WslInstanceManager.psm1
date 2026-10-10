@@ -160,14 +160,15 @@ class WslInstanceManager {
     [void] Refresh() {
         $this.Instances = @()
         $this.ForgottenFolders = @()
-        $knownNames = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
         $registeredPaths = @()
 
-        # 1. The distributions registered in the Windows registry. Their state
-        # comes from one batched question - wsl --list says what runs, about
-        # everyone at once - not from one wsl.exe per instance.
+        # 1. The distributions registered in the Windows registry - ours only:
+        # the marker vouches for them, so the held list never shows a distro
+        # this template did not make. Their state comes from one batched
+        # question - wsl --list says what runs, about everyone at once - not
+        # from one wsl.exe per instance.
         $Running = Get-DistroNames -Running
-        foreach ($inst in [WslInstance]::GetAll()) {
+        foreach ($inst in @([WslInstance]::GetAll() | Where-Object { Test-TemplateInstance -Folder $_.Path })) {
             $inst.RefreshArchiveStatus()
             if ($Running -contains $inst.Name) {
                 $inst.State = [WslState]::Running
@@ -176,28 +177,27 @@ class WslInstanceManager {
             }
             $this.Instances += $inst
             $registeredPaths += $inst.Path
-            $null = $knownNames.Add($inst.Name)
         }
 
-        # 2. The archives with no registered distribution left: an instance
-        # that lives only as a folder under <root>\archives - the tar inside,
-        # and the look beside it.
+        # 2. Every archive on disk, its name registered or not: an instance
+        # at rest - the tar inside its folder, and the look beside it. A
+        # same-named archive and live instance sit in the list together, so
+        # the pair reads at a glance; the live one comes first. The row
+        # takes shape, then answers whether it is a real archive - a folder
+        # without a tar is not shown.
         if (Test-Path $this.ArchivesRoot) {
             foreach ($archiveDir in (Get-ChildItem -Path $this.ArchivesRoot -Directory | Sort-Object Name)) {
-                $tar = Get-ChildItem -Path $archiveDir.FullName -Filter "*.tar*" -File |
-                    Sort-Object LastWriteTime -Descending | Select-Object -First 1
-                if (-not $tar) { continue }
-                if ($knownNames.Contains($archiveDir.Name)) { continue }
-
                 $archivedInst = [WslInstance]::new()
-                $archivedInst.Name = $archiveDir.Name
+                # A folder whose name the class refuses is left out of the
+                # list - the name rule lives on the class.
+                try { $archivedInst.SetName($archiveDir.Name) } catch { continue }
                 $archivedInst.Path = Join-Path $this.InstancesRoot $archiveDir.Name
                 $archivedInst.HasArchive = $true
                 $archivedInst.ArchivePath = $archiveDir.FullName
                 $archivedInst.State = [WslState]::Archived
+                if (-not $archivedInst.ArchiveTar()) { continue }
 
                 $this.Instances += $archivedInst
-                $null = $knownNames.Add($archiveDir.Name)
             }
         }
 
@@ -216,26 +216,12 @@ class WslInstanceManager {
     # LOOKUP & VALIDATION - WHAT THE QUESTIONS ARE BUILT ON
     # =========================================================================
 
-    # What the commands call "ours": registered, carrying the marker, by name -
-    # the filter every list applies before showing anything. Their state comes
-    # along, from one batched question - wsl.exe says what runs, about
-    # everyone at once - so a caller never has to ask a second time.
-    static [WslInstance[]] Ours() {
-        $Running = Get-DistroNames -Running
-        $ours = @([WslInstance]::GetAll() | Where-Object { Test-TemplateInstance -Folder $_.Path })
-        foreach ($instance in $ours) {
-            if ($Running -contains $instance.Name) {
-                $instance.State = [WslState]::Running
-            } else {
-                $instance.State = [WslState]::Stopped
-            }
-        }
-        return @($ours | Sort-Object Name)
-    }
-
-    # The ones a question can offer: all of ours, running or stopped.
-    [WslInstance[]] OursHere() {
-        return @([WslInstanceManager]::Ours())
+    # The ones a question can offer: ours, running or stopped - the part of
+    # the held list that is not an archive row, by name like every list this
+    # fleet ever showed. As fresh as the last Refresh: a caller that needs it
+    # fresher says so first.
+    [WslInstance[]] WslRegisteredInstances() {
+        return @($this.Instances | Where-Object { $_.State -ne [WslState]::Archived } | Sort-Object Name)
     }
 
     [WslInstance] FindByName([string]$name) {
@@ -246,10 +232,10 @@ class WslInstanceManager {
         return $null -eq $this.FindByName($name)
     }
 
-    # The name rule every command applies: letters, digits, '.', '_' and '-',
-    # starting with a letter or a digit.
+    # The name rule - asked of the class that owns it, the instance. The
+    # callers ask before doing anything; the setter is the last door.
     [bool] IsNameUsable([string]$name) {
-        return [bool]("$name" -match '^[A-Za-z0-9][A-Za-z0-9_.-]*$')
+        return [WslInstance]::IsNameUsable($name)
     }
 
     [bool] IsPathOccupied([string]$path) {
@@ -326,21 +312,41 @@ class WslInstanceManager {
         return [PSCustomObject]@{ DiskBytes = $DiskBytes; NeededBytes = $NeededBytes; FreeBytes = $FreeBytes; DriveLetter = $DriveLetter; InstallPath = $InstallPath }
     }
 
+    # Docker Desktop's answer an archive carries, read from the file beside
+    # its tar - the fact a conversation checks before deciding on the Docker
+    # question. "" when the archive carries no file.
+    [string] ArchiveDocker([string]$ArchiveDir) {
+        $Archive = Get-ArchiveInstance -Folder $ArchiveDir
+        if (-not $Archive) { return "" }
+        return "$($Archive.Docker)"
+    }
+
+    # Docker Desktop's answer about one instance, live - the source of a copy
+    # carries the answer its recipe captured.
+    [string] DockerStateOf([WslInstance]$Instance) {
+        return (Get-DockerState -Name $Instance.Name)
+    }
+
+    # Whether the Docker question is worth asking at all: Docker knew the
+    # original, and does not know this name yet. The conversation asks it
+    # before the work, the setup re-checks it before acting - one rule.
+    [bool] DockerQuestionDue([string]$Carried, [string]$Name) {
+        return (Test-DockerQuestionDue -Carried $Carried -Name $Name)
+    }
+
     # =========================================================================
     # THE MENU'S COMMANDS - ONE METHOD EACH, ENGINE SIDE
     # =========================================================================
 
     # list - the fleet as it is: ours, the archives on disk, the folders left
-    # behind. Read-only, so it can run at any moment.
+    # behind. Read-only, so it can run at any moment. The archive rows are
+    # the fleet's own - Refresh dressed them - most recent first, the same
+    # rows every surface reads.
     [object] List() {
-        $Archives = @()
-        if (Test-Path $this.ArchivesRoot) {
-            $Archives = @(Get-ChildItem -Path $this.ArchivesRoot -Directory |
-                Where-Object { (Get-ChildItem -Path $_.FullName -Filter "*.tar*" -File).Count -gt 0 } |
-                Sort-Object LastWriteTime -Descending)
-        }
+        $Archives = @($this.Instances | Where-Object { $_.State -eq [WslState]::Archived } |
+            Sort-Object { $_.ArchivedOn() } -Descending)
         return [PSCustomObject]@{
-            Instances = @($this.OursHere())
+            Instances = @($this.WslRegisteredInstances())
             Archives  = $Archives
             Forgotten = @($this.ForgottenFolders)
         }
@@ -550,7 +556,7 @@ class WslInstanceManager {
             # stops here, and the sentence says nothing of the instance was
             # touched - the old command said as much before it handed over.
             try {
-                $ArchiveReport = $this.Archive($Instance, $Instance.Name, "tar.gz")
+                $ArchiveReport = $this.Archive($Instance, $Instance.Name, "tar.gz", $true)
             } catch {
                 throw "The archive did not complete - nothing was destroyed. $($_.Exception.Message)"
             }
@@ -560,31 +566,67 @@ class WslInstanceManager {
         return [PSCustomObject]@{ Archive = $ArchiveReport; Removed = $Removed }
     }
 
+    # Where an archive of that name lives - the one place that spells it.
+    [string] ArchiveDirFor([string]$Name) {
+        return [System.IO.Path]::GetFullPath((Join-Path $this.ArchivesRoot $Name))
+    }
+
+    # The name is taken already, the caller says so and the archive replaces.
+    [bool] HasArchive([string]$Name) {
+        return (Test-Path $this.ArchiveDirFor($Name))
+    }
+
+    # The first free name an archive can take: the instance's own, or the
+    # next numbered suffix while it is taken.
+    [string] ProposeArchiveName([string]$Name) {
+        $Proposal = $Name
+        $Suffix = 0
+        while (Test-Path $this.ArchiveDirFor($Proposal)) {
+            $Suffix++
+            $Proposal = "$Name-$Suffix"
+        }
+        return $Proposal
+    }
+
+    # What an archive of that name would cost before it is made: the disk's
+    # size and the free room on the target's drive. The copy's plan
+    # (DuplicationCost) reads the same way.
+    [object] ArchiveCost([WslInstance]$Instance, [string]$Name, [string]$Format) {
+        $DiskBytes = $Instance.DiskBytes()
+        $Destination = Join-Path $this.ArchiveDirFor($Name) "$Name.$Format"
+        $FreeBytes = (Get-PSDrive -Name (Split-Path -Qualifier $Destination).TrimEnd(':')).Free
+        return [PSCustomObject]@{ DiskBytes = $DiskBytes; FreeBytes = $FreeBytes; Destination = $Destination }
+    }
+
     # archive - the copy on disk: the export, then the look beside the tar (a
     # partial archive is removed inside the instance's own Archive - left on
-    # disk it would look exactly like a backup later on). Stopping the
-    # instance first, when it runs, is the interface's question; what becomes
-    # of it after is the interface's choice.
-    [object] Archive([WslInstance]$Instance, [string]$Name, [string]$Format) {
+    # disk it would look exactly like a backup later on). The instance's own
+    # gesture stops it for the export and puts it back, when the caller
+    # permits and its state asks for it; the report carries what it had to do.
+    [object] Archive([WslInstance]$Instance, [string]$Name, [string]$Format, [bool]$MayStop) {
         if (-not (Test-Path -Path $this.ArchivesRoot)) {
             New-Item -ItemType Directory -Path $this.ArchivesRoot -Force | Out-Null
         }
 
-        $ArchiveDir = [System.IO.Path]::GetFullPath((Join-Path $this.ArchivesRoot $Name))
+        $ArchiveDir = $this.ArchiveDirFor($Name)
         $Destination = Join-Path $ArchiveDir "$Name.$Format"
 
-        $null = $Instance.Archive($Name, $Format)
+        $Written = $Instance.Archive($Name, $Format, $MayStop, $ArchiveDir)
         $Archive = Get-Item -Path $Destination
         $Look = $Instance.ArchiveLook($ArchiveDir)
 
-        return [PSCustomObject]@{ Name = $Name; ArchiveDir = $ArchiveDir; Destination = $Destination; Archive = $Archive; Look = $Look }
+        return [PSCustomObject]@{ Name = $Name; ArchiveDir = $ArchiveDir; Destination = $Destination; Archive = $Archive; Look = $Look; Stopped = $Written.Stopped }
     }
 
     # restore - an archive back on its feet, under a name of its own. The tar
     # does not carry the look; it sits next to it, and State re-applies it.
     # Version 2, like build: a tar does not carry the version it came from,
-    # and WSL 1 is not what this repository builds.
-    [WslInstance] RestoreFromArchive([string]$ArchiveDir, [string]$Name, [bool]$Headless) {
+    # and WSL 1 is not what this repository builds. AddDocker is the callers'
+    # word on Docker's entry - the window's hidden job has nobody to ask and
+    # passes false. The report carries the instance - in the inventory by now
+    # - the setup's own report for the screens, and Docker's answer about it
+    # for the endings.
+    [object] RestoreFromArchive([string]$ArchiveDir, [string]$Name, [bool]$AddDocker) {
         if (-not $this.IsNameUsable($Name)) {
             throw "'$Name' is not usable as an instance name (letters, digits, '.', '_' and '-' only)."
         }
@@ -601,15 +643,16 @@ class WslInstanceManager {
             throw "A folder with that name already exists: $InstallPath"
         }
 
+        # The newborn itself is not kept: the report below reads the FRESH
+        # row, after the look and the refresh - state and recipe off the disk.
         $null = [WslInstance]::Restore($ArchiveDir, $Name, $InstallPath)
 
         # The look and Docker's entry, which a tar carries neither of - the
-        # marker was written by Restore, right after the import. Headless
-        # rides along: a caller with no console to answer Docker's question
-        # in (the window's hidden job) has it left alone, said in its report.
-        Set-InstanceState -Name $Name -InstallPath $InstallPath -Folder $ArchiveDir -Headless $Headless
+        # marker was written by Restore, right after the import. The setup
+        # acts the word and reports what it did.
+        $Setup = Set-InstanceState -Name $Name -InstallPath $InstallPath -Folder $ArchiveDir -AddDocker $AddDocker
         $this.Refresh()
-        return $this.FindByName($Name)
+        return [PSCustomObject]@{ Instance = $this.FindByName($Name); Docker = $Setup.DockerState; Setup = $Setup }
     }
 
     # delete_archive - the folder and everything in it, gone for good: the
@@ -636,15 +679,26 @@ class WslInstanceManager {
     }
 
     # duplicate - the source is only read; the copy lands under a name of its
-    # own, with the look captured before the export and re-applied after.
-    # Stopping the source first, and starting it again after, is the
-    # interface's doing: it is the one that asked the question.
-    [object] Duplicate([WslInstance]$Instance, [string]$Name, [bool]$Headless) {
+    # own, with the look captured before the export and re-applied after. The
+    # room comes first, before anything moves: the copy reads the instance
+    # into an archive and unpacks it into the new folder at the same time -
+    # twice the disk is the peak - and the refusal is spelled here, once, for
+    # both roads. The stopping is the instance's own gesture (it goes down for
+    # a still disk and comes back up when it went down for the copy), its
+    # report saying whether it had to.
+    [object] Duplicate([WslInstance]$Instance, [string]$Name, [bool]$AddDocker) {
         if (-not $this.IsNameUsable($Name)) {
             throw "'$Name' is not usable as an instance name (letters, digits, '.', '_' and '-' only)."
         }
         if (-not $this.IsNameAvailable($Name)) {
             throw "An instance named '$Name' already exists."
+        }
+
+        # The room, before the stop and the export: the check reads the disk
+        # and the free space, no stop needed.
+        $Cost = $this.DuplicationCost($Instance, $Name)
+        if ($Cost.FreeBytes -lt $Cost.NeededBytes) {
+            throw ("Not enough room on {0}: needed {1}, free {2}." -f $Cost.DriveLetter, (Format-Size $Cost.NeededBytes), (Format-Size $Cost.FreeBytes))
         }
 
         $FullDestination = [System.IO.Path]::GetFullPath((Join-Path $this.InstancesRoot $Name))
@@ -662,12 +716,15 @@ class WslInstanceManager {
 
         # The copy has its own profile and its own guid: the look is re-applied
         # from the values captured before the export - Docker's entry too,
-        # keyed by name, and Headless like the restore's: a hidden job cannot
-        # answer Docker's question, so it is not asked there.
-        Set-InstanceState -Name $Name -InstallPath $FullDestination -Recipe $Copy.Recipe -Docker $Copy.Docker -Headless $Headless
+        # keyed by name. AddDocker is the callers' word (the window's hidden
+        # job passes false); the setup acts it and reports.
+        $Setup = Set-InstanceState -Name $Name -InstallPath $FullDestination -Recipe $Copy.Recipe -Docker $Copy.Docker -AddDocker $AddDocker
         $this.Refresh()
 
-        return [PSCustomObject]@{ Instance = $this.FindByName($Name); InstallPath = $FullDestination; CopyBytes = $CopyBytes }
+        # The report carries what the endings say: whether the source went
+        # down and back up for the copy, the setup's own report for the
+        # screens, and Docker's answer about it.
+        return [PSCustomObject]@{ Instance = $this.FindByName($Name); InstallPath = $FullDestination; CopyBytes = $CopyBytes; Stopped = $Copy.Stopped; Docker = $Setup.DockerState; Setup = $Setup }
     }
 
     # shrink - the compact, in place, working on a running instance; it

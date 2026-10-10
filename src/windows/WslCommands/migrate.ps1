@@ -60,7 +60,7 @@ try {
 # is the folder that moves. A fleet of zero is fine: the archives travel all
 # the same, and with nothing at all the switch still happens - a target can
 # be chosen before anything is built.
-$Fleet = @([WslInstanceManager]::Ours() |
+$Fleet = @($Manager.WslRegisteredInstances() |
     Where-Object { (Split-Path -Path $_.Path -Parent).TrimEnd('\') -eq $SourceBase.TrimEnd('\') } |
     Sort-Object Name)
 if ($Fleet.Count -eq 0) {

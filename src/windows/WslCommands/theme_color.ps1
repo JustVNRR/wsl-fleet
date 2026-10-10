@@ -39,7 +39,7 @@ if ($HandedOver) {
         exit 1
     }
 } else {
-    $Distro = Select-Distro
+    $Distro = Select-Distro -Manager $Manager
     $DistroName = $Distro.Name
 }
 

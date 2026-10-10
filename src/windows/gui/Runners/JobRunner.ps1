@@ -23,11 +23,11 @@ try {
     if ($Verb -eq "restore") {
         # No instance to find: the row was an archive. -ArchiveFirst carries
         # the archive folder here, and -Name the name the new instance takes.
-        # Headless: this job has no window to answer Docker's question in - it
-        # is never asked here, Docker is left alone, and the ending says so.
+        # Nobody asks here - the job is hidden - so the Docker word rides
+        # false: the entry is left alone, and the ending says so.
         Write-Stamp "restoring"
-        $r = $mgr.RestoreFromArchive($ArchiveFirst, $Name, $true)
-        $docker = if ("$($r.Recipe.Look.Docker)" -eq "yes") { " - Docker Desktop not touched (no window to answer its question)" } else { "" }
+        $r = $mgr.RestoreFromArchive($ArchiveFirst, $Name, $false)
+        $docker = if ("$($r.Docker)" -eq "no") { " - Docker Desktop: not added (add it in its settings if needed)" } else { "" }
         Write-Stamp ("RESULT OK " + $Name + ": restored from '" + (Split-Path $ArchiveFirst -Leaf) + "'" + $docker)
     } elseif ($Verb -eq "delete") {
         # No instance to find here either: the archive's own folder goes.
@@ -35,67 +35,38 @@ try {
         $r = $mgr.DeleteArchive($Name)
         Write-Stamp ("RESULT OK " + $Name + ": archive deleted - " + [math]::Round($r.Freed / 1MB, 1) + " MB freed")
     } else {
-        $inst = @($mgr.OursHere()) | Where-Object { $_.Name -eq $Name } | Select-Object -First 1
+        $inst = @($mgr.WslRegisteredInstances()) | Where-Object { $_.Name -eq $Name } | Select-Object -First 1
         Write-Stamp "list read: $([bool]$inst)"
         if (-not $inst) { throw "'$Name' is not in our list any more." }
 
         if ($Verb -eq "archive") {
-            # The export reads a still disk: a running instance is stopped for
-            # it and started again after - the console's own manners. The
-            # state is compared by name: no class literal resolves here (the
-            # module came in through Import-Module).
+            # The instance's own gesture: it stops itself for the export and
+            # comes back up - the permit below is the row's policy, it asks
+            # nobody - and the report says whether it had to.
             Write-Stamp "archiving"
-            $wasRunning = ("$($inst.State)" -eq "Running")
-            if ($wasRunning) {
-                $inst.Stop()
-                Write-Stamp "stopped for a consistent export"
-            }
-            $r = $mgr.Archive($inst, $ArchiveFirst, "tar.gz")
-            if ($wasRunning) {
-                $inst.Start()
-                Write-Stamp "started again"
-            }
+            $r = $mgr.Archive($inst, $ArchiveFirst, "tar.gz", $true)
             Write-Stamp ("RESULT OK " + $Name + ": archived as '" + $ArchiveFirst + "' (" + [math]::Round($r.Archive.Length / 1MB, 1) + " MB)")
         } elseif ($Verb -eq "duplicate") {
-            # -ArchiveFirst carries the copy's name here. The source is
-            # stopped for a consistent read - and started again whatever the
-            # outcome, where the console would leave it down on a refusal.
+            # -ArchiveFirst carries the copy's name here. The engine's own
+            # gesture: it refuses when the room is short, before anything
+            # moves, and the instance stops itself for a consistent read and
+            # comes back up when it went down for the copy - whatever the
+            # outcome. The Docker word rides false: nobody asks in a hidden
+            # job.
             Write-Stamp "duplicating"
-            $wasRunning = ("$($inst.State)" -eq "Running")
-            if ($wasRunning) {
-                $inst.Stop()
-                Write-Stamp "stopped for a consistent read"
-            }
-            $cost = $mgr.DuplicationCost($inst, $ArchiveFirst)
-            if ($cost.FreeBytes -lt $cost.NeededBytes) {
-                if ($wasRunning) { $inst.Start() }
-                throw ("Not enough room on {0}: needed {1}, free {2}." -f $cost.DriveLetter, (Format-Size $cost.NeededBytes), (Format-Size $cost.FreeBytes))
-            }
-            Write-Stamp "copying"
-            $r = $mgr.Duplicate($inst, $ArchiveFirst, $true)
-            if ($wasRunning) {
-                $inst.Start()
-                Write-Stamp "started again"
-            }
-            $docker = if ("$($r.Instance.Recipe.Look.Docker)" -eq "yes") { " - Docker Desktop not touched (no window to answer its question)" } else { "" }
+            $r = $mgr.Duplicate($inst, $ArchiveFirst, $false)
+            if ($r.Stopped) { Write-Stamp "stopped for a consistent read, started again" }
+            $docker = if ("$($r.Docker)" -eq "no") { " - Docker Desktop: not added (add it in its settings if needed)" } else { "" }
             Write-Stamp ("RESULT OK " + $ArchiveFirst + ": duplicated from '" + $Name + "'" + $docker)
         } elseif ($Verb -eq "compact") {
             # The gate may have asked for the archive first: the copy is
             # written before the disk is touched, under the instance's own
-            # name - the removal's convention - with the archive road's
-            # stop/start around the export.
+            # name - the removal's convention - with the archive road's own
+            # stop/start inside the export (the permit below is the row's
+            # policy, it asks nobody).
             if ([bool]::Parse($ArchiveFirst)) {
                 Write-Stamp "archiving first"
-                $wasRunning = ("$($inst.State)" -eq "Running")
-                if ($wasRunning) {
-                    $inst.Stop()
-                    Write-Stamp "stopped for a consistent export"
-                }
-                $a = $mgr.Archive($inst, $Name, "tar.gz")
-                if ($wasRunning) {
-                    $inst.Start()
-                    Write-Stamp "started again"
-                }
+                $a = $mgr.Archive($inst, $Name, "tar.gz", $true)
                 Write-Stamp ("RESULT OK " + $Name + ": archived as '" + $Name + "' (" + [math]::Round($a.Archive.Length / 1MB, 1) + " MB)")
             }
             Write-Stamp "compacting"

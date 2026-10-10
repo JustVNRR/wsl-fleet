@@ -36,13 +36,15 @@ $LoadFleet = {
     try {
         $rows = @()
 
-        # The manager's own list - the same the console doors show.
-        $instances = @($Manager.OursHere())
+        # The manager's own list, refreshed first - the same the console
+        # doors show, at the freshness every load needs.
+        $Manager.Refresh()
+        $instances = @($Manager.WslRegisteredInstances())
         foreach ($inst in $instances) {
             $isRunning = ($inst.State -eq [WslState]::Running)
             # The disk's size, the way the console's lists read it: the folder
             # holds ext4.vhdx, and Format-Size spells the bytes.
-            $sizeStr = Format-Size (Get-VhdxSize $inst.Path)
+            $sizeStr = Format-Size ($inst.DiskBytes())
 
             $rows += [PSCustomObject]@{
                 Name     = $inst.Name
@@ -52,29 +54,18 @@ $LoadFleet = {
             }
         }
 
-        # Then every archive on disk - the manager's live read, the way the
-        # console's list shows them. A same-named archive and instance sit in
-        # the list together, so the pair reads at a glance. The size shown is
-        # the tar's where an instance shows its vhdx; the instance built here
-        # is the archive's own shape: the folder it would take back, the tar
-        # it holds.
+        # Then every archive on disk - the engine's own rows, dressed with
+        # the folder, the tar and the state, the way the console's list shows
+        # them. A same-named archive and instance sit in the list together,
+        # so the pair reads at a glance. The size is the row's own answer,
+        # like an instance's vhdx - one column, both kinds.
         $archives = @($Manager.List().Archives)
         foreach ($archive in $archives) {
-            $tar = Get-ChildItem -Path $archive.FullName -Filter "*.tar*" -File |
-                Sort-Object LastWriteTime -Descending | Select-Object -First 1
-
-            $archivedInst = [WslInstance]::new()
-            $archivedInst.Name = $archive.Name
-            $archivedInst.Path = Join-Path $Manager.InstancesRoot $archive.Name
-            $archivedInst.HasArchive = $true
-            $archivedInst.ArchivePath = $archive.FullName
-            $archivedInst.State = [WslState]::Archived
-
             $rows += [PSCustomObject]@{
                 Name     = $archive.Name
                 Status   = "Archived"
-                Size     = Format-Size $tar.Length
-                Instance = $archivedInst
+                Size     = Format-Size ($archive.DiskBytes())
+                Instance = $archive
             }
         }
 
@@ -165,23 +156,11 @@ $RowAction = [System.Windows.RoutedEventHandler]{
     $inst = $row.Instance
 
     if ($button.Name -eq "BtnRowRestore") {
-        # The name first - the archive's own, prefilled - then the console's
-        # guards, said here instead of coming back through the trail as a
-        # failed import.
+        # The name first - the archive's own, prefilled - nothing else: the
+        # model's own doors refuse what cannot be (a name taken, a folder in
+        # the way), and the refusal comes back through the trail.
         $name = Show-RestorePrompt $inst.Name
         if (-not $name) { return }
-        if (-not $Manager.IsNameUsable($name)) {
-            & $SetStatus "'$name' is not usable as an instance name (letters, digits, '.', '_' and '-' only)." -Alert
-            return
-        }
-        if ((Get-DistroNames) -contains $name) {
-            & $SetStatus "An instance named '$name' is already registered." -Alert
-            return
-        }
-        if (Test-Path (Join-Path $Manager.InstancesRoot $name)) {
-            & $SetStatus "An install folder named '$name' already exists." -Alert
-            return
-        }
         & $MarkRow $button
         & $SetBusyState $true "Restoring '$($inst.Name)' as '$name'..."
         & $LaunchJob "restore" $name "$($inst.ArchivePath)"

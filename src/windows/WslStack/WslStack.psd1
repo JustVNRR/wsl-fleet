@@ -55,6 +55,8 @@
         'Get-InstanceAppearance'
         'ConvertTo-WslTheme'
         'Set-InstanceState'
+        'Get-ArchiveInstance'
+        'Test-DockerQuestionDue'
         'Get-DockerState'
         'Set-DockerState'
         'Export-DockerRootfs'

@@ -13,6 +13,8 @@ using module .\WslRecipe.psm1
 using module .\WslPack.psm1
 
 class WslInstance {
+    # The name: read everywhere, written through SetName - the class's own
+    # door, which carries the rule.
     [string]$Name
     [string]$Path
     [string]$DefaultUser
@@ -39,6 +41,17 @@ class WslInstance {
     # never by a constructor that asks wsl.exe for the state - that question
     # belongs to the callers that actually need it (RefreshState).
     WslInstance() {}
+
+    # Writing the name - the door of the rule. A PowerShell class has no
+    # property setters (measured: an accessor block does not parse), so the
+    # setter is its own method, and every write in the repository goes
+    # through it. The rule itself: [WslInstance]::IsNameUsable, one regex.
+    [void] SetName([string]$name) {
+        if (-not [WslInstance]::IsNameUsable($name)) {
+            throw "'$name' is not usable as an instance name (letters, digits, '.', '_' and '-' only)."
+        }
+        $this.Name = $name
+    }
 
     # The instance as a block of lines, its look and its packs included -
     # whose description is the theme's own. Whoever shows it decides where
@@ -130,6 +143,33 @@ class WslInstance {
         return $Process.ExitCode
     }
 
+    # The tar this archive holds - the newest *.tar* in its folder. The one
+    # spell of the recipe: the import, the lists and the sizes all read
+    # here. $null when the folder holds none.
+    [object] ArchiveTar() {
+        if (-not $this.ArchivePath) { return $null }
+        return (Get-ChildItem -Path $this.ArchivePath -Filter "*.tar*" -File -ErrorAction SilentlyContinue |
+            Sort-Object LastWriteTime -Descending | Select-Object -First 1)
+    }
+
+    # When the archive was last written - the folder's own date, the one the
+    # lists show beside the size.
+    [object] ArchivedOn() {
+        if (-not $this.ArchivePath -or -not (Test-Path $this.ArchivePath)) { return $null }
+        return (Get-Item $this.ArchivePath).LastWriteTime
+    }
+
+    # What it weighs on disk, in bytes: its vhdx for a registered one, its
+    # tar for an archive - the list column reads the same answer for both.
+    [long] DiskBytes() {
+        if ($this.State -eq [WslState]::Archived) {
+            $Tar = $this.ArchiveTar()
+            if ($Tar) { return [long]$Tar.Length }
+            return 0
+        }
+        return (Get-VhdxSize $this.Path)
+    }
+
     # Opens the instance's Terminal profile in a window of its own - the look
     # the profile carries comes with it: icon, name, colours, font. The
     # profile is the one WSL registered under the instance's name, so the
@@ -202,14 +242,23 @@ class WslInstance {
     # Copies the instance under another name: the export to a temporary tar,
     # the import at THIS instance's version, the marker, and a fresh capture
     # of the recipe - look and Docker's answer - for the caller to re-apply
-    # once the copy exists. The caller stops the source first - stopping is a
-    # decision, and decisions belong to the commands. Returns the copy's
-    # folder, that recipe and that answer.
+    # once the copy exists. The export reads a still disk, so a running
+    # instance stops itself for it and starts again after, whatever the
+    # export did - the stopping's word was gathered by whoever asked. The
+    # room the copy needs was checked before, by the manager the gesture is
+    # commanded through. Returns the copy's folder, that recipe, that answer,
+    # and whether the stopping was ours.
     [PSCustomObject] Duplicate([string]$newName) {
         # What Windows shows now, captured before the export; the icon's
         # recipe rides along (KeepIconRecipe).
         $this.Recipe.Look = $this.KeepIconRecipe((Get-InstanceAppearance -Name $this.Name))
         $Docker = Get-DockerState -Name $this.Name
+
+        $stopped = $false
+        if ((Get-DistroNames -Running) -contains $this.Name) {
+            $this.Stop()
+            $stopped = $true
+        }
 
         $targetRoot = Split-Path $this.Path -Parent
         $newPath = Join-Path $targetRoot $newName
@@ -219,47 +268,70 @@ class WslInstance {
             Invoke-External { wsl.exe --export $this.Name $tempTar --format tar.gz } "The export failed."
             # The copy is imported as the version of its source.
             Invoke-External { wsl.exe --import $newName $newPath $tempTar --version $this.Version } "The import failed."
+
+            # Ours from here on, whatever happens next.
+            New-InstanceMarker -Folder $newPath -By "duplicate"
+            return [PSCustomObject]@{ Path = $newPath; Recipe = $this.Recipe; Docker = $Docker; Stopped = $stopped }
         } finally {
+            # The temporary image goes in all cases - it is worth twice the
+            # disk - and the source, found running, is put back running.
             if (Test-Path $tempTar) {
                 Remove-Item -Path $tempTar -Force -ErrorAction SilentlyContinue
             }
+            if ($stopped) { $this.Start() }
         }
-
-        # Ours from here on, whatever happens next.
-        New-InstanceMarker -Folder $newPath -By "duplicate"
-        return [PSCustomObject]@{ Path = $newPath; Recipe = $this.Recipe; Docker = $Docker }
     }
 
-    # Writes the instance to <root>\archives\<name>: the tar
+    # Writes the instance to the folder the caller says - the tar
     # (<name>.<format>). The look follows with ArchiveLook - a tar carries
-    # neither the icon nor the colours - and the caller stops the instance
-    # first: stopping is a decision, and decisions belong to the commands.
-    # Returns the archive folder. Two signatures because a class method takes
-    # no default: the one-argument call is the ordinary tar.gz.
+    # neither the icon nor the colours. The export reads a still disk, so a
+    # running instance is stopped for it - only when the caller permits, the
+    # answer to the one question the stopping deserves (whatever was not
+    # saved is lost) - and started again after, when the stopping was ours
+    # to do. The report says what happened: the archive folder, and whether
+    # the instance went down and back up. Two signatures because a class
+    # method takes no default: one argument is the ordinary tar.gz, under
+    # the instance's own root - spelled here once, for the removal that
+    # archives before it destroys; the full call is told its folder.
     [string] Archive([string]$name) {
-        return $this.Archive($name, "tar.gz")
+        $folder = Join-Path (Split-Path $this.Path -Parent) "archives\$name"
+        $report = $this.Archive($name, "tar.gz", $true, $folder)
+        return $report.Path
     }
 
-    [string] Archive([string]$name, [string]$format) {
-        $archiveDir = Join-Path (Split-Path $this.Path -Parent) "archives\$name"
-        if (-not (Test-Path $archiveDir)) {
-            New-Item -ItemType Directory -Path $archiveDir -Force | Out-Null
-        }
-
-        $archiveFile = Join-Path $archiveDir "$name.$format"
-        try {
-            Invoke-External { wsl.exe --export $this.Name $archiveFile --format $format } "The export failed."
-        } catch {
-            # A partial archive left on disk would look like a backup later.
-            if (Test-Path $archiveFile) {
-                Remove-Item -Path $archiveFile -Force -ErrorAction SilentlyContinue
+    [object] Archive([string]$name, [string]$format, [bool]$mayStop, [string]$folder) {
+        $stopped = $false
+        if ((Get-DistroNames -Running) -contains $this.Name) {
+            if (-not $mayStop) {
+                throw "'$($this.Name)' is running, and stopping it was not allowed: an archive reads a still disk."
             }
-            throw
+            $this.Stop()
+            $stopped = $true
         }
+        try {
+            $archiveDir = $folder
+            if (-not (Test-Path $archiveDir)) {
+                New-Item -ItemType Directory -Path $archiveDir -Force | Out-Null
+            }
 
-        $this.HasArchive  = $true
-        $this.ArchivePath = $archiveDir
-        return $archiveDir
+            $archiveFile = Join-Path $archiveDir "$name.$format"
+            try {
+                Invoke-External { wsl.exe --export $this.Name $archiveFile --format $format } "The export failed."
+            } catch {
+                # A partial archive left on disk would look like a backup later.
+                if (Test-Path $archiveFile) {
+                    Remove-Item -Path $archiveFile -Force -ErrorAction SilentlyContinue
+                }
+                throw
+            }
+
+            $this.HasArchive  = $true
+            $this.ArchivePath = $archiveDir
+            return [PSCustomObject]@{ Path = $archiveDir; Stopped = $stopped }
+        } finally {
+            # Found running, put back running - whatever the export did.
+            if ($stopped) { $this.Start() }
+        }
     }
 
     # The other half of an archive: what Windows knows about the instance,
@@ -738,6 +810,12 @@ class WslInstance {
     # STATIC METHODS: Factory, Restore & Queries
     # =========================================================================
 
+    # The rule of names - one regex, asked by the setter above and by the
+    # callers that want the answer without writing anything.
+    static [bool] IsNameUsable([string]$name) {
+        return [bool]("$name" -match '^[A-Za-z0-9][A-Za-z0-9_.-]*$')
+    }
+
     # The birth, from the recipe to a complete instance: the image is made
     # (the recipe's own move), exported as a rootfs tar, imported, the
     # recipe's onboarding placed and run, the look applied, and the working
@@ -780,7 +858,7 @@ class WslInstance {
         New-InstanceMarker -Folder $installPath -By "build"
 
         $instance = [WslInstance]::new()
-        $instance.Name        = $name
+        $instance.SetName($name)
         $instance.Path        = $installPath
         $instance.DefaultUser = $user
         $instance.Recipe      = $recipe
@@ -864,14 +942,20 @@ class WslInstance {
         return $instance
     }
 
-    # From an archive folder: the tar inside it is the one to import (the
-    # newest *.tar*), and the marker lands right after - before the look,
-    # which the caller re-applies from the instance.json beside the tar. A tar
-    # does not carry the version it came from, and WSL 1 is not what this
+    # From an archive folder: the instance takes shape first - its name, its
+    # folder, its archive - asks ITS OWN tar reader (ArchiveTar), and imports
+    # it. The marker lands right after the import - before the look, which
+    # the caller re-applies from the instance.json beside the tar. A tar does
+    # not carry the version it came from, and WSL 1 is not what this
     # repository builds: the import is version 2, like the build's.
     static [WslInstance] Restore([string]$archiveDir, [string]$name, [string]$installPath) {
-        $tar = Get-ChildItem -Path $archiveDir -Filter "*.tar*" -File |
-            Sort-Object LastWriteTime -Descending | Select-Object -First 1
+        $instance = [WslInstance]::new()
+        $instance.SetName($name)
+        $instance.Path        = $installPath
+        $instance.ArchivePath = $archiveDir
+        $instance.DefaultUser = "root"
+
+        $tar = $instance.ArchiveTar()
         if (-not $tar) {
             throw "No tar in the archive folder: $archiveDir"
         }
@@ -880,11 +964,6 @@ class WslInstance {
 
         # Ours from here on, whatever happens next.
         New-InstanceMarker -Folder $installPath -By "restore"
-
-        $instance = [WslInstance]::new()
-        $instance.Name        = $name
-        $instance.Path        = $installPath
-        $instance.DefaultUser = "root"
         return $instance
     }
 
@@ -917,7 +996,10 @@ class WslInstance {
             $props = Get-ItemProperty $key.PSPath
             if ($props.DistributionName) {
                 $instance = [WslInstance]::new()
-                $instance.Name = $props.DistributionName
+                # A name the class refuses (a hand-made registration from
+                # nowhere) is left out: the rule lives on the class, and this
+                # list carries only what it accepts.
+                try { $instance.SetName($props.DistributionName) } catch { continue }
                 $instance.Path = ($props.BasePath -replace '^\\\\\?\\', '').TrimEnd('\')
                 if ($props.Version) { $instance.Version = [int]$props.Version }
                 $instance.Recipe = Get-InstanceRecipe -Name $instance.Name

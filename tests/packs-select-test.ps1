@@ -323,7 +323,7 @@ function Get-InstanceHome { param([string]$DistroName) return "/home/u" }
 # The instance the moves act on: nothing but a name - no folder on disk,
 # so no error log is written, and the home it asks for is the stub's.
 $Inst = [WslInstance]::new()
-$Inst.Name = "test"
+$Inst.SetName("test")
 
 # The fake packs live on a drive letter of their own: the moves read their
 # source through the /mnt road, whose anchor is that letter. A machine that

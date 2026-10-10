@@ -20,7 +20,7 @@ param (
 $ErrorActionPreference = "Stop"
 
 # 1. Which instance
-$Distro = Select-Distro
+$Distro = Select-Distro -Manager $Manager
 if (-not $Distro) { Stop-Cancelled }
 $DistroName = $Distro.Name
 

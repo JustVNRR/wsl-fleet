@@ -618,21 +618,71 @@ function ConvertTo-WslTheme {
     return $Theme
 }
 
+# An archive folder's instance file, parsed and lifted to today's shape - or
+# $null when it carries none (taken before the file existed, or unreadable).
+# The one reader of an archive's file; the setup and the manager's queries
+# both come through here.
+function Get-ArchiveInstance {
+    param([string]$Folder)
+
+    $File = Join-Path $Folder "instance.json"
+    if (-not (Test-Path $File)) { return $null }
+    try { return (ConvertTo-CurrentLookFile (Get-Content $File -Raw | ConvertFrom-Json)) } catch { return $null }
+}
+
+# Whether the Docker question is worth asking: Docker knew the original, and
+# does not know this name yet. The conversations ask it before the work and
+# the setup re-checks it before acting - one rule, both times.
+function Test-DockerQuestionDue {
+    param([string]$Carried, [string]$Name)
+
+    return ($Carried -eq "yes" -and (Get-DockerState -Name $Name) -eq "no")
+}
+
+# The setup's report, born empty: what the callers' screens and the endings
+# read. One shape, so a field added here is a field everywhere.
+function New-SetupReport {
+    param(
+        [bool]$LookApplied = $false,
+        [string]$LookNote = "",
+        [string]$Font = "",
+        [string]$ColorScheme = "",
+        [bool]$FontMissing = $false,
+        [string]$DockerOutcome = "",
+        [string]$DockerError = "",
+        [string]$DockerState = ""
+    )
+
+    return [PSCustomObject]@{
+        LookApplied   = $LookApplied
+        LookNote      = $LookNote
+        Font          = $Font
+        ColorScheme   = $ColorScheme
+        FontMissing   = $FontMissing
+        DockerOutcome = $DockerOutcome
+        DockerError   = $DockerError
+        DockerState   = $DockerState
+    }
+}
+
 # Give an instance back its state of composition: the look applied, and its
 # own file written. From an archive folder, or from a recipe captured a
-# moment ago (the window's copy, the console's duplicate).
+# moment ago (the window's copy, the console's duplicate). Silent and asking
+# nothing: $AddDocker is the word a conversation gathered before - the
+# window's hidden job has nobody to ask and passes false. Returns what it
+# did (New-SetupReport's shape) for the callers' screens.
 function Set-InstanceState {
-    param([string]$Name, [string]$InstallPath, [string]$Folder, [WslRecipe]$Recipe, [string]$Docker, [bool]$Headless)
+    param([string]$Name, [string]$InstallPath, [string]$Folder, [WslRecipe]$Recipe, [string]$Docker, [bool]$AddDocker)
+
+    $LookApplied = $false
 
     if ($Folder) {
-        $File = Join-Path $Folder "instance.json"
-        if (-not (Test-Path $File)) {
-            # An archive taken before this existed carries nothing to re-apply.
-            # Said out loud, because the reports downstream promise a look.
-            Write-Host "  * Look             : the archive carries no instance.json - not re-applied" -ForegroundColor (Get-MessageColour warning)
-            return
+        $Archive = Get-ArchiveInstance -Folder $Folder
+        if (-not $Archive) {
+            # An archive taken before the file existed carries nothing to
+            # re-apply; the caller's screen says so.
+            return (New-SetupReport -LookNote "the archive carries no instance.json - not re-applied")
         }
-        try { $Archive = ConvertTo-CurrentLookFile (Get-Content $File -Raw | ConvertFrom-Json) } catch { return }
         $IconInArchive = Join-Path $Folder "terminal-icon.png"
 
         # The archive is the source: Docker's answer and the recipe, rebuilt
@@ -653,8 +703,7 @@ function Set-InstanceState {
     $Guid = Get-WslProfileGuid -Name $Name
 
     if (-not $Guid) {
-        Write-Host "  * Look             : no WSL fragment for '$Name' yet - not re-applied" -ForegroundColor (Get-MessageColour warning)
-        return
+        return (New-SetupReport -LookNote "no WSL fragment for '$Name' yet - not re-applied")
     }
 
     # A source without a readable look - a file that carried none: what
@@ -676,48 +725,40 @@ function Set-InstanceState {
     Set-InstanceFile -InstallPath $InstallPath -Content (ConvertTo-InstanceFile -Name $Name -Recipe $Recipe -Docker $Docker)
 
     Set-InstanceFragment -Name $Name -Guid $Guid -Theme $Recipe.Look
-    Write-Host "  * Look             : font '$($Recipe.Look.FontName)', colours '$($Recipe.Look.ColorScheme)', icon re-applied" -ForegroundColor (Get-MessageColour success)
+    $LookApplied = $true
 
-    if (-not (Test-FontInstalled $Recipe.Look.FontName)) {
-        Write-Host "                       Not installed on Windows: '$($Recipe.Look.FontName)'." -ForegroundColor (Get-MessageColour warning)
-        Write-Host "                       The prompt will show boxes until it is installed." -ForegroundColor (Get-MessageColour warning)
-    }
-
-    # Docker Desktop records the distros it knows by name, and reads that file
-    # only when it starts: if the archive says it knew the original, the new one
-    # is put back - the restart is the price, hence the [y/N] question.
-    if ($Docker -eq "yes" -and (Get-DockerState -Name $Name) -eq "no") {
-        if ($Headless) {
-            # No window to answer in: the window's jobs run hidden (JobRunner),
-            # and the question blocked one for good - the work was already done
-            # (measured). Docker is left alone; the caller's report says so.
-            Write-Host "  * Docker Desktop   : not added - no window to answer its question" -ForegroundColor (Get-MessageColour muted)
-        } else {
-            Write-Host ""
-            # [y/N], not [Y/n]: this lands in the middle of a restore or a copy,
-            # where the restart stops containers for a reason the user may not
-            # care about.
-            if (Confirm-YesNo "Add '$Name' to Docker Desktop? (it restarts Docker)" -DefaultNo) {
-                try {
-                    Set-DockerState -Name $Name
-                    $PreviousEAP = $ErrorActionPreference
-                    $ErrorActionPreference = "Continue"
-                    $null = docker desktop restart *> $null
-                    $RestartCode = $LASTEXITCODE
-                    $ErrorActionPreference = $PreviousEAP
-                    if ($RestartCode -eq 0) {
-                        Write-Host "  * Docker Desktop   : added, and restarted to pick it up" -ForegroundColor (Get-MessageColour success)
-                    } else {
-                        Write-Host "  * Docker Desktop   : added - restart it for it to notice" -ForegroundColor (Get-MessageColour hint)
-                    }
-                } catch {
-                    Write-Host "  * Docker Desktop   : could not be updated ($($_.Exception.Message))" -ForegroundColor (Get-MessageColour warning)
-                }
-            } else {
-                Write-Host "  * Docker Desktop   : not added - its settings can take it later" -ForegroundColor (Get-MessageColour muted)
+    # Docker Desktop records the distros it knows by name, and reads that
+    # file only when it starts: if the source says it knew the original, the
+    # new one is put back - the restart is the price, hence the question the
+    # callers' conversation asked. $AddDocker is that answer.
+    $DockerOutcome = ""
+    $DockerError = ""
+    if (Test-DockerQuestionDue -Carried $Docker -Name $Name) {
+        if ($AddDocker) {
+            try {
+                Set-DockerState -Name $Name
+                $PreviousEAP = $ErrorActionPreference
+                $ErrorActionPreference = "Continue"
+                $null = docker desktop restart *> $null
+                $RestartCode = $LASTEXITCODE
+                $ErrorActionPreference = $PreviousEAP
+                $DockerOutcome = if ($RestartCode -eq 0) { "added" } else { "added-late" }
+            } catch {
+                $DockerOutcome = "failed"
+                $DockerError = $_.Exception.Message
             }
+        } else {
+            $DockerOutcome = "not-added"
         }
     }
+
+    # What the ending reads, resolved to its end - "no" says the instance is
+    # not in Docker Desktop, "" that Docker never was in the picture.
+    $DockerState = if ($Docker -eq "yes") { Get-DockerState -Name $Name } else { "" }
+
+    return (New-SetupReport -LookApplied $LookApplied -Font $Recipe.Look.FontName `
+        -ColorScheme $Recipe.Look.ColorScheme -FontMissing (-not (Test-FontInstalled $Recipe.Look.FontName)) `
+        -DockerOutcome $DockerOutcome -DockerError $DockerError -DockerState $DockerState)
 }
 
 # ---------------------------------------------------------------------------

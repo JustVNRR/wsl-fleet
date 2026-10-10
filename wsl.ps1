@@ -178,6 +178,16 @@ if ($Chosen.Key -eq "build") {
     $Answers = Read-BuildAnswers -Manager $Manager -RepoRoot $PSScriptRoot -Options $RemainingArgs
     if ($null -eq $Answers) { exit 1 }
 }
+if ($Chosen.Key -eq "archive") {
+    . (Join-Path $CommandFiles "..\cli\Controllers\Archive.ps1")
+    $Answers = Read-ArchiveAnswers -Manager $Manager -Options $RemainingArgs
+    if ($null -eq $Answers) { exit 1 }
+}
+if ($Chosen.Key -eq "restore") {
+    . (Join-Path $CommandFiles "..\cli\Controllers\Restore.ps1")
+    $Answers = Read-RestoreAnswers -Manager $Manager -Options $RemainingArgs
+    if ($null -eq $Answers) { exit 1 }
+}
 
 # Whatever followed the command travels in this run context: the gesture
 # rebuilds it into named parameters and loose values (see above), so a command
@@ -202,6 +212,16 @@ if ($Chosen.Key -eq "build" -and $LASTEXITCODE -eq 0) {
         if ($New) { $New.OpenShell() }
     } catch {
         Write-Host "The shell window could not be opened: $($_.Exception.Message)" -ForegroundColor (Get-MessageColour warning)
+    }
+}
+
+# An archive that asked for the instance's removal removes it here, through
+# unregister - the typed name its guard.
+if ($Chosen.Key -eq "archive" -and $LASTEXITCODE -eq 0 -and $Answers.Delete) {
+    Write-Host "Pick '$($Answers.Instance.Name)' in the list below, and type its name to confirm." -ForegroundColor (Get-MessageColour muted)
+    & (Join-Path $CommandFiles "unregister.ps1") -Manager $Manager
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "The archive is the only copy of '$($Answers.Instance.Name)' left." -ForegroundColor (Get-MessageColour muted)
     }
 }
 

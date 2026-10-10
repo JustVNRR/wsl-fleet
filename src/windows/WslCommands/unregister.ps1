@@ -25,7 +25,7 @@ $Root = $Manager.InstancesRoot
 # ==============================================================================
 # The list is the only way in. A folder left behind by an earlier removal is
 # deleted by hand, not by naming it here.
-$Ours = @($Manager.OursHere())
+$Ours = @($Manager.WslRegisteredInstances())
 if ($Ours.Count -eq 0) {
     Write-Host ""
     Write-Host "[ABORT] No instance of this template is registered on this machine." -ForegroundColor (Get-MessageColour error)
@@ -35,7 +35,7 @@ if ($Ours.Count -eq 0) {
     exit 1
 }
 
-$Distro = Select-Distro
+$Distro = Select-Distro -Manager $Manager
 if (-not $Distro) { Stop-Cancelled }
 
 $DistroName = $Distro.Name

@@ -45,7 +45,7 @@ while ($true) {
     # screen of its own.
     Clear-MenuScreen
 
-    $Distro = Select-Distro -AllowCancel
+    $Distro = Select-Distro -Manager $Manager -AllowCancel
     if (-not $Distro) { break }
     $DistroName = $Distro.Name
 

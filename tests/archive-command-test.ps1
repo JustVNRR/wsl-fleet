@@ -111,7 +111,10 @@ $script:ChildExit = 0
 
 # The commands are driven through invoke-command.ps1: a fresh pwsh has nothing
 # loaded, and a command takes its manager as a parameter - the invoker loads
-# the module first, as wsl.ps1 does, and hands one over.
+# the module first, as wsl.ps1 does, and hands one over. For archive and
+# restore, whose questions live in the console's conversation, the invoker
+# mounts the controller and asks it on standard input, then hands the form -
+# the entry's two roles.
 $Invoker = Join-Path $PSScriptRoot "invoke-command.ps1"
 
 function Invoke-Child {
@@ -208,9 +211,9 @@ try {
 
     # 1. archive: the export is asked for by name and format, and the look is
     # saved beside the tar, recipe included - a stopped instance is left
-    # stopped, the default it offers.
+    # stopped, the keep answer taking its default.
     Remove-Item $Log -Force -ErrorAction SilentlyContinue
-    $Out = Invoke-Child -Script $ArchiveScript -Answers @("$Pick", "", "3")
+    $Out = Invoke-Child -Script $ArchiveScript -Answers @("$Pick", "", "")
     Check "archive exports the instance picked, as a tar.gz" (@(Get-Calls | Where-Object { $_ -eq "--export $FakeName $TarPath --format tar.gz" }).Count) 1
     Check "and says the backup is written" (@($Out | Where-Object { "$_".Contains("Backup of '$FakeName' written") }).Count -gt 0) $true
     Check "and leaves the instance stopped, the default of a stopped one" (@($Out | Where-Object { "$_".Contains("left stopped") }).Count -gt 0) $true
@@ -224,11 +227,11 @@ try {
     Check "and the icon itself waits beside the tar" (Test-Path (Join-Path $ArchiveDir "terminal-icon.png")) $true
 
     # The same on a running instance: asked about, stopped only on the answer,
-    # the stop before the export, and back up after it - the default a running
-    # instance offers. The second archive's name is typed, not proposed.
+    # the stop before the export, and back up after it - the instance puts
+    # itself back. The second archive's name is typed, not proposed.
     Remove-Item $Log -Force -ErrorAction SilentlyContinue
     Add-Content -Path $Log -Value "-d $FakeName --exec /bin/true"
-    $Out = Invoke-Child -Script $ArchiveScript -Answers @("$Pick", "", "second-backup", "1")
+    $Out = Invoke-Child -Script $ArchiveScript -Answers @("$Pick", "", "second-backup", "")
     $Calls = Get-Calls
     $SecondTar = Join-Path $Root "archives\second-backup\second-backup.tar.gz"
     Check "a running instance is stopped, on the answer" (@($Calls | Where-Object { $_ -eq "--terminate $FakeName" }).Count) 1

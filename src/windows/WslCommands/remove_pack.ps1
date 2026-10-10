@@ -25,7 +25,7 @@ $ErrorActionPreference = "Stop"
 # before anything leaves.
 
 # 1. Which instance the pack comes out of
-$Distro = Select-Distro
+$Distro = Select-Distro -Manager $Manager
 $DistroName = $Distro.Name
 
 Invoke-External { wsl.exe -d $DistroName --exec /bin/true } "Could not start '$DistroName'."

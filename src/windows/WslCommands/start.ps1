@@ -42,5 +42,5 @@ Write-Host "       '$DistroName' is running" -ForegroundColor (Get-MessageColour
 Write-Host "============================================================" -ForegroundColor (Get-MessageColour success)
 Write-Host ""
 Write-Host "  * Install folder   : " -NoNewline; Write-Host "$($Distro.Path)" -ForegroundColor (Get-MessageColour info)
-Write-Host "  * Disk file        : " -NoNewline; Write-Host "$(Format-Size (Get-VhdxSize $Distro.Path))" -ForegroundColor (Get-MessageColour info)
+Write-Host "  * Disk file        : " -NoNewline; Write-Host "$(Format-Size ($Distro.DiskBytes()))" -ForegroundColor (Get-MessageColour info)
 Write-Host ""

@@ -65,7 +65,9 @@ function Stop-Cancelled {
 function Test-InstanceName {
     param([string]$Name)
 
-    return ($Name -match '^[A-Za-z0-9][A-Za-z0-9_.-]*$')
+    # The rule is the class's own (WslInstance's setter enforces it); the
+    # questions ask it there, one regex in the repository.
+    return [WslInstance]::IsNameUsable($Name)
 }
 
 # One yes/no question, the shape every one of them shows: [Y/n] when the
@@ -271,7 +273,9 @@ function Select-EligibleInstance {
         [string]$Nothing
     )
 
-    $All = @($Manager.OursHere())
+    # Fresh by asking first: this list is shown right after.
+    $Manager.Refresh()
+    $All = @($Manager.WslRegisteredInstances())
     if ($All.Count -eq 0) {
         Write-Host ""
         Write-Host "[ABORT] No instance of this template is registered on this machine." -ForegroundColor (Get-MessageColour error)
@@ -293,7 +297,7 @@ function Select-EligibleInstance {
 
     $Picked = Select-FromList -Title $Title -Items $Eligible -Label {
         param($Entry)
-        "{0,-30} {1,10}" -f $Entry.Name, (Format-Size (Get-VhdxSize $Entry.Path))
+        "{0,-30} {1,10}" -f $Entry.Name, (Format-Size ($Entry.DiskBytes()))
     }
 
     if (-not $Picked) { Stop-Cancelled }

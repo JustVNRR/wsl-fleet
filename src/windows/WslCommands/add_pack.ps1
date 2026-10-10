@@ -28,7 +28,7 @@ $ErrorActionPreference = "Stop"
 # on the way.
 
 # 1. Which instance the pack goes into
-$Distro = Select-Distro
+$Distro = Select-Distro -Manager $Manager
 $DistroName = $Distro.Name
 
 # The copy and the install happen inside it, so it has to be up: WSL starts it

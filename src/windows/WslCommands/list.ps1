@@ -35,7 +35,7 @@ for ($Index = 0; $Index -lt $All.Count; $Index++) {
     $Entry = $All[$Index]
     $State = if ($Entry.State -eq [WslState]::Running) { "running" } else { "stopped" }
     Write-Host ("  {0,2}.  {1,-30} {2,-8} {3,10}  {4}" -f ($Index + 1), $Entry.Name, $State,
-        (Format-Size (Get-VhdxSize $Entry.Path)), $Entry.Path)
+        (Format-Size ($Entry.DiskBytes())), $Entry.Path)
 }
 
 # 2. The archives: everything in that folder was written by archive.ps1, so
@@ -47,10 +47,8 @@ if ($Archives.Count -gt 0) {
     Write-Host ""
     Write-Host "Archives in ${ArchiveFolder} (most recent first):" -ForegroundColor (Get-MessageColour info)
     foreach ($Entry in $Archives) {
-        $Tar = Get-ChildItem -Path $Entry.FullName -Filter "*.tar*" -File |
-            Sort-Object LastWriteTime -Descending | Select-Object -First 1
-        Write-Host ("      {0,-30} {1,10}  {2}" -f $Entry.Name, (Format-Size $Tar.Length),
-            $Entry.LastWriteTime.ToString("yyyy-MM-dd HH:mm"))
+        Write-Host ("      {0,-30} {1,10}  {2}" -f $Entry.Name, (Format-Size $Entry.DiskBytes()),
+            $Entry.ArchivedOn().ToString("yyyy-MM-dd HH:mm"))
     }
 }
 

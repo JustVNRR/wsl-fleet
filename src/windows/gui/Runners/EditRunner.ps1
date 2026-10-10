@@ -10,7 +10,7 @@ try {
     Import-Module $Module -Force
     $mgr = New-InstanceManager
 
-    $inst = @($mgr.OursHere()) | Where-Object { $_.Name -eq $Name } | Select-Object -First 1
+    $inst = @($mgr.WslRegisteredInstances()) | Where-Object { $_.Name -eq $Name } | Select-Object -First 1
     if (-not $inst) { throw "'$Name' is not in our list any more." }
 
     # The distro must be up to carry packs - the console's own first move.

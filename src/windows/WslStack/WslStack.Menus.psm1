@@ -126,9 +126,14 @@ function Select-FromList {
 # -AllowCancel: then it is $null, for a command that has somewhere to go back
 # to.
 function Select-Distro {
-    param([switch]$AllowCancel)
+    param(
+        [WslInstanceManager]$Manager,
+        [switch]$AllowCancel
+    )
 
-    $All = @([WslInstanceManager]::Ours())
+    # Fresh by asking first: the menu shows the world as it is now.
+    $Manager.Refresh()
+    $All = @($Manager.WslRegisteredInstances())
     if ($All.Count -eq 0) {
         Write-Host ""
         Write-Host "[ABORT] No instance of this template is registered on this machine." -ForegroundColor (Get-MessageColour error)
@@ -140,7 +145,7 @@ function Select-Distro {
     foreach ($Instance in $All) {
         $State = if ($Instance.State -eq [WslState]::Running) { "running" } else { "stopped" }
         $null = $Menu.Add([WslMenuItem]::new(
-            ("{0,-30} {1,-8} {2,10}" -f $Instance.Name, $State, (Format-Size (Get-VhdxSize $Instance.Path))), $Instance))
+            ("{0,-30} {1,-8} {2,10}" -f $Instance.Name, $State, (Format-Size ($Instance.DiskBytes()))), $Instance))
     }
     $Picked = $Menu.Prompt()
 

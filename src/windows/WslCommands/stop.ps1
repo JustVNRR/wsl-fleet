@@ -50,7 +50,7 @@ Write-Host "       '$DistroName' is stopped" -ForegroundColor (Get-MessageColour
 Write-Host "============================================================" -ForegroundColor (Get-MessageColour success)
 Write-Host ""
 Write-Host "  * Install folder   : " -NoNewline; Write-Host "$($Distro.Path)" -ForegroundColor (Get-MessageColour info)
-Write-Host "  * Disk file        : " -NoNewline; Write-Host "$(Format-Size (Get-VhdxSize $Distro.Path))" -ForegroundColor (Get-MessageColour info)
+Write-Host "  * Disk file        : " -NoNewline; Write-Host "$(Format-Size ($Distro.DiskBytes()))" -ForegroundColor (Get-MessageColour info)
 Write-Host ""
 Write-Host "  Nothing on the disk was touched: closing an instance only ends what" -ForegroundColor (Get-MessageColour muted)
 Write-Host "  was running. Start it again with  .\wsl.ps1 start" -ForegroundColor (Get-MessageColour muted)

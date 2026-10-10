@@ -849,9 +849,10 @@ class WslInstanceManager {
         return $Instance
     }
 
-    # wslconfig - the machine's own settings file, created commented when
-    # there is none. Opening it is the interface's (Windows picks the
-    # application; a graphical interface would show its own editor).
+    # wslconfig - the machine's own settings file: created commented when
+    # there is none, then opened - the whole gesture, the machine picking the
+    # application it gives a .wslconfig. A machine with no application set
+    # for it fails the opening; the caller holds the words for that.
     [object] WslConfig() {
         $Path = Join-Path $env:USERPROFILE ".wslconfig"
         $Created = $false
@@ -869,6 +870,9 @@ class WslInstanceManager {
 '@ | Set-Content -Path $Path -Encoding ascii
             $Created = $true
         }
+
+        # The opening is the gesture's end - same act, same place.
+        Start-Process -FilePath $Path
         return [PSCustomObject]@{ Path = $Path; Created = $Created }
     }
 

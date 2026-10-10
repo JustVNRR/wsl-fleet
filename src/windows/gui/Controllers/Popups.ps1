@@ -1393,7 +1393,7 @@ function Show-DuplicatePrompt {
 # repository's own font folder, beside VT323, and the family it carries
 # joins the list, selected - the icon's own manners, one seat over.
 function Show-GuiSettings {
-    param([string]$AssetsDir, [string]$CurrentFamily, [int]$CurrentSize, [string]$CurrentColourSet, [string]$CurrentRoot, $Catalog)
+    param([string]$AssetsDir, [string]$CurrentFamily, [int]$CurrentSize, [string]$CurrentColourSet, [string]$CurrentRoot, $Manager)
 
     [xml]$settingsXaml = [System.IO.File]::ReadAllText((Join-Path $GuiRoot "Views\Popups\GuiSettings.xaml"))
 
@@ -1650,11 +1650,9 @@ function Show-GuiSettings {
     })
 
     # The catalogue: the packs of assets\packs, in a list of their own - the
-    # edit button opens the selected pack's folder as Windows opens folders,
-    # the trash removes the folder whole (the red CONFIRM first). A removal
-    # rides back in the result: the manager's catalogue is rebuilt behind it,
-    # so a pack gone here is gone from every list at once.
-    $script:CatalogueChanged = $false
+    # edit button opens the selected pack's folder as Windows opens folders;
+    # the duplicate and the trash are the engine's two catalogue gestures,
+    # which refresh the catalogue in place, so every list agrees at once.
     $txtCatalogueError = $form.FindName("TxtCatalogueError")
     $btnPackEdit = $form.FindName("BtnGuiPackEdit")
     $btnPackDuplicate = $form.FindName("BtnGuiPackDuplicate")
@@ -1662,12 +1660,12 @@ function Show-GuiSettings {
     $lstPacks = $form.FindName("LstGuiPacks")
     $lstPacks.Width = $comboWidth
     $packRows = [System.Collections.Generic.List[object]]::new()
-    # The list, drawn from a fresh catalogue on demand: a pack made under the
-    # duplicate button is a row without reopening the window.
+    # The list, redrawn from the manager's catalogue on demand: the gestures
+    # refresh it in place, so their doing shows without reopening the window.
     $RefreshPacks = {
         $packRows.Clear()
         $lstPacks.Items.Clear()
-        foreach ($Pack in @((Get-PackCatalog).AvailablePacks | Sort-Object Name)) {
+        foreach ($Pack in @($Manager.Catalog.AvailablePacks | Sort-Object Name)) {
             $packRows.Add($Pack)
             $null = $lstPacks.Items.Add("$($Pack.Name) ($($Pack.Family))")
         }
@@ -1685,9 +1683,10 @@ function Show-GuiSettings {
 
     $form.FindName("BtnGuiPackEdit").Add_Click({
         if ($lstPacks.SelectedIndex -lt 0) { return }
-        # A refusal is said on the red line instead of killing the window.
+        # The engine's gesture opens it; a refusal is said on the red line
+        # instead of killing the window.
         try {
-            Invoke-Item -LiteralPath $packRows[$lstPacks.SelectedIndex].Path -ErrorAction Stop
+            $Manager.OpenPackFolder($packRows[$lstPacks.SelectedIndex].Name)
         } catch {
             $txtCatalogueError.Text = "The folder did not open: $($_.Exception.Message)"
             $txtCatalogueError.Visibility = [System.Windows.Visibility]::Visible
@@ -1701,63 +1700,34 @@ function Show-GuiSettings {
         $Answer = Show-GuiPackDuplicate -Owner $form -SourceName $Pack.Name -SourceDescription $Pack.Description -Taken $Names
         if (-not $Answer) { return }
 
-        # The copy: the folder under its new name - the folder name IS the
-        # pack's name - and the description rewritten in its conf, the only
-        # file a pack is named in. The requires and the family ride along;
-        # nothing else needs changing for the two to live side by side.
-        $target = Join-Path (Split-Path -Path $Pack.Path -Parent) $Answer.Name
+        # The engine's gesture: the folder copied under its new name, the
+        # description rewritten in its conf, the catalogue refreshed. A
+        # refusal is said on the red line instead of killing the window.
         try {
-            Copy-Item -LiteralPath $Pack.Path -Destination $target -Recurse -ErrorAction Stop
-            $conf = Join-Path $target "pack.conf"
-            $rewritten = @()
-            $found = $false
-            foreach ($line in @(Get-Content -LiteralPath $conf)) {
-                if ($line -match '^\s*PACK_DESCRIPTION\s*:=') {
-                    $found = $true
-                    $rewritten += "PACK_DESCRIPTION := $($Answer.Description)"
-                } else {
-                    $rewritten += $line
-                }
-            }
-            if (-not $found) { $rewritten += "PACK_DESCRIPTION := $($Answer.Description)" }
-            Set-Content -LiteralPath $conf -Value $rewritten -Encoding utf8NoBOM
+            $null = $Manager.AddPackToCatalog($Pack, $Answer.Name, $Answer.Description)
         } catch {
             $txtCatalogueError.Text = "The pack was not duplicated: $($_.Exception.Message)"
             $txtCatalogueError.Visibility = [System.Windows.Visibility]::Visible
             return
         }
 
-        # The row on the spot, selected; the manager's catalogue follows on
-        # CLOSE, like the other catalogue changes.
+        # The row on the spot, selected.
         & $RefreshPacks
         $copyAt = 0
         for ($i = 0; $i -lt $packRows.Count; $i++) {
             if ($packRows[$i].Name -eq $Answer.Name) { $copyAt = $i; break }
         }
         $lstPacks.SelectedIndex = $copyAt
-        $script:CatalogueChanged = $true
     })
     $form.FindName("BtnGuiPackDelete").Add_Click({
         $at = $lstPacks.SelectedIndex
         if ($at -lt 0) { return }
         $Pack = $packRows[$at]
 
-        # Who would be left holding a missing pack: every pack whose chain of
-        # PACK_REQUIRES runs through this one - the walk follows the requires
-        # until nothing new answers. Named one per line, in the question.
-        $Dependents = [System.Collections.Generic.List[string]]::new()
-        $Frontier = @($Pack.Name)
-        while ($Frontier.Count -gt 0) {
-            $Next = @()
-            foreach ($Row in $packRows) {
-                if ($Row.Name -eq $Pack.Name -or $Dependents.Contains($Row.Name)) { continue }
-                if (@($Row.Requires | Where-Object { $Frontier -contains $_ }).Count -gt 0) {
-                    $Dependents.Add($Row.Name)
-                    $Next += $Row.Name
-                }
-            }
-            $Frontier = @($Next)
-        }
+        # Who would be left holding a missing pack: the catalogue answers it -
+        # every pack whose chain of PACK_REQUIRES runs through this one. Named
+        # one per line, in the question.
+        $Dependents = @($Manager.Catalog.DependsOn($Pack.Name))
 
         $Question = "Remove the pack '$($Pack.Name)'?"
         $Danger = ""
@@ -1769,12 +1739,20 @@ function Show-GuiSettings {
             $Question += " Instances already carrying it keep their own copy."
         }
         if (-not (Show-GuiConfirm -Owner $form -Title "Remove the pack" -Question $Question -Danger $Danger)) { return }
-        Remove-Item -LiteralPath $Pack.Path -Recurse -Force -ErrorAction SilentlyContinue
-        $packRows.RemoveAt($at)
-        $lstPacks.Items.RemoveAt($at)
+
+        # The engine's gesture: the folder leaves whole, the catalogue
+        # refreshed. A refusal - a locked folder, say - is said on the red
+        # line instead of leaving the window lying about what is there.
+        try {
+            $null = $Manager.RemovePackFromCatalog($Pack.Name)
+        } catch {
+            $txtCatalogueError.Text = "The pack was not removed: $($_.Exception.Message)"
+            $txtCatalogueError.Visibility = [System.Windows.Visibility]::Visible
+            return
+        }
+        & $RefreshPacks
         $lstPacks.SelectedIndex = [Math]::Min($at, $lstPacks.Items.Count - 1)
         & $UpdatePacks
-        $script:CatalogueChanged = $true
     })
 
     # The window's answer, one shape for both ways out: CLOSE builds it from
@@ -1784,7 +1762,7 @@ function Show-GuiSettings {
         $choice = $choiceRows[[Math]::Max(0, $lstFonts.SelectedIndex)]
         $size = $sizes[[Math]::Max(0, $lstSizes.SelectedIndex)]
         $set = if ($lstColours.SelectedIndex -ge 0) { $setNames[$lstColours.SelectedIndex] } else { "" }
-        [PSCustomObject]@{ Name = $choice.Name; Family = $choice.Family; Folder = $choice.Folder; Size = [int]$size; ColourSet = $set; Root = $txtRoot.Text.Trim(); CatalogueChanged = [bool]$script:CatalogueChanged; MoveTo = "$script:MoveTo" }
+        [PSCustomObject]@{ Name = $choice.Name; Family = $choice.Family; Folder = $choice.Folder; Size = [int]$size; ColourSet = $set; Root = $txtRoot.Text.Trim(); MoveTo = "$script:MoveTo" }
     }
 
     $script:MoveTo = ""

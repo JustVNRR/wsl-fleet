@@ -46,6 +46,26 @@ class WslPack {
         }
     }
 
+    # The line a pack is described by, rewritten in its own conf - or
+    # appended when the conf does not carry it yet. Nothing else names a
+    # pack, so this is the whole of a rename's rewriting.
+    [void] SetDescription([string]$text) {
+        $confFile = Join-Path $this.Path "pack.conf"
+        $rewritten = @()
+        $found = $false
+        foreach ($line in @(Get-Content -LiteralPath $confFile -Encoding UTF8)) {
+            if ($line -match '^\s*PACK_DESCRIPTION\s*:=') {
+                $found = $true
+                $rewritten += "PACK_DESCRIPTION := $text"
+            } else {
+                $rewritten += $line
+            }
+        }
+        if (-not $found) { $rewritten += "PACK_DESCRIPTION := $text" }
+        Set-Content -LiteralPath $confFile -Value $rewritten -Encoding utf8NoBOM
+        $this.Description = $text
+    }
+
     # A sample is a file; a pack shipping none has nothing to merge into the
     # user's .env files.
     [bool] ShipsSamples() {

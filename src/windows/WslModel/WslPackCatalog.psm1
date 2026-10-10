@@ -32,6 +32,59 @@ class WslPackCatalog {
         return ($this.AvailablePacks | Where-Object { $_.Name -eq $name } | Select-Object -First 1)
     }
 
+    # The packs whose chain of requirements runs through this one - what a
+    # removal would leave requiring a missing pack. Walked until nothing new
+    # answers: a dependent of a dependent counts.
+    [string[]] DependsOn([string]$name) {
+        $found = New-Object System.Collections.ArrayList
+        $frontier = @($name)
+        while ($frontier.Count -gt 0) {
+            $next = @()
+            foreach ($pack in $this.AvailablePacks) {
+                if ($pack.Name -eq $name -or $found.Contains($pack.Name)) { continue }
+                if (@($pack.Requires | Where-Object { $frontier -contains $_ }).Count -gt 0) {
+                    [void]$found.Add($pack.Name)
+                    $next += $pack.Name
+                }
+            }
+            $frontier = @($next)
+        }
+        return @($found)
+    }
+
+    # A new pack, copied from another one's folder - the folder name IS the
+    # pack's name - its description rewritten in the copy's own conf. The
+    # requirements and the family ride along: nothing else names a pack, so
+    # nothing else needs changing for the two to live side by side.
+    [WslPack] CreateFrom([WslPack]$Source, [string]$NewName, [string]$Description) {
+        if (-not $NewName) {
+            throw "A pack needs a name - the folder under packs\ carries it."
+        }
+        $Target = Join-Path $this.PacksRoot $NewName
+        if (Test-Path $Target) {
+            throw "A pack named '$NewName' already lives in the catalogue."
+        }
+        Copy-Item -LiteralPath $Source.Path -Destination $Target -Recurse -ErrorAction Stop
+
+        $this.Refresh()
+        $New = $this.GetPack($NewName)
+        $New.SetDescription($Description)
+        return $New
+    }
+
+    # A pack leaves the catalogue: its folder, whole. An instance already
+    # carrying it keeps its own copy - what the folder held was its from the
+    # install on.
+    [WslPack] Remove([string]$Name) {
+        $Pack = $this.GetPack($Name)
+        if ($null -eq $Pack) {
+            throw "There is no pack named '$Name' in the catalogue."
+        }
+        Remove-Item -LiteralPath $Pack.Path -Recurse -Force -ErrorAction Stop
+        $this.Refresh()
+        return $Pack
+    }
+
     # The packs a question may show on a machine of that family: the offered
     # ones whose own family fits. An empty family filters nothing - a machine
     # that could not say what it is gets the whole list, not a wrong half.

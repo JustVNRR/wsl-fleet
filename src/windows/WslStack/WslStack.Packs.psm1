@@ -12,9 +12,9 @@
 # through wsl.exe: only plain paths, one argument at a time.
 # ==============================================================================
 
-# The class this family names - the catalog below is a [WslPackCatalog] -
-# pulled in by the file itself: `using` resolves it for every function here,
-# whoever called in what shape (measured in the questions next door).
+# The model's classes, pulled in by the file itself: `using` resolves a type
+# by name for every function here, whoever called in what shape (measured in
+# the questions next door).
 using module ..\WslModel\WslModel.psd1
 
 # Where the packs live now, and the cleanup script. The packs are DATA: the
@@ -38,15 +38,6 @@ if (-not (Test-Path $PacksRoot) -and (Test-Path $SourcePacksRoot)) {
     foreach ($PackDir in (Get-ChildItem -Path $SourcePacksRoot -Directory)) {
         Copy-Item -LiteralPath $PackDir.FullName -Destination $PacksRoot -Recurse
     }
-}
-
-# The catalog of packs this checkout carries, read by the model: the line a
-# menu shows, the folder to copy from, the declarations both checklists read -
-# and the two resolutions. One list, so add_pack, the checklist and the run
-# cannot disagree about what travels with what.
-function Get-PackCatalog {
-    param([string]$Root = $PacksRoot)
-    return [WslPackCatalog]::new($Root)
 }
 
 # The folder the packs live in, for the factory: the manager is handed its

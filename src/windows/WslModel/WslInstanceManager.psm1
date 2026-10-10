@@ -423,6 +423,39 @@ class WslInstanceManager {
         return $Instance.RemovePack($PackName, $this.Catalog)
     }
 
+    # add_pack_to_catalog - a new pack in the catalogue, copied from another:
+    # the one named, or the template when none is. The name is refused here -
+    # a client is not trusted with it, a bad one must not become a folder -
+    # then the catalogue holds the copy and the conf rewriting; nothing else
+    # is decided here.
+    [WslPack] AddPackToCatalog([WslPack]$Source, [string]$NewName, [string]$Description) {
+        if (-not $this.IsNameUsable($NewName)) {
+            throw "'$NewName' is not usable as a pack name (letters, digits, '.', '_' and '-' only)."
+        }
+        if ($null -eq $Source) { $Source = $this.Catalog.GetPack("_oh_my_pack") }
+        if ($null -eq $Source) {
+            throw "The catalogue carries no '_oh_my_pack' - nothing to copy from."
+        }
+        return $this.Catalog.CreateFrom($Source, $NewName, $Description)
+    }
+
+    # remove_pack_from_catalog - the pack's folder leaves, whole. Nothing is
+    # decided here.
+    [WslPack] RemovePackFromCatalog([string]$Name) {
+        return $this.Catalog.Remove($Name)
+    }
+
+    # open_pack_folder - the pack's folder, opened as Windows opens folders.
+    # The catalogue resolves it, this launches the opener; nothing is decided
+    # here.
+    [void] OpenPackFolder([string]$Name) {
+        $Pack = $this.Catalog.GetPack($Name)
+        if ($null -eq $Pack) {
+            throw "There is no pack named '$Name' in the catalogue."
+        }
+        Start-Process -FilePath $Pack.Path
+    }
+
     # manage_packs - what was ticked arrives, what was unticked leaves; the
     # checklist itself is the interface's (prompts.ps1's Select-Packs). The
     # applying is the instance's own act; what stands comes back read from

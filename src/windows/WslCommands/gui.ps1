@@ -168,12 +168,8 @@ $btnSettings.Add_Click({
         $worn = "$($GuiFonts.UiFont.FamilyNames.Values | Select-Object -First 1)"
         if (-not $worn) { $worn = "$($GuiFonts.UiFont.Source)" -replace '^\./#', '' }
     }
-    $look = Show-GuiSettings -AssetsDir $AssetsDir -CurrentFamily $worn -CurrentSize $GuiSettings.FontSize -CurrentColourSet $GuiSettings.ColourSet -CurrentRoot $Manager.InstancesRoot -Catalog $Manager.Catalog
+    $look = Show-GuiSettings -AssetsDir $AssetsDir -CurrentFamily $worn -CurrentSize $GuiSettings.FontSize -CurrentColourSet $GuiSettings.ColourSet -CurrentRoot $Manager.InstancesRoot -Manager $Manager
     if ($null -eq $look) { return }
-
-    # A pack removed in the window: the manager's catalogue is rebuilt on the
-    # spot, so every list agrees at once.
-    if ($look.CatalogueChanged) { $Manager.Catalog = Get-PackCatalog }
 
     # The working folder, when it was changed: by the input's APPLY - the red
     # CONFIRM here explains first - or by the move dialog's own CONFIRM,

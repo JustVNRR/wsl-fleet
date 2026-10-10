@@ -80,7 +80,7 @@ foreach ($Declaration in $Declarations) {
     if ($Declaration.Visible) { $Conf += "PACK_VISIBLE := $($Declaration.Visible)" }
     Set-Content -Path (Join-Path $Folder "pack.conf") -Value $Conf
 }
-$Catalog = Get-PackCatalog -Root $PacksRoot
+$Catalog = [WslPackCatalog]::new($PacksRoot)
 
 Write-Output "--- Select-Packs: what the checklist means ---"
 
@@ -184,7 +184,7 @@ foreach ($Declaration in $Declarations2) {
     if ($Declaration.Requires) { $Conf += "PACK_REQUIRES := $($Declaration.Requires)" }
     Set-Content -Path (Join-Path $Folder "pack.conf") -Value $Conf
 }
-$Guarded = Get-PackCatalog -Root $PacksRoot2
+$Guarded = [WslPackCatalog]::new($PacksRoot2)
 
 # The resolver reports what cannot leave, with the packs that hold it - and
 # the two directions at once: a standing claimant holds, one leaving with it
@@ -242,7 +242,7 @@ foreach ($Declaration in $Declarations3) {
     if ($Declaration.Family) { $Conf += "PACK_FAMILY := $($Declaration.Family)" }
     Set-Content -Path (Join-Path $Folder "pack.conf") -Value $Conf
 }
-$Familied = Get-PackCatalog -Root $PacksRoot3
+$Familied = [WslPackCatalog]::new($PacksRoot3)
 
 Check "a pack without PACK_FAMILY reads as debian" ($Familied.GetPack("alpha").Family) "debian"
 Check "a declared family is read" ($Familied.GetPack("beta").Family) "fedora"

@@ -208,6 +208,11 @@ if ($Chosen.Key -eq "migrate") {
     $Answers = Read-MigrateAnswers -Manager $Manager -Options $RemainingArgs
     if ($null -eq $Answers) { exit 1 }
 }
+if ($Chosen.Key -eq "stop") {
+    . (Join-Path $CommandFiles "..\cli\Controllers\Stop.ps1")
+    $Answers = Read-StopAnswers -Manager $Manager -Options $RemainingArgs
+    if ($null -eq $Answers) { exit 1 }
+}
 
 # Whatever followed the command travels in this run context: the gesture
 # rebuilds it into named parameters and loose values (see above), so a command

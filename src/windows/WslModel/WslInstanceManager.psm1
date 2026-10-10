@@ -729,10 +729,21 @@ class WslInstanceManager {
     }
 
     # shrink - the compact, in place, working on a running instance; it
-    # refuses on its own if the disk cannot be compacted. The instance is left
-    # the way it was found. Archiving first, when asked, is the interface's:
-    # it calls Archive before this.
-    [object] Shrink([WslInstance]$Instance) {
+    # refuses on its own if the disk cannot be compacted. The safety copy,
+    # when the user asked for one, is this method's first act: the whole
+    # sequence - copy, then compact, and a failed copy stopping everything -
+    # is spelled here, once, for both roads. The instance is left the way it
+    # was found.
+    [object] Shrink([WslInstance]$Instance, [bool]$ArchiveFirst) {
+        $ArchiveReport = $null
+        if ($ArchiveFirst) {
+            try {
+                $ArchiveReport = $this.Archive($Instance, $Instance.Name, "tar.gz", $true)
+            } catch {
+                throw "The archive did not complete - nothing was compacted: $($_.Exception.Message)"
+            }
+        }
+
         $WasRunning = ($Instance.State -eq [WslState]::Running)
         $Result = $Instance.Shrink()
 
@@ -742,6 +753,7 @@ class WslInstanceManager {
         }
 
         return [PSCustomObject]@{
+            Archive    = $ArchiveReport
             Before     = $Result.Before
             After      = $Result.After
             Freed      = $Result.Freed

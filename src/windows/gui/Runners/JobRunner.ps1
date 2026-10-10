@@ -59,18 +59,16 @@ try {
             $docker = if ("$($r.Docker)" -eq "no") { " - Docker Desktop: not added (add it in its settings if needed)" } else { "" }
             Write-Stamp ("RESULT OK " + $ArchiveFirst + ": duplicated from '" + $Name + "'" + $docker)
         } elseif ($Verb -eq "compact") {
-            # The gate may have asked for the archive first: the copy is
-            # written before the disk is touched, under the instance's own
-            # name - the removal's convention - with the archive road's own
-            # stop/start inside the export (the permit below is the row's
-            # policy, it asks nobody).
-            if ([bool]::Parse($ArchiveFirst)) {
-                Write-Stamp "archiving first"
-                $a = $mgr.Archive($inst, $Name, "tar.gz", $true)
-                Write-Stamp ("RESULT OK " + $Name + ": archived as '" + $Name + "' (" + [math]::Round($a.Archive.Length / 1MB, 1) + " MB)")
-            }
+            # -ArchiveFirst is the gate's word: the engine's own gesture
+            # writes the safety copy before the disk is touched - under the
+            # instance's own name, the removal's convention - and compacts
+            # after; a failed copy stops the whole thing, said in its
+            # refusal.
             Write-Stamp "compacting"
-            $r = $mgr.Shrink($inst)
+            $r = $mgr.Shrink($inst, [bool]::Parse($ArchiveFirst))
+            if ($r.Archive) {
+                Write-Stamp ("RESULT OK " + $Name + ": archived as '" + $Name + "' (" + [math]::Round($r.Archive.Archive.Length / 1MB, 1) + " MB)")
+            }
             Write-Stamp ("RESULT OK " + $Name + ": compacted - reclaimed " + [math]::Round($r.Freed / 1MB, 1) + " MB")
         } elseif ($Verb -eq "start") {
             Write-Stamp "starting"

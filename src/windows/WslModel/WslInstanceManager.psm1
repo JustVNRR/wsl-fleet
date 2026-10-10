@@ -338,15 +338,24 @@ class WslInstanceManager {
 
     # list - the fleet as it is: ours, the archives on disk, the folders left
     # behind. Read-only, so it can run at any moment. The archive rows are
-    # the fleet's own - Refresh dressed them - most recent first, the same
-    # rows every surface reads.
+    # the fleet's own - Refresh dressed them - most recent first; the
+    # forgotten folders are dressed here: name, full path, and the disk's
+    # size where one still sits inside.
     [object] List() {
         $Archives = @($this.Instances | Where-Object { $_.State -eq [WslState]::Archived } |
             Sort-Object { $_.ArchivedOn() } -Descending)
+
+        $Forgotten = @()
+        foreach ($FolderPath in $this.ForgottenFolders) {
+            $Folder = Get-Item -Path $FolderPath -ErrorAction SilentlyContinue
+            if (-not $Folder) { continue }
+            $Forgotten += [PSCustomObject]@{ Name = $Folder.Name; Path = $Folder.FullName; Bytes = [long](Get-VhdxSize $Folder.FullName) }
+        }
+
         return [PSCustomObject]@{
             Instances = @($this.WslRegisteredInstances())
             Archives  = $Archives
-            Forgotten = @($this.ForgottenFolders)
+            Forgotten = $Forgotten
         }
     }
 

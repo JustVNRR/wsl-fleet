@@ -3,7 +3,7 @@
 # any more, they run through the entry and use what it imported. The manager
 # travels in as a parameter, typed and bound from the command's first line -
 # and for the commands whose questions live in the console's conversation
-# (archive, restore, duplicate, unregister, shrink, migrate, stop, restart, remove_pack, add_pack), the
+# (archive, restore, duplicate, unregister, shrink, migrate, stop, restart, remove_pack, add_pack, manage_packs), the
 # controller is mounted and asked here, and the form it renders travels in
 # too: the entry's two roles, played the same way.
 #
@@ -67,6 +67,9 @@ if ($Key -eq "archive") {
 } elseif ($Key -eq "add_pack") {
     . (Join-Path $PSScriptRoot "..\src\windows\cli\Controllers\AddPack.ps1")
     $Form = Read-AddPackAnswers -Manager $Manager -Options @()
+} elseif ($Key -eq "manage_packs") {
+    . (Join-Path $PSScriptRoot "..\src\windows\cli\Controllers\ManagePacks.ps1")
+    $Form = Read-ManagePacksAnswers -Manager $Manager -Options @()
 } else {
     $Asks = $false
 }

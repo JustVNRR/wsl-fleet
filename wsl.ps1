@@ -228,6 +228,11 @@ if ($Chosen.Key -eq "add_pack") {
     $Answers = Read-AddPackAnswers -Manager $Manager -Options $RemainingArgs
     if ($null -eq $Answers) { exit 1 }
 }
+if ($Chosen.Key -eq "manage_packs") {
+    . (Join-Path $CommandFiles "..\cli\Controllers\ManagePacks.ps1")
+    $Answers = Read-ManagePacksAnswers -Manager $Manager -Options $RemainingArgs
+    if ($null -eq $Answers) { exit 1 }
+}
 
 # Whatever followed the command travels in this run context: the gesture
 # rebuilds it into named parameters and loose values (see above), so a command

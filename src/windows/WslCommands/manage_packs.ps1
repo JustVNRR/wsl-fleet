@@ -7,73 +7,51 @@ param (
     # in the entry. A command is never run by hand any more: the entry loads
     # the module and hands this over, and the `using` above names the type, so
     # it binds from the first line.
-    [WslInstanceManager]$Manager
+    [WslInstanceManager]$Manager,
+
+    # The answers, whole - the console's conversation (src\windows\cli\
+    # Controllers\ManagePacks.ps1) renders them: the instance and the
+    # checklist's two lists. This file never asks.
+    [object]$Form
 )
 
-# Several packs at once: every pack this checkout carries is shown, the ones
-# the instance already has arrive checked, and what comes back is applied - the
-# missing ones installed, the unchecked ones taken out.
-#
-# The asking and the applying live in the module - build asks the same
-# question. What is left here is the shape of this command.
+# Every pack this checkout carries was shown, the ones the instance already
+# had arrived checked, and what came back is applied - the missing ones
+# installed, the unchecked ones taken out.
 
 $ErrorActionPreference = "Stop"
 
-# 1. Which instance
-$Distro = Select-Distro -Manager $Manager
-if (-not $Distro) { Stop-Cancelled }
+$Distro = $Form.Instance
 $DistroName = $Distro.Name
+$ToAdd = @($Form.ToAdd)
+$ToRemove = @($Form.ToRemove)
 
-Invoke-External { wsl.exe -d $DistroName --exec /bin/true } "Could not start '$DistroName'."
-
-# 2. Every pack this checkout carries, and what that instance already has
-$Catalog = $Manager.Catalog
-if ($Catalog.AvailablePacks.Count -eq 0) {
-    Write-Host ""
-    Write-Host "[ABORT] No pack found in $($Catalog.PacksRoot)." -ForegroundColor (Get-MessageColour error)
-    Write-Host "        A pack is a folder there carrying a pack.conf." -ForegroundColor (Get-MessageColour hint)
-    exit 1
-}
-
-# The engine provides the packs installed on this instance (or $null if home is unreachable)
-$Installed = $Manager.InstalledPacks($Distro)
-if ($null -eq $Installed) {
-    Write-Host ""
-    Write-Host "[ABORT] '$DistroName' did not say where its user's home is." -ForegroundColor (Get-MessageColour error)
-    exit 1
-}
-
-# 3. The checklist, and what it says to do
-$Selection = Select-Packs -Title "Packs for '$DistroName'" -Catalog $Catalog -Installed @($Installed) -Family (Get-InstanceFamily -DistroName $DistroName)
-
-if ($null -eq $Selection) { Stop-Cancelled }
-if ($Selection.ToAdd.Count -eq 0 -and $Selection.ToRemove.Count -eq 0) {
-    Write-Host ""
-    Write-Host "[OK] Nothing to do: '$DistroName' already has exactly that." -ForegroundColor (Get-MessageColour success)
-    exit 0
-}
-
-# 4. What is about to happen, said from the checklist's lists - then the
+# What is about to happen, said from the checklist's lists - then the
 # engine's own applying.
 Write-Host ""
-if ($Selection.ToAdd.Count -gt 0) {
-    Write-Host "==> Installing: $(@($Selection.ToAdd | ForEach-Object { $_.Name }) -join ', ')" -ForegroundColor (Get-MessageColour info)
+if ($ToAdd.Count -gt 0) {
+    Write-Host "==> Installing: $(@($ToAdd | ForEach-Object { $_.Name }) -join ', ')" -ForegroundColor (Get-MessageColour info)
 }
-if ($Selection.ToRemove.Count -gt 0) {
-    Write-Host "==> Removing: $($Selection.ToRemove -join ', ')" -ForegroundColor (Get-MessageColour info)
+if ($ToRemove.Count -gt 0) {
+    Write-Host "==> Removing: $($ToRemove -join ', ')" -ForegroundColor (Get-MessageColour info)
 }
 
-$Report = $Manager.ManagePacks($Distro, $Selection.ToAdd, $Selection.ToRemove)
+$Report = $Manager.ManagePacks($Distro, $ToAdd, $ToRemove)
 
+# A failure names the pack, its step and its code; the packs already applied
+# stay.
 if ($null -ne $Report.Failure) {
+    Write-Host ""
+    Write-Host "[FAIL] '$($Report.Failure.Pack)' did not complete ($($Report.Failure.Step), exit code $($Report.Failure.ExitCode))." -ForegroundColor (Get-MessageColour error)
+    Write-Host "       The packs already applied stay - run this again to finish." -ForegroundColor (Get-MessageColour hint)
     exit $Report.ExitCode
 }
 
-# 5. Where things stand, read back through the engine's report
+# Where things stand, read back through the engine's report
 $Now = @($Report.Now)
 Write-Host ""
 Write-Host "==> '$DistroName' now carries: $(if ($Now.Count -gt 0) { $Now -join ', ' } else { 'no pack' })" -ForegroundColor (Get-MessageColour success)
-if ($Selection.ToAdd.Count -gt 0) {
+if ($ToAdd.Count -gt 0) {
     Write-Host "    Open a shell in it to use them:  .\wsl.ps1 shell" -ForegroundColor (Get-MessageColour muted)
 }
-exit 0
+exit 0

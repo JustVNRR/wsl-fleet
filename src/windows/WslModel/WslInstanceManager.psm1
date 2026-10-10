@@ -305,6 +305,11 @@ class WslInstanceManager {
         return (Get-DockerState -Name $Instance.Name)
     }
 
+    # The instance's system family, live - what a pack question filters with.
+    [string] FamilyOf([WslInstance]$Instance) {
+        return (Get-InstanceFamily -DistroName $Instance.Name)
+    }
+
     # Whether the Docker question is worth asking at all: Docker knew the
     # original, and does not know this name yet. The conversation asks it
     # before the work, the setup re-checks it before acting - one rule.

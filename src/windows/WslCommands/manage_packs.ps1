@@ -30,7 +30,7 @@ Invoke-External { wsl.exe -d $DistroName --exec /bin/true } "Could not start '$D
 $Catalog = $Manager.Catalog
 if ($Catalog.AvailablePacks.Count -eq 0) {
     Write-Host ""
-    Write-Host "[ABORT] No pack found in $PacksRoot." -ForegroundColor (Get-MessageColour error)
+    Write-Host "[ABORT] No pack found in $($Catalog.PacksRoot)." -ForegroundColor (Get-MessageColour error)
     Write-Host "        A pack is a folder there carrying a pack.conf." -ForegroundColor (Get-MessageColour hint)
     exit 1
 }
@@ -53,8 +53,16 @@ if ($Selection.ToAdd.Count -eq 0 -and $Selection.ToRemove.Count -eq 0) {
     exit 0
 }
 
-# 4. Hand the changes over to the engine: the manager asks the instance to
-# apply them - AddPack and RemovePack - and answers a structured report.
+# 4. What is about to happen, said from the checklist's lists - then the
+# engine's own applying.
+Write-Host ""
+if ($Selection.ToAdd.Count -gt 0) {
+    Write-Host "==> Installing: $(@($Selection.ToAdd | ForEach-Object { $_.Name }) -join ', ')" -ForegroundColor (Get-MessageColour info)
+}
+if ($Selection.ToRemove.Count -gt 0) {
+    Write-Host "==> Removing: $($Selection.ToRemove -join ', ')" -ForegroundColor (Get-MessageColour info)
+}
+
 $Report = $Manager.ManagePacks($Distro, $Selection.ToAdd, $Selection.ToRemove)
 
 if ($null -ne $Report.Failure) {

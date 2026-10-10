@@ -11,6 +11,7 @@ using module .\WslState.psm1
 using module .\WslTheme.psm1
 using module .\WslRecipe.psm1
 using module .\WslPack.psm1
+using module .\WslPackCatalog.psm1
 
 class WslInstance {
     # The name: read everywhere, written through SetName - the class's own
@@ -666,15 +667,54 @@ class WslInstance {
         return @(Get-InstalledPacks -DistroName $this.Name -PacksDirectory $PacksDirectory)
     }
 
-    # The packs, one pack at a time. AddPack brings one in - its folder
-    # placed, its root half as root, its install behind WSL's own
-    # passwordless door - and RemovePack takes one out - its remove.sh, its
-    # folder. Neither speaks: the sentences belong to the caller. Each
-    # answers $null, or where it stopped - the pack, its exit code, the step
-    # ("copy", "root", "install", "remove", "folder"). A pack that declines
-    # (exit code 2) is not a failure: its folder goes back out, and the null
-    # says so.
-    [object] AddPack([WslPack]$pack) {
+    # The gesture "install this pack": the pack and whatever it requires -
+    # resolved here, the catalogue says what each one needs - with what is
+    # already installed skipped and said. Answers {Outcome; Entry; ExitCode;
+    # Installed; Skipped; Steps}; Outcome: "installed", "already" (nothing
+    # left to do), "declined", "copy-failed", "failed".
+    [object] AddPack([string]$name, [WslPackCatalog]$catalog) {
+        $Installed = @($this.GetPacks())
+        $ToInstall = @($catalog.ResolveSelection(@($name), $Installed))
+        # What the name brings but the instance already carries - the whole
+        # closure minus what goes in.
+        $Skipped = @($catalog.ResolveSelection(@($name), @()) | Where-Object { $Installed -contains $_ })
+
+        $Steps = @()
+        if ($ToInstall.Count -eq 0) {
+            return [PSCustomObject]@{ Outcome = "already"; Entry = $null; ExitCode = 0; Installed = @(); Skipped = $Skipped; Steps = $Steps }
+        }
+
+        # One door for all of them: passwordless sudo for the run's length,
+        # nothing of it after - the files stay the user's.
+        $Outcome = "installed"
+        $Stop = $null
+        $FailCode = 0
+        foreach ($packName in $ToInstall) {
+            $Entry = $catalog.GetPack($packName)
+            # A requirement this checkout does not carry is skipped here;
+            # the pack that asked is the one that will fail.
+            if ($null -eq $Entry) { continue }
+
+            $Result = $this.InstallOne($Entry)
+            $Steps += [PSCustomObject]@{ Name = $Entry.Name; Step = $Result.Step; ExitCode = $Result.ExitCode }
+
+            if ($Result.Step -eq "declined") { $Outcome = "declined"; $Stop = $Entry; break }
+            if ($Result.Step -eq "copy") { $Outcome = "copy-failed"; $Stop = $Entry; $FailCode = $Result.ExitCode; break }
+            if ($Result.Step -ne "installed") { $Outcome = "failed"; $Stop = $Entry; $FailCode = $Result.ExitCode; break }
+        }
+
+        $Done = @($Steps | Where-Object { $_.Step -eq "installed" } | ForEach-Object { $_.Name })
+        return [PSCustomObject]@{ Outcome = $Outcome; Entry = $Stop; ExitCode = $FailCode; Installed = $Done; Skipped = $Skipped; Steps = $Steps }
+    }
+
+    # One pack's three steps: its folder placed first, its root half as WSL's
+    # own root, then its install behind WSL's own door - opened after the
+    # root half (the shell pack carries sudo itself: on a bare Debian no door
+    # can open before it) and removed after. Answers {Pack; Step; ExitCode};
+    # Step: "installed", "declined", "copy", "root", "install". A pack that
+    # declines (exit code 2) is not a failure: its folder goes back out, and
+    # the Step says so.
+    hidden [object] InstallOne([WslPack]$pack) {
         $DistroName = $this.Name
         $PacksDirectory = $this.PacksDirectory()
         $ErrorLog = if ($this.Path) { Join-Path $this.Path "pack-errors.log" } else { "" }
@@ -685,7 +725,7 @@ class WslInstance {
         # among them.
         $Target = Get-PackFolder -PacksDirectory $PacksDirectory -Name $pack.Name
         if (-not (Copy-PackIntoInstance -DistroName $DistroName -PackPath $pack.Path -Target $Target -ExitCode ([ref]$Code))) {
-            return [PSCustomObject]@{ Pack = $pack.Name; ExitCode = $Code; Step = "copy" }
+            return [PSCustomObject]@{ Pack = $pack.Name; Step = "copy"; ExitCode = $Code }
         }
 
         # The root half, as WSL's own root, before the door opens: the shell
@@ -699,7 +739,7 @@ class WslInstance {
                 # running it again picks up there.
                 $RootCode = $Code
                 Remove-PackFolder -DistroName $DistroName -Target $Target -ExitCode ([ref]$Code)
-                return [PSCustomObject]@{ Pack = $pack.Name; ExitCode = $RootCode; Step = "root" }
+                return [PSCustomObject]@{ Pack = $pack.Name; Step = "root"; ExitCode = $RootCode }
             }
         }
 
@@ -723,7 +763,7 @@ class WslInstance {
         if ($Code -eq 2) {
             $Declined = 0
             Remove-PackFolder -DistroName $DistroName -Target $Target -ExitCode ([ref]$Declined)
-            return $null
+            return [PSCustomObject]@{ Pack = $pack.Name; Step = "declined"; ExitCode = 0 }
         }
 
         # A half-installed pack is worse than none: its folder goes back out,
@@ -731,16 +771,60 @@ class WslInstance {
         if ($Code -ne 0) {
             $InstallCode = $Code
             Remove-PackFolder -DistroName $DistroName -Target $Target -ExitCode ([ref]$Code)
-            return [PSCustomObject]@{ Pack = $pack.Name; ExitCode = $InstallCode; Step = "install" }
+            return [PSCustomObject]@{ Pack = $pack.Name; Step = "install"; ExitCode = $InstallCode }
         }
 
-        return $null
+        return [PSCustomObject]@{ Pack = $pack.Name; Step = "installed"; ExitCode = 0 }
+    }
+
+    # The gesture "take this pack out": the pack and whatever nothing needs
+    # any more - resolved here, the catalogue's rule (an invisible one leaves
+    # with its last claimant), and a still-claimed one refuses the whole
+    # removal. Each remove.sh runs from inside its own folder, as root; the
+    # leftovers are tidied once, at the end. Answers {Outcome; Name;
+    # ExitCode; Removed; Missing; Conflicts; Steps; Cleaned; CleanupCode};
+    # Outcome: "removed", "conflict", "self-failed", "folder-failed".
+    [object] RemovePack([string]$name, [WslPackCatalog]$catalog) {
+        $Installed = @($this.GetPacks())
+        $ToRemove = @($catalog.ResolveRemoval($Installed, @($name), @()))
+
+        # A pack a still-installed pack requires does not leave: the removal
+        # would break what stays - refused before anything moves.
+        $Conflicts = @($catalog.GetRemovalConflicts($Installed, $ToRemove, @()))
+        if ($Conflicts.Count -gt 0) {
+            return [PSCustomObject]@{ Outcome = "conflict"; Name = $name; ExitCode = 0; Removed = @(); Missing = @(); Conflicts = $Conflicts; Steps = @(); Cleaned = $true; CleanupCode = 0 }
+        }
+
+        # The ones installed before packs had a remove.sh: their folder can
+        # leave, nothing is undone on the system side - said by the caller.
+        $PacksDirectory = $this.PacksDirectory()
+        $Missing = @()
+        $Code = 0
+        foreach ($n in $ToRemove) {
+            $Its = Get-PackFolder -PacksDirectory $PacksDirectory -Name $n
+            if (-not (Test-PackScript -DistroName $this.Name -Target $Its -Script "remove.sh" -ExitCode ([ref]$Code))) { $Missing += $n }
+        }
+
+        $Steps = @()
+        foreach ($n in $ToRemove) {
+            $Result = $this.RemoveOne($n)
+            if ($null -ne $Result) {
+                $Outcome = if ($Result.Step -eq "remove") { "self-failed" } else { "folder-failed" }
+                $Done = @($Steps | ForEach-Object { $_.Name })
+                return [PSCustomObject]@{ Outcome = $Outcome; Name = $n; ExitCode = $Result.ExitCode; Removed = $Done; Missing = $Missing; Conflicts = @(); Steps = $Steps; Cleaned = $true; CleanupCode = 0 }
+            }
+            $Steps += [PSCustomObject]@{ Name = $n; Code = 0 }
+        }
+
+        $CleanupCode = 0
+        $Cleaned = Invoke-PackOrphanCleanup -DistroName $this.Name -ExitCode ([ref]$CleanupCode)
+        return [PSCustomObject]@{ Outcome = "removed"; Name = $name; ExitCode = 0; Removed = $ToRemove; Missing = $Missing; Conflicts = @(); Steps = $Steps; Cleaned = $Cleaned; CleanupCode = $CleanupCode }
     }
 
     # One pack out: its remove.sh - as root, the removals' own gesture - then
     # its folder. A pack without a remove.sh was installed before packs had
     # one: its folder leaves, nothing is undone, and no line says it.
-    [object] RemovePack([string]$name) {
+    hidden [object] RemoveOne([string]$name) {
         $DistroName = $this.Name
         $PacksDirectory = $this.PacksDirectory()
         $ErrorLog = if ($this.Path) { Join-Path $this.Path "pack-errors.log" } else { "" }
@@ -773,12 +857,14 @@ class WslInstance {
         if ($ErrorLog) { Remove-Item -Path $ErrorLog -Force -ErrorAction SilentlyContinue }
 
         foreach ($Pack in $toAdd) {
-            $Failure = $this.AddPack($Pack)
-            if ($null -ne $Failure) { return $Failure }
+            $Result = $this.InstallOne($Pack)
+            if ($Result.Step -notin @("installed", "declined")) {
+                return [PSCustomObject]@{ Pack = $Result.Pack; ExitCode = $Result.ExitCode; Step = $Result.Step }
+            }
         }
         foreach ($Name in $toRemove) {
-            $Failure = $this.RemovePack($Name)
-            if ($null -ne $Failure) { return $Failure }
+            $Result = $this.RemoveOne($Name)
+            if ($null -ne $Result) { return $Result }
         }
 
         # The dependencies the removals left behind, taken back only where

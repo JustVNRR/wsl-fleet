@@ -26,6 +26,12 @@ try {
 
     Write-Host ""
     Write-Host "==> Packs of '$Name'" -ForegroundColor (Get-MessageColour info)
+    if ($toAdd.Count -gt 0) {
+        Write-Host "==> Installing: $(@($toAdd | ForEach-Object { $_.Name }) -join ', ')" -ForegroundColor (Get-MessageColour info)
+    }
+    if ($toRemove.Count -gt 0) {
+        Write-Host "==> Removing: $($toRemove -join ', ')" -ForegroundColor (Get-MessageColour info)
+    }
     $report = $mgr.ManagePacks($inst, $toAdd, $toRemove)
 
     if ($null -eq $report.Failure) {

@@ -277,26 +277,6 @@ class WslInstanceManager {
         return $Offered
     }
 
-    # What leaves with a pack: the chosen one first, then every pack nothing
-    # installed requires any more - the other order would ask a remove.sh
-    # whether a neighbour still claims its packages while it can still say
-    # yes. -Missing names the ones installed before packs had a remove.sh.
-    [object] RemovalPlan([WslInstance]$Instance, [string]$PackName) {
-        $Installed = @($Instance.GetPacks())
-        $PacksDirectory = $Instance.PacksDirectory()
-        $ToRemove = @($this.Catalog.ResolveRemoval($Installed, @($PackName), @()))
-
-        $Missing = @()
-        $Code = 0
-        foreach ($Name in $ToRemove) {
-            $Its = Get-PackFolder -PacksDirectory $PacksDirectory -Name $Name
-            if (-not (Test-PackScript -DistroName $Instance.Name -Target $Its -Script "remove.sh" -ExitCode ([ref]$Code))) {
-                $Missing += $Name
-            }
-        }
-        return [PSCustomObject]@{ ToRemove = $ToRemove; Missing = $Missing }
-    }
-
     # What a copy of that instance under that name costs: the copy reads the
     # instance into an archive and unpacks it into the new folder, both at the
     # same time - twice the disk is the peak a caller checks against.
@@ -423,126 +403,19 @@ class WslInstanceManager {
         return $Instance.Shell()
     }
 
-    # add_pack - the pack and whatever it requires, requirements first. Each
-    # step: the folder copied in, the root half run as WSL's own root, the
-    # install script run from inside it behind the door - and a step that
-    # halves is undone, a half-installed pack is worse than none, the Makefile
-    # loads whatever folder is there.
+    # add_pack - the request, passed on whole: the instance resolves what the
+    # pack brings, skips what it already carries, installs the rest behind
+    # one door of its own and reports. Nothing is decided here.
     [object] AddPack([WslInstance]$Instance, [string]$PackName) {
-        $PacksDirectory = $Instance.PacksDirectory()
-        $Installed = @($Instance.GetPacks())
-
-        $ToInstall = @()
-        foreach ($Name in @($this.Catalog.ResolveSelection(@($PackName), $Installed))) {
-            $Entry = $this.Catalog.GetPack($Name)
-            if ($null -ne $Entry) { $ToInstall += $Entry }
-        }
-
-        $Steps = @()
-        $Code = 0
-
-        # 1. The folders, all of them first: every root half below runs from
-        # inside its own. A failed copy takes back the folders already placed
-        # - the failed one is taken back by the copy itself - because nothing
-        # has been installed, and a folder left behind is what the menu reads.
-        $Placed = @()
-        foreach ($Entry in $ToInstall) {
-            $Target = Get-PackFolder -PacksDirectory $PacksDirectory -Name $Entry.Name
-            if (-not (Copy-PackIntoInstance -DistroName $Instance.Name -PackPath $Entry.Path -Target $Target -ExitCode ([ref]$Code))) {
-                Remove-PlacedFolders -DistroName $Instance.Name -PacksDirectory $PacksDirectory -Packs $Placed -ExitCode ([ref]$Code)
-                return [PSCustomObject]@{ Outcome = "copy-failed"; Steps = $Steps; Entry = $Entry; ExitCode = $Code; ToInstall = $ToInstall }
-            }
-            $Placed += $Entry
-        }
-
-        # 2. The root halves, before the door - the removals' gesture, and for
-        # the same reason: the door is a sudoers rule, and the shell pack
-        # carries sudo itself, so on a bare Debian there is no door to open
-        # yet. The scripts' content is unchanged; only who runs them, and when.
-        foreach ($Entry in $ToInstall) {
-            $Target = Get-PackFolder -PacksDirectory $PacksDirectory -Name $Entry.Name
-            if (Test-PackScript -DistroName $Instance.Name -Target $Target -Script "install_root.sh" -ExitCode ([ref]$Code)) {
-                Invoke-PackScript -DistroName $Instance.Name -Target $Target -Script "install_root.sh" -ExitCode ([ref]$Code) -AsRoot
-                if ($Code -ne 0) {
-                    # No install.sh has run yet, so no folder here is an
-                    # installation: they all go back out. What the root parts
-                    # put in place stays - running this again picks up there.
-                    $RootCode = $Code
-                    Remove-PlacedFolders -DistroName $Instance.Name -PacksDirectory $PacksDirectory -Packs $ToInstall -ExitCode ([ref]$Code)
-                    return [PSCustomObject]@{ Outcome = "failed"; Steps = $Steps; Entry = $Entry; ExitCode = $RootCode; ToInstall = $ToInstall }
-                }
-            }
-        }
-
-        # 3. The installs run behind WSL's own door: passwordless sudo for
-        # their length, nothing of it after - their files stay the user's.
-        $SudoWindow = $false
-        if ($ToInstall.Count -gt 0) { $SudoWindow = Enable-PackSudo -DistroName $Instance.Name }
-        try {
-            foreach ($Entry in $ToInstall) {
-                $Target = Get-PackFolder -PacksDirectory $PacksDirectory -Name $Entry.Name
-                $Code = 0
-
-                Invoke-PackScript -DistroName $Instance.Name -Target $Target -Script "install.sh" -ExitCode ([ref]$Code)
-                $InstallCode = $Code
-
-                # Exit code 2: the pack asked a question and the answer was no
-                # (the oh_my_code pack asks about a second copy installed on Windows).
-                # Its folder goes back out; nothing is broken.
-                if ($InstallCode -eq 2) {
-                    Remove-PackFolder -DistroName $Instance.Name -Target $Target -ExitCode ([ref]$Code)
-                    $Steps += [PSCustomObject]@{ Name = $Entry.Name; Code = 2; Related = ($Entry.Name -ne $PackName) }
-                    return [PSCustomObject]@{ Outcome = "declined"; Steps = $Steps; Entry = $Entry; ExitCode = 0; ToInstall = $ToInstall }
-                }
-
-                # The folder goes back out - and only it: what the install already
-                # wrote stays, and running this again picks up there.
-                if ($InstallCode -ne 0) {
-                    Remove-PackFolder -DistroName $Instance.Name -Target $Target -ExitCode ([ref]$Code)
-                    $Steps += [PSCustomObject]@{ Name = $Entry.Name; Code = $InstallCode; Related = ($Entry.Name -ne $PackName) }
-                    return [PSCustomObject]@{ Outcome = "failed"; Steps = $Steps; Entry = $Entry; ExitCode = $InstallCode; ToInstall = $ToInstall }
-                }
-
-                $Steps += [PSCustomObject]@{ Name = $Entry.Name; Code = 0; Related = ($Entry.Name -ne $PackName) }
-            }
-            return [PSCustomObject]@{ Outcome = "installed"; Steps = $Steps; Entry = $null; ExitCode = 0; ToInstall = $ToInstall }
-        } finally {
-            if ($SudoWindow) { Disable-PackSudo -DistroName $Instance.Name }
-        }
+        return $Instance.AddPack($PackName, $this.Catalog)
     }
 
-    # remove_pack - each pack's own remove.sh runs from inside its folder (it
-    # may ask for a password - it did not come alone, it travelled with the
-    # pack), then the folder goes. The leftovers of the system side are tidied
-    # once, at the end: a question about the instance, not about a pack.
+    # remove_pack - the request, passed on whole: the instance resolves what
+    # leaves with the pack, refuses a still-claimed one, runs each remove.sh
+    # from inside its own folder and tidies the leftovers. Nothing is decided
+    # here.
     [object] RemovePack([WslInstance]$Instance, [string]$PackName) {
-        $Plan = $this.RemovalPlan($Instance, $PackName)
-        $PacksDirectory = $Instance.PacksDirectory()
-
-        $Steps = @()
-        foreach ($Name in $Plan.ToRemove) {
-            $Target = Get-PackFolder -PacksDirectory $PacksDirectory -Name $Name
-            $Code = 0
-
-            if ($Plan.Missing -notcontains $Name) {
-                Invoke-PackScript -DistroName $Instance.Name -Target $Target -Script "remove.sh" -ExitCode ([ref]$Code) -AsRoot
-                # The folder stays when the script failed: the pack is still
-                # half in place, and its files are what a second attempt needs.
-                if ($Code -ne 0) {
-                    return [PSCustomObject]@{ Outcome = "self-failed"; Steps = $Steps; Name = $Name; ExitCode = $Code; Plan = $Plan }
-                }
-            }
-
-            Remove-PackFolder -DistroName $Instance.Name -Target $Target -ExitCode ([ref]$Code)
-            if ($Code -ne 0) {
-                return [PSCustomObject]@{ Outcome = "folder-failed"; Steps = $Steps; Name = $Name; ExitCode = $Code; Plan = $Plan }
-            }
-            $Steps += [PSCustomObject]@{ Name = $Name; Code = 0 }
-        }
-
-        $CleanupCode = 0
-        $Cleaned = Invoke-PackOrphanCleanup -DistroName $Instance.Name -ExitCode ([ref]$CleanupCode)
-        return [PSCustomObject]@{ Outcome = "removed"; Steps = $Steps; Cleaned = $Cleaned; CleanupCode = $CleanupCode; Plan = $Plan }
+        return $Instance.RemovePack($PackName, $this.Catalog)
     }
 
     # manage_packs - what was ticked arrives, what was unticked leaves; the

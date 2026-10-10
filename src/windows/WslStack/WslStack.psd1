@@ -96,7 +96,6 @@
         'Enable-PackSudo'
         'Disable-PackSudo'
         'Invoke-PackOrphanCleanup'
-        'Invoke-PackApply'
 
         # The questions - what a command asks
         'Test-InstanceName'

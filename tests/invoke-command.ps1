@@ -3,8 +3,8 @@
 # any more, they run through the entry and use what it imported. The manager
 # travels in as a parameter, typed and bound from the command's first line -
 # and for the commands whose questions live in the console's conversation
-# (archive, restore, duplicate, unregister, shrink), the controller is
-# mounted and asked here, and the form it renders travels in too: the
+# (archive, restore, duplicate, unregister, shrink, migrate), the controller
+# is mounted and asked here, and the form it renders travels in too: the
 # entry's two roles, played the same way.
 #
 # The suites drive their commands through this file. The answers travel on
@@ -52,6 +52,9 @@ if ($Key -eq "archive") {
 } elseif ($Key -eq "shrink") {
     . (Join-Path $PSScriptRoot "..\src\windows\cli\Controllers\Shrink.ps1")
     $Form = Read-ShrinkAnswers -Manager $Manager -Options @()
+} elseif ($Key -eq "migrate") {
+    . (Join-Path $PSScriptRoot "..\src\windows\cli\Controllers\Migrate.ps1")
+    $Form = Read-MigrateAnswers -Manager $Manager -Options @()
 } else {
     $Asks = $false
 }

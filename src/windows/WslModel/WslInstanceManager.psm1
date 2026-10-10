@@ -728,6 +728,62 @@ class WslInstanceManager {
         return [PSCustomObject]@{ Instance = $this.FindByName($Name); InstallPath = $FullDestination; CopyBytes = $CopyBytes; Stopped = $Copy.Stopped; Docker = $Setup.DockerState; Setup = $Setup }
     }
 
+    # migrate - the archives folder's voyage: from under this root to the one
+    # the caller names, a rename on one volume and a robocopy across (the
+    # originals kept), the room checked first. Nothing to move is a report
+    # too, not an error. The refusals are this method's own words: a target
+    # already holding an archives folder, a volume too full, a copy the tool
+    # reported broken. The report tells where the target stands, full path
+    # included - the root switch is the caller's, after this returns.
+    [object] MoveArchives([string]$Target) {
+        $TargetFull = [System.IO.Path]::GetFullPath($Target)
+        $OldArchives = Join-Path $this.InstancesRoot "archives"
+        $NewArchives = Join-Path $TargetFull "archives"
+        $Report = [PSCustomObject]@{ Target = $TargetFull; Old = $OldArchives; New = $NewArchives; Moved = $false; Method = ""; Kept = $false }
+
+        if (-not (Test-Path $OldArchives)) { return $Report }
+
+        if (Test-Path $NewArchives) {
+            throw "'$NewArchives' already exists - nothing was moved. Move it away first."
+        }
+
+        $SourceRoot = [System.IO.Path]::GetPathRoot($this.InstancesRoot)
+        $TargetRoot = [System.IO.Path]::GetPathRoot($TargetFull)
+        $IsSameVolume = ($SourceRoot.TrimEnd('\').ToUpperInvariant() -eq $TargetRoot.TrimEnd('\').ToUpperInvariant())
+
+        if ($IsSameVolume) {
+            try {
+                Move-Item -Path $OldArchives -Destination $NewArchives -ErrorAction Stop
+            } catch {
+                throw "the move failed: $($_.Exception.Message)"
+            }
+            $Report.Moved = $true
+            $Report.Method = "rename"
+            return $Report
+        }
+
+        $ArchivesSize = (Get-ChildItem -Path $OldArchives -Recurse -Force -ErrorAction SilentlyContinue |
+            Measure-Object -Property Length -Sum).Sum
+        $Free = (Get-CimInstance -ClassName Win32_LogicalDisk -Filter "DeviceID='$($TargetRoot.TrimEnd('\'))'").FreeSpace
+        if ($Free -lt ($ArchivesSize + 2GB)) {
+            throw "not enough free space on '$($TargetRoot.TrimEnd('\'))' - $([Math]::Ceiling(($ArchivesSize + 2GB) / 1GB)) GB needed."
+        }
+
+        # /E subdirectories, /COPY:DAT data, attributes and times, /Z
+        # restartable (a long copy survives a hiccup), /R:3 /W:2 a short
+        # retry. Codes under 8 are success - the tool's own scale, read from
+        # the global (a class method's scope does not carry it).
+        & robocopy.exe $OldArchives $NewArchives /E /COPY:DAT /Z /R:3 /W:2 | Out-Null
+        $Code = $global:LASTEXITCODE
+        if ($Code -ge 8) {
+            throw "robocopy reported errors (code $Code) - the originals are untouched."
+        }
+        $Report.Moved = $true
+        $Report.Method = "robocopy"
+        $Report.Kept = $true
+        return $Report
+    }
+
     # shrink - the compact, in place, working on a running instance; it
     # refuses on its own if the disk cannot be compacted. The safety copy,
     # when the user asked for one, is this method's first act: the whole

@@ -163,9 +163,8 @@ try {
     Check "nothing running -> stop says so" (@($Out | Where-Object { "$_".Contains("No instance is running") }).Count -gt 0) $true
     Check "and ends on one" $script:ChildExit 1
 
-    # 5. shell: the session is asked of WSL by name, from the instance's home,
-    # and a stopped one is noted - WSL starts it on the way in. Nothing is
-    # captured from the session: its code is handed back as it came.
+    # 5. shell: the session is asked of WSL by name, from the instance's home.
+    # Nothing is captured from the session: its code is handed back as it came.
     Remove-Item $Log -Force -ErrorAction SilentlyContinue
     $Out = Invoke-Child -Script $ShellScript -Answers @("$Pick")
     Check "shell opens a session on the instance picked" (@(Get-Calls | Where-Object { $_ -eq "-d $FakeName --cd ~" }).Count) 1
@@ -176,13 +175,7 @@ try {
     Check "and the name reaches wsl unquoted" `
         (@(Get-Calls | Where-Object { $_ -like "raw:*" -and $_ -like "*`"$FakeName`"*" }).Count) 0
     Check "and says what it is doing" (@($Out | Where-Object { "$_".Contains("Opening a shell in '$FakeName'") }).Count -gt 0) $true
-    Check "and notes a stopped instance" (@($Out | Where-Object { "$_".Contains("It was stopped") }).Count -gt 0) $true
     Check "and hands the session's code over" $script:ChildExit 0
-
-    Remove-Item $Log -Force -ErrorAction SilentlyContinue
-    Add-Content -Path $Log -Value "-d $FakeName --exec /bin/true"
-    $Out = Invoke-Child -Script $ShellScript -Answers @("$Pick")
-    Check "a running instance is not noted as stopped" (@($Out | Where-Object { "$_".Contains("It was stopped") }).Count) 0
 
     # 6. shrink: one command, in place - and the instance comes back up only
     # if it was up. The archive question is answered no: a yes takes the

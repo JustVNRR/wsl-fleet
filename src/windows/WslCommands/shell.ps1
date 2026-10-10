@@ -15,6 +15,6 @@ $ErrorActionPreference = "Stop"
 $Distro = Select-Distro -Manager $Manager
 
 Write-Host ""
-Write-Host "==> Opening a shell in '$Distro.Name'..." -ForegroundColor (Get-MessageColour info)
+Write-Host "==> Opening a shell in '$($Distro.Name)'..." -ForegroundColor (Get-MessageColour info)
 
 exit $Manager.Shell($Distro)

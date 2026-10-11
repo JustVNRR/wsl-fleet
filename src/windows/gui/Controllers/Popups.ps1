@@ -658,13 +658,16 @@ function Show-AddInstance {
     $txtUserError = $form.FindName("TxtUserError")
     $txtImageError = $form.FindName("TxtImageError")
     $lblUser = $form.FindName("LblUser")
+    $btnCreate = $form.FindName("BtnAddCreate")
     $txtUser.Text = $ProposedUser
 
     $form.Add_ContentRendered({ $null = $txtName.Focus() })
 
     # Live checks, the red line under the box saying what is wrong - on the
     # window's road a name that exists is refused here, never destroyed. The
-    # verdicts live on $script:; the boxes are wired below.
+    # verdicts live on $script:; the boxes are wired below. CREATE follows
+    # both verdicts, greyed until they both hold: a form that says what is
+    # wrong and a button that opens the road only then.
     $CheckName = {
         $name = $txtName.Text.Trim()
         $problem = ""
@@ -680,6 +683,7 @@ function Show-AddInstance {
         $txtNameError.Text = $problem
         $txtNameError.Visibility = if ($problem) { [System.Windows.Visibility]::Visible } else { [System.Windows.Visibility]::Collapsed }
         $script:AddNameOk = (-not $problem)
+        $btnCreate.IsEnabled = [bool]($script:AddNameOk -and $script:AddUserOk)
     }
     $CheckUser = {
         $user = $txtUser.Text.Trim()
@@ -690,6 +694,7 @@ function Show-AddInstance {
         $txtUserError.Text = $problem
         $txtUserError.Visibility = if ($problem) { [System.Windows.Visibility]::Visible } else { [System.Windows.Visibility]::Collapsed }
         $script:AddUserOk = (-not $problem)
+        $btnCreate.IsEnabled = [bool]($script:AddNameOk -and $script:AddUserOk)
     }
 
     New-PackChecklist -Panel $form.FindName("Boxes") -Installed @() -Catalog $Catalog `
@@ -1412,7 +1417,7 @@ function Show-GuiSettings {
         # The move, asked on its own: the warning, the folder now, a Cancel
         # and a red CONFIRM. A confirmed folder rides the answer and the
         # window steps out of the way - the console and the manager's return
-        # are gui.ps1's.
+        # are Gui.ps1's.
         $chosen = Show-GuiRootMove -Owner $form -Current $txtRoot.Text.Trim()
         if ($chosen) {
             $script:MoveTo = $chosen
@@ -1510,7 +1515,7 @@ function Show-GuiSettings {
 
     # The face applies as it changes - the family, its size, the colour set:
     # the window behind repaints on each pick and the choice is saved at
-    # once (the block lives in gui.ps1, where the window's own things are).
+    # once (the block lives in Gui.ps1, where the window's own things are).
     # These three combos have nothing waiting on an APPLY.
     $ApplySelection = {
         $choice = $choiceRows[[Math]::Max(0, $lstFonts.SelectedIndex)]

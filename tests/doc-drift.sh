@@ -3,6 +3,9 @@
 # words? The menu is the source; the README table and the commands page (its
 # table, its section, its sample menu) are the copies that drift.
 #
+# A command is a menu word with a file behind it: the way-in menu's 'cli' opens
+# the console's menu, not a file, and the docs owe it nothing.
+#
 # It reads, it never writes: safe to run anywhere, on any branch.
 #
 # Usage: bash tests/doc-drift.sh
@@ -13,7 +16,13 @@ cd "$(dirname "$0")/.." || exit 1
 
 ps=$(tr -d '\r' < wsl.ps1)
 drift=0
-names=$(printf '%s\n' "$ps" | sed -n 's/^ *Add("\([a-z_]*\)".*/\1/p')
+names=$(printf '%s\n' "$ps" | sed -n 's/^ *Add("\([a-z_]*\)".*/\1/p' | while read -r name; do
+    # gui's implementation lives with the window it opens; every other
+    # command's under the commands' folder.
+    if [ -f "src/windows/WslCommands/$name.ps1" ] || { [ "$name" = "gui" ] && [ -f "src/windows/gui/Gui.ps1" ]; }; then
+        echo "$name"
+    fi
+done)
 
 printf "%-14s %-8s %-7s %-7s %-7s %-8s %-8s\n" COMMAND README TABLE SECTION SAMPLE WHAT@README WHAT@PAGE
 while read -r name; do

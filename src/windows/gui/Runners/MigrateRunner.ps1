@@ -3,7 +3,7 @@
 # because pressing it reopens the fleet manager: the move started with the
 # window closed, and the key is how it comes back. The window's road hands
 # its arguments over positionally, in the order the param line below declares
-# - gui.ps1's ArgumentList and that line must agree, and gui-test.ps1 pins
+# - Gui.ps1's ArgumentList and that line must agree, and gui-test.ps1 pins
 # both.
 
 param([string]$Target, [string]$Module, [string]$Entry)

@@ -17,9 +17,11 @@ Add-Type -AssemblyName WindowsBase
 Add-Type -AssemblyName System.Windows.Forms
 
 # The window's furniture, out of this file: the theme's manager and the
-# controllers live under scripts/gui, dot sourced into the entry's scope -
-# the faces and the dresser, the jobs, the dialogs' doors, the fleet's desk.
-$GuiRoot = Join-Path $PSScriptRoot "..\gui"
+# controllers live beside it, dot sourced into its scope - the faces and the
+# dresser, the jobs, the dialogs' doors, the fleet's desk. This file lives
+# with them: the window is a way in of its own, not one of the console's
+# commands, and the way-in menu opens it here.
+$GuiRoot = $PSScriptRoot
 . (Join-Path $GuiRoot "Theme\ThemeManager.ps1")
 . (Join-Path $GuiRoot "Controllers\Jobs.ps1")
 . (Join-Path $GuiRoot "Controllers\Popups.ps1")
@@ -59,7 +61,7 @@ $GuiLookupJob = Start-ThreadJob -ScriptBlock {
 # row Open, Start or Stop, Edit, Archive, Compact and the trash, with the
 # restore and the trash alone on an archived row. It lives beside the theme,
 # on disk, and reads and parses exactly as the here-string did.
-$XamlPath = Join-Path $PSScriptRoot "..\gui\Views\MainWindow.xaml"
+$XamlPath = Join-Path $PSScriptRoot "Views\MainWindow.xaml"
 $reader = [System.Xml.XmlNodeReader]::new([xml][System.IO.File]::ReadAllText($XamlPath))
 $window = [Windows.Markup.XamlReader]::Load($reader)
 
@@ -192,7 +194,7 @@ $btnSettings.Add_Click({
                 & $SetStatus "The folder carries a double quote or a trailing backslash - the move was not launched." -Alert
                 return
             }
-            $RunnerPath = Join-Path $PSScriptRoot "..\gui\Runners\MigrateRunner.ps1"
+            $RunnerPath = Join-Path $PSScriptRoot "Runners\MigrateRunner.ps1"
             $ModulePath = Join-Path $PSScriptRoot "..\WslStack\WslStack.psd1"
             $Entry = Join-Path $PSScriptRoot "..\..\..\wsl.ps1"
             Start-Process pwsh -ArgumentList @(
@@ -250,8 +252,8 @@ $btnAdd.Add_Click({
     }
 
     $ModulePath = Join-Path $PSScriptRoot "..\WslStack\WslStack.psd1"
-    $BuildScript = Join-Path $PSScriptRoot "build.ps1"
-    $RunnerPath = Join-Path $PSScriptRoot "..\gui\Runners\BuildRunner.ps1"
+    $BuildScript = Join-Path $PSScriptRoot "..\WslCommands\build.ps1"
+    $RunnerPath = Join-Path $PSScriptRoot "Runners\BuildRunner.ps1"
     $script:BuildChild = Start-Process pwsh -PassThru -ArgumentList @(
         "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "`"$RunnerPath`"",
         "`"$($form.Name)`"", "`"$($form.User)`"", "`"$($form.Packs -join ',')`"",
@@ -336,6 +338,13 @@ try {
     $window.Show()
     # Shown: it has a screen now, and the ceiling follows that one.
     & $FitCeiling
+    # The launch left the console in front - the window was made by its
+    # process, so it may ask for the first plane back: Activate first, then
+    # the topmost flip, which is what Windows really listens to. The popups'
+    # return does the same for their parent (see Popups.ps1).
+    $null = $window.Activate()
+    $window.Topmost = $true
+    $window.Topmost = $false
     # Escape needs a focus to travel from - a window with no focused
     # element listens to nothing (measured: it was dead until the list was
     # clicked). The list takes it at launch, so the window starts in the

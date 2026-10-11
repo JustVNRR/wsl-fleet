@@ -17,8 +17,9 @@ param (
 # ==============================================================================
 # THE WAY IN: one command at the root, the commands themselves in src\windows\WslCommands\
 # ==============================================================================
-# Bare, it asks which command: the list, walked with the arrows and taken with
-# Enter, Escape to cancel. With a command, it runs it.
+# Bare, it asks which way in - the window, or the console's commands - walked
+# with the arrows and taken with Enter, Escape to cancel. With a command, it
+# runs it.
 #
 #   .\wsl.ps1                       the menu
 #   .\wsl.ps1 archive               archive an instance
@@ -65,11 +66,13 @@ Import-Module $StackModule -Force
 # is thrown away, which is what blinded a build's whiptail (measured).
 $Gesture = {
     param($Command, $Run)
-    # The commands whose answers came from the console's conversation: they
-    # arrived whole, and the words that built them are spent - the command
-    # takes its answers and nothing else.
+    # The command's own file, resolved once by the entry - the window's lives
+    # with the window, every other under the commands' folder. The commands
+    # whose answers came from the console's conversation arrived whole, and
+    # the words that built them are spent - they take their answers and
+    # nothing else.
     if ($Run.ContainsKey("Answers")) {
-        & (Join-Path $Run.Scripts "$($Command.Key).ps1") -Form $Run.Answers -Manager $Run.Manager
+        & $Run.Script -Form $Run.Answers -Manager $Run.Manager
         return
     }
     # The tokens after the command, in words: `-Name` starts a parameter and
@@ -97,20 +100,26 @@ $Gesture = {
         $Values = @($Named[$Name])
         $Named[$Name] = if ($Values.Count -eq 0) { $true } elseif ($Values.Count -eq 1) { $Values[0] } else { $Values }
     }
-    & (Join-Path $Run.Scripts "$($Command.Key).ps1") @Named @Loose -Manager $Run.Manager
+    & $Run.Script @Named @Loose -Manager $Run.Manager
 }
 
 # The words, one chain: one WslMenuItem per command - the word, the line, the
-# gesture. The order is the one the documentation uses, and it starts with the
-# window - gui, the mouse-first way in - then list, the answer to "what do I
-# have?", then the rest along an instance's life. Each line says what the
-# command does and stops there: a menu is read at a glance. The longest is 40
-# characters - 61
-# columns numbered, 58 behind the arrow marker, measured - so an 80-column
-# window shows them whole and the cut never eats a word that mattered. What
-# deserves a sentence is in docs\wsl\commands.md.
-$Menu = [WslMenu]::new("WSL Stack").
-    Add("gui",          "open graphical fleet manager",             $Gesture).
+# gesture. The order is the one the documentation uses: list, the answer to
+# "what do I have?", then the rest along an instance's life. Each line says
+# what the command does and stops there: a menu is read at a glance. The
+# longest is 40 characters - 61 columns numbered, 58 behind the arrow marker,
+# measured - so an 80-column window shows them whole and the cut never eats a
+# word that mattered. What deserves a sentence is in docs\wsl\commands.md.
+#
+# The window is not in this chain: bare, the way in asks first what kind of
+# way in - the window, or these commands - so the window opens from the first
+# question and never crowds the commands'. The word 'gui' still routes: it has
+# its own seat below, with the window it opens.
+$Main = [WslMenu]::new("WSL Stack").
+    Add("gui", "open graphical fleet manager", $Gesture).
+    Add("cli", "the console's commands",       $Gesture)
+
+$Menu = [WslMenu]::new("WSL Stack - console").
     Add("list",         "list our instances and the archives",      $Gesture).
     Add("build",        "build an instance from the image",         $Gesture).
     Add("start",        "start a stopped instance",                 $Gesture).
@@ -130,15 +139,16 @@ $Menu = [WslMenu]::new("WSL Stack").
     Add("migrate",      "move the fleet to another folder",         $Gesture)
 
 # With a word, the command line routes it; bare, the repository asks its first
-# question - which command - and it is a question like the ones inside the
-# commands: the same menu, walked with the arrows, cancelled with Escape.
+# question - the window, or the console's commands - and it is a question like
+# the ones inside the commands: the same menu, walked with the arrows,
+# cancelled with Escape.
 if ($Command) {
     # The word names its command, whatever its case. A word the menu does not
     # carry may still be a command file - delete_archive is one, called by
     # name and kept out of the menu - and a word neither knows is said here,
     # with the list it should have come from.
     $Chosen = $Menu.Dispatch($Command)
-    if (-not $Chosen -and (Test-Path (Join-Path $CommandFiles "$Command.ps1"))) {
+    if (-not $Chosen -and ($Command -eq "gui" -or (Test-Path (Join-Path $CommandFiles "$Command.ps1")))) {
         $Chosen = [PSCustomObject]@{ Key = $Command; Action = $Gesture }
     }
     if (-not $Chosen) {
@@ -151,11 +161,19 @@ if ($Command) {
     }
 } else {
 
-    $Chosen = $Menu.Prompt()
+    $Chosen = $Main.Prompt()
     if (-not $Chosen) { Stop-Cancelled -What "run" }
+    if ($Chosen.Key -eq "cli") {
+        # The console's commands, and only those: the window lives in the
+        # question above.
+        $Chosen = $Menu.Prompt()
+        if (-not $Chosen) { Stop-Cancelled -What "run" }
+    }
 }
 
-$Script = Join-Path $CommandFiles "$($Chosen.Key).ps1"
+# The word's file: the window's lives with the window (src\windows\gui), by
+# the way-in menu's own hand - every other command under the commands' folder.
+$Script = if ($Chosen.Key -eq "gui") { Join-Path $Scripts "gui\Gui.ps1" } else { Join-Path $CommandFiles "$($Chosen.Key).ps1" }
 if (-not (Test-Path $Script)) {
     Write-Host ""
     Write-Host "[ABORT] $Script is missing - the src\windows\ folder is incomplete." -ForegroundColor (Get-MessageColour error)
@@ -260,7 +278,7 @@ if ($Chosen.Key -eq "theme") {
 # refuses it. With the commands' folder and the manager above, that is
 # everything the gesture takes its parameters from.
 $Run = @{
-    Scripts = $CommandFiles
+    Script  = $Script
     Args    = $RemainingArgs
     Manager = $Manager
 }

@@ -5,7 +5,7 @@
 # the theme knows, every control a controller looks up by FindName must exist
 # in some window's markup, and the three runners must parse and keep calling
 # the engine's ways - the build form's positional chain pinned at both ends.
-# Before the split this markup lived inside gui.ps1 and rode along in
+# Before the split this markup lived inside Gui.ps1 and rode along in
 # parse-check; on disk, nothing else in the repository reads it.
 #
 # Usage:  pwsh -NoProfile -File tests\gui-test.ps1
@@ -42,7 +42,7 @@ if (Test-Path $themePath) {
     Write-Host "theme: $($keys.Count) key(s), $($refs.Count) reference(s)."
 
     # 2b. And the windows resolve the same way: a key that is neither in the
-    # theme nor set by the code (IconFace, handed to the window by gui.ps1)
+    # theme nor set by the code (IconFace, handed to the window by Gui.ps1)
     # fails SILENTLY - WPF falls back without a word.
     $codeKeys = @("IconFace")
     $viewRefs = @{}
@@ -95,17 +95,17 @@ foreach ($pin in $pins) {
 }
 Write-Host "$($runners.Count) runner(s) read, $($pins.Count) call(s) pinned."
 
-# 3b. The build form's answers ride POSITIONALLY from gui.ps1's ArgumentList
+# 3b. The build form's answers ride POSITIONALLY from Gui.ps1's ArgumentList
 # into BuildRunner's param line, and a drift between the two is silent - every
 # answer landing one slot off. Both ends are pinned: the param line whole
 # (order included) and the form fields' order in the argument list.
 $paramLine = 'param([string]$Name, [string]$User, [string]$Packs, [string]$Dockerfile, [string]$FirstBoot, [string]$Image, [string]$SaveImage, [string]$RegisterDocker, [string]$Module, [string]$BuildScript)'
 $buildRunnerPath = Join-Path $GuiRoot "Runners\BuildRunner.ps1"
 if ([IO.File]::ReadAllText($buildRunnerPath) -notmatch [regex]::Escape($paramLine)) {
-    Write-Host "::error file=$buildRunnerPath::the param line (order included) is not the one gui.ps1 feeds"
+    Write-Host "::error file=$buildRunnerPath::the param line (order included) is not the one Gui.ps1 feeds"
     $bad = 1
 }
-$guiPath = Join-Path $PSScriptRoot "..\src\windows\WslCommands\gui.ps1"
+$guiPath = Join-Path $PSScriptRoot "..\src\windows\gui\Gui.ps1"
 $guiSrc = [IO.File]::ReadAllText($guiPath)
 $at = 0
 $ordered = $true
@@ -125,7 +125,7 @@ Write-Host "the build form's positional chain: pinned."
 $migrateParamLine = 'param([string]$Target, [string]$Module, [string]$Entry)'
 $migrateRunnerPath = Join-Path $GuiRoot "Runners\MigrateRunner.ps1"
 if ([IO.File]::ReadAllText($migrateRunnerPath) -notmatch [regex]::Escape($migrateParamLine)) {
-    Write-Host "::error file=$migrateRunnerPath::the param line (order included) is not the one gui.ps1 feeds"
+    Write-Host "::error file=$migrateRunnerPath::the param line (order included) is not the one Gui.ps1 feeds"
     $bad = 1
 }
 $chain = '"`"$newRoot`"", "`"$ModulePath`"", "`"$Entry`""'

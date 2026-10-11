@@ -4,14 +4,24 @@
 commands themselves live in `src\windows\`.
 
 ```powershell
-.\wsl.ps1               # which command? - the menu below
+.\wsl.ps1               # which way in? - the menus below
 ```
 
 ```text
 
 WSL Stack
   > gui          open graphical fleet manager
-    list         list our instances and the archives
+    cli          the console's commands
+  up/down to move, Enter to choose, Escape to cancel
+```
+
+`cli` opens the commands themselves — the window stays out of that list, and
+answers to its word all the same, `.\wsl.ps1 gui`:
+
+```text
+
+WSL Stack - console
+  > list         list our instances and the archives
     build        build an instance from the image
     start        start a stopped instance
     stop         stop a running instance

@@ -2,7 +2,7 @@
 # long, loud, and still has questions only it can ask (the account the image
 # already carries, the Docker image, Docker Desktop, the first shell). The
 # window's road hands its arguments over positionally, in the order the param
-# line below declares - gui.ps1's ArgumentList and that line must agree, and
+# line below declares - Gui.ps1's ArgumentList and that line must agree, and
 # gui-test.ps1 pins both - and the window closes with the build: it waits for
 # Enter only when the build ABORTED, so the error is read instead of vanishing
 # with the process.

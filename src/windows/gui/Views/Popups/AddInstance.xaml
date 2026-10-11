@@ -85,7 +85,7 @@
         <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="18,10,18,16">
             <Button Name="BtnAddCancel" Content="Cancel" Width="80" Height="28" Margin="0,0,8,0" IsCancel="True"
                     Background="{DynamicResource AppFaceBrush}" Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="{DynamicResource AppBorderBrush}"/>
-            <Button Name="BtnAddCreate" Content="CREATE" Width="90" Height="28" IsDefault="True"
+            <Button Name="BtnAddCreate" Content="CREATE" Width="90" Height="28" IsDefault="True" IsEnabled="False"
                     Background="{DynamicResource AppForegroundBrush}" Foreground="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource AppForegroundBrush}"/>
         </StackPanel>
     </Grid>

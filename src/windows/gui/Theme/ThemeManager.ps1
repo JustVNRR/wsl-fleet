@@ -1,5 +1,5 @@
 # The window's furniture, out of the command file: the faces, the chart's
-# loader and the frame every window wears. Dot-sourced by gui.ps1, so these
+# loader and the frame every window wears. Dot-sourced by Gui.ps1, so these
 # functions land at the entry's scope and the windows call them from there.
 
 # The window's faces, shipped in the repository: assets\fonts\VT323 (the

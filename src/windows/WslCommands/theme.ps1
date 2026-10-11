@@ -17,8 +17,8 @@ param (
 
 # What an instance wears: its icon, its font and its colours - the three
 # things Windows Terminal takes from the profile this repository writes.
-# Reached on its own, the reload of Terminal is the entry's closing move,
-# once the prompt is back.
+# Nothing embeds this one: the reload of Terminal is its own closing move,
+# where the three children's is the entry's.
 
 $ErrorActionPreference = "Stop"
 
@@ -35,7 +35,11 @@ foreach ($Run in @($Form.Runs)) {
     & $Script -Manager $Manager -Form $Run.Form
 }
 
-# Whatever a run's own code was, the visit itself ran to the end - and a
-# console build that ends bare would leave the last code standing, the
-# entry's reload reading it.
+# The visit is over, and this is the moment Terminal can be asked to look
+# again: a reload cannot land on a pane that is running a menu, so the change
+# shows when you leave.
+Update-TerminalSettings
+
+# Whatever a run's own code was, the visit itself ran to the end: the code
+# says so, and a bare ending would leave the last run's standing.
 exit 0

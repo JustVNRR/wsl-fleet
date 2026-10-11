@@ -271,8 +271,8 @@ if ($null -ne $Answers) { $Run.Answers = $Answers }
 # A look written on its own, and the visit over: Terminal is asked to look
 # again once the prompt is back - a reload cannot land while a menu is
 # running, and behind the theme menu its own ending writes the touch (see
-# theme.ps1).
-if (($Chosen.Key -eq "theme" -or $Chosen.Key -eq "theme_font" -or $Chosen.Key -eq "theme_icon" -or $Chosen.Key -eq "theme_color") -and $LASTEXITCODE -eq 0) {
+# theme.ps1). The theme command touches for itself: nothing embeds it.
+if (($Chosen.Key -eq "theme_font" -or $Chosen.Key -eq "theme_icon" -or $Chosen.Key -eq "theme_color") -and $LASTEXITCODE -eq 0) {
     Update-TerminalSettings
 }
 

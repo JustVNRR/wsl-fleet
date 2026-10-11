@@ -37,9 +37,9 @@ function Show-PopupExclusive {
             $ParentWindow.BeginAnimation([System.Windows.UIElement]::OpacityProperty, $fadeIn)
         }
         $null = $ParentWindow.Activate()
-        # Hide/Show loses the keyboard focus, and the keys need one to
-        # travel from: the window takes it back, or Q and Escape would be
-        # dead until the list is clicked again (measured).
+        # Hide/Show loses the keyboard focus, and a key needs one to travel
+        # from: the window takes it back, or Escape would be dead until the
+        # list is clicked again (measured).
         $null = $ParentWindow.Focus()
     }
 }

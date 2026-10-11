@@ -283,11 +283,12 @@ $window.Add_MouseLeftButtonDown({
     } catch { }
 })
 
-# Q and Escape close it - unless the hand is typing in a field: the status
-# line is the only box here, and a q inside it must stay a letter.
+# Escape closes it - unless the hand is typing in a field: the status line
+# is the only box here, and a key pressed inside it belongs to it. A letter
+# closes nothing: an unmodified keypress is a slip, not a deliberate gesture.
 $window.Add_PreviewKeyDown({
     param($source, $e)
-    if ($e.Key -eq [System.Windows.Input.Key]::Q -or $e.Key -eq [System.Windows.Input.Key]::Escape) {
+    if ($e.Key -eq [System.Windows.Input.Key]::Escape) {
         if ([System.Windows.Input.Keyboard]::FocusedElement -is [System.Windows.Controls.TextBox]) { return }
         $window.Close()
     }
@@ -316,10 +317,10 @@ $frame = [System.Windows.Threading.DispatcherFrame]::new()
 $window.Add_Closed({ $frame.Continue = $false })
 try {
     $window.Show()
-    # The keys need a focus to travel from - a window with no focused
-    # element listens to nothing (measured: Q and Escape were dead until
-    # the list was clicked). The list takes it at launch, so the window
-    # starts in the state a click would give it.
+    # Escape needs a focus to travel from - a window with no focused
+    # element listens to nothing (measured: it was dead until the list was
+    # clicked). The list takes it at launch, so the window starts in the
+    # state a click would give it.
     $null = $lstInstances.Focus()
     [System.Windows.Threading.Dispatcher]::PushFrame($frame)
 } finally {

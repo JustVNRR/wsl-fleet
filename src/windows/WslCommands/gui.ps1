@@ -310,10 +310,16 @@ try {
 } finally {
     # Whichever way the pump came back - not only the window's own close
     # (the finally is the certain one): nothing of this launch stays hooked
-    # to the process. The safety net goes back off the dispatcher, and a
-    # running job's poller stops - left ticking, it would hold this launch
-    # until the child ends (a build: minutes), the dispatcher living as long
-    # as the terminal does.
+    # to the process. The safety net goes back off the dispatcher, a running
+    # job's poller stops - left ticking, it would hold this launch until the
+    # child ends (a build: minutes), the dispatcher living as long as the
+    # terminal does - and the lookups' thread, which a popup harvests only
+    # when one opened, is stopped and taken back out here.
     $window.Dispatcher.Remove_UnhandledException($safetyNet)
     if ($Poller) { $Poller.Stop() }
+    if ($script:GuiLookupJob) {
+        Stop-Job $script:GuiLookupJob -ErrorAction SilentlyContinue
+        Remove-Job $script:GuiLookupJob -Force -ErrorAction SilentlyContinue
+        $script:GuiLookupJob = $null
+    }
 }

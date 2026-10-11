@@ -12,6 +12,9 @@ param (
 Add-Type -AssemblyName PresentationFramework
 Add-Type -AssemblyName PresentationCore
 Add-Type -AssemblyName WindowsBase
+# The window's ceiling follows the screen it is ON, and only WinForms' Screen
+# knows which one that is.
+Add-Type -AssemblyName System.Windows.Forms
 
 # The window's furniture, out of this file: the theme's manager and the
 # controllers live under scripts/gui, dot sourced into the entry's scope -
@@ -303,10 +306,24 @@ $window.Add_PreviewKeyDown({
 & $LoadFleet
 
 # The height follows the content, with a floor and a ceiling: four rows'
-# worth under it - an empty fleet must not leave a sliver - and the screen's
-# working area over it: past that, the list scrolls inside the window.
+# worth under it - an empty fleet must not leave a sliver - and the working
+# area of the screen the window is ON over it: past that, the list scrolls
+# inside. Read per screen and re-read when the moment changes - a drag to
+# another screen, a scaling change - not once at the open: the handle only
+# exists once the window is shown, so the primary screen's estimate below
+# stands until then.
 $window.MinHeight = 240
 $window.MaxHeight = [Math]::Max(360, [System.Windows.SystemParameters]::WorkArea.Height - 40)
+$FitCeiling = {
+    try {
+        $handle = [System.Windows.Interop.WindowInteropHelper]::new($window).Handle
+        $area = [System.Windows.Forms.Screen]::FromHandle($handle).WorkingArea
+        $dpi = [System.Windows.Media.VisualTreeHelper]::GetDpi($window)
+        $window.MaxHeight = [Math]::Max(360, [int]($area.Height / $dpi.DpiScaleY) - 40)
+    } catch { }
+}
+$window.Add_DpiChanged({ & $FitCeiling })
+$window.Add_MouseLeftButtonUp({ & $FitCeiling })
 
 # A plain window, never ShowDialog: Show-PopupExclusive hides it while a
 # dialog is up, and hiding a dialog window ends it (DoDialogHide unblocks the
@@ -317,6 +334,8 @@ $frame = [System.Windows.Threading.DispatcherFrame]::new()
 $window.Add_Closed({ $frame.Continue = $false })
 try {
     $window.Show()
+    # Shown: it has a screen now, and the ceiling follows that one.
+    & $FitCeiling
     # Escape needs a focus to travel from - a window with no focused
     # element listens to nothing (measured: it was dead until the list was
     # clicked). The list takes it at launch, so the window starts in the

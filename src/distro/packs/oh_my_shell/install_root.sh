@@ -3,11 +3,11 @@
 # THE OH_MY_SHELL PACK - WHAT IT INSTALLS AS ROOT
 # ==============================================================================
 # Run by the engine as WSL's own root, before install.sh - no password asked.
-# The packages, the two third-party repositories they install from, and the
-# system-side touches the settings need; what it installs is read from
-# pack.conf, beside this file - the same line remove.sh reads. Every step
-# asks before it acts: on the built image everything here is already in place
-# and the whole script is a quiet no-op.
+# The packages, the sections and the two third-party repositories they
+# install from, and the system-side touches the settings need; what it
+# installs is read from pack.conf, beside this file - the same line remove.sh
+# reads. Every step asks before it acts: on the built image everything here is
+# already in place and the whole script is a quiet no-op.
 
 set -euo pipefail
 
@@ -57,6 +57,35 @@ if [ -z "$missing" ]; then
     echo "Every declared package is already installed - nothing to fetch."
 else
     apt-get -qq update
+
+    # A missing package with no candidate at all means the distribution keeps
+    # the section that carries it switched off: Debian ships unrar in
+    # non-free, where Ubuntu already opens multiverse. Only Debian is widened
+    # - the section names are the distribution's own, and switching on a name
+    # it does not know breaks apt more than it helps; elsewhere the error
+    # stands and says what is missing. A machine where every package has a
+    # candidate (the built image, any Ubuntu) never comes here.
+    if grep -q '^ID=debian$' /etc/os-release 2>/dev/null; then
+        orphans=""
+        for package in $missing; do
+            apt-get -qq -s install "$package" > /dev/null 2>&1 || orphans="$orphans $package"
+        done
+        if [ -n "$orphans" ]; then
+            echo "Enabling Debian's non-free section - it carries:$orphans"
+            # Both shapes of sources, whichever the image ships: the deb822
+            # .sources files and the classic sources.list. The /non-free/!
+            # guard keeps a second run a quiet no-op.
+            for file in /etc/apt/sources.list.d/*.sources; do
+                if [ -f "$file" ]; then
+                    sed -i -E '/^Components:/ { /non-free/! s/$/ contrib non-free non-free-firmware/ }' "$file"
+                fi
+            done
+            if [ -f /etc/apt/sources.list ]; then
+                sed -i -E '/^deb / { /non-free/! s/$/ contrib non-free non-free-firmware/ }' /etc/apt/sources.list
+            fi
+            apt-get -qq update
+        fi
+    fi
 
     # The two third-party repositories this pack needs are the ones the image
     # registers: gh and eza install from there. Each is registered only when

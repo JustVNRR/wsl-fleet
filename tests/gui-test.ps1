@@ -99,7 +99,7 @@ Write-Host "$($runners.Count) runner(s) read, $($pins.Count) call(s) pinned."
 # into BuildRunner's param line, and a drift between the two is silent - every
 # answer landing one slot off. Both ends are pinned: the param line whole
 # (order included) and the form fields' order in the argument list.
-$paramLine = 'param([string]$Name, [string]$User, [string]$Packs, [string]$Dockerfile, [string]$FirstBoot, [string]$Image, [string]$SaveImage, [string]$RegisterDocker, [string]$Module, [string]$BuildScript)'
+$paramLine = 'param([string]$Name, [string]$User, [string]$Packs, [string]$Dockerfile, [string]$FirstBoot, [string]$Image, [string]$Registry, [string]$SaveImage, [string]$RegisterDocker, [string]$Module, [string]$BuildScript)'
 $buildRunnerPath = Join-Path $GuiRoot "Runners\BuildRunner.ps1"
 if ([IO.File]::ReadAllText($buildRunnerPath) -notmatch [regex]::Escape($paramLine)) {
     Write-Host "::error file=$buildRunnerPath::the param line (order included) is not the one Gui.ps1 feeds"
@@ -109,7 +109,7 @@ $guiPath = Join-Path $PSScriptRoot "..\src\windows\gui\Gui.ps1"
 $guiSrc = [IO.File]::ReadAllText($guiPath)
 $at = 0
 $ordered = $true
-foreach ($field in @('$($form.Name)', '$($form.User)', '$($form.Packs', '$($form.Dockerfile)', '$($form.FirstBoot)', '$($form.Image)', '$($form.SaveImage)', '$($form.RegisterDocker)')) {
+foreach ($field in @('$($form.Name)', '$($form.User)', '$($form.Packs', '$($form.Dockerfile)', '$($form.FirstBoot)', '$($form.Image)', '$($form.Registry)', '$($form.SaveImage)', '$($form.RegisterDocker)')) {
     $i = $guiSrc.IndexOf($field, $at, [StringComparison]::Ordinal)
     if ($i -lt 0) { $ordered = $false; break }
     $at = $i

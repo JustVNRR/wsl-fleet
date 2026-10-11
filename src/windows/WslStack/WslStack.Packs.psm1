@@ -159,10 +159,15 @@ function Invoke-PackScript {
     # 2>&1 then a filter: everything still streams to the screen (Out-Host,
     # nothing buffered), and the error channel alone - where env, bash and
     # apt speak - is also written to $ErrorLog.
+    #
+    # LANG=C on both halves: WSL hands every session the Windows locale, and a
+    # machine that never generated it makes perl - debconf, under every apt
+    # run - warn on every call. The variable goes with the call: nothing is
+    # written, and the instance's own locale is untouched.
     if ($AsRoot) {
         # Not named $home: the automatic is read-only, and the assignment throws.
         $UserHome = Get-InstanceHome -DistroName $DistroName
-        Invoke-InInstance -DistroName $DistroName -Command @("env", "HOME=$UserHome", "bash", $Script) `
+        Invoke-InInstance -DistroName $DistroName -Command @("env", "LANG=C", "HOME=$UserHome", "bash", $Script) `
             -WorkingDirectory $Target -RunAs "root" -ExitCode $ExitCode 2>&1 | ForEach-Object {
                 if ($ErrorLog -and $_ -is [System.Management.Automation.ErrorRecord]) { Add-Content -Path $ErrorLog -Value "$_" }
                 $_
@@ -170,7 +175,7 @@ function Invoke-PackScript {
         return
     }
 
-    Invoke-InInstance -DistroName $DistroName -Command @("bash", $Script) -WorkingDirectory $Target -ExitCode $ExitCode 2>&1 | ForEach-Object {
+    Invoke-InInstance -DistroName $DistroName -Command @("env", "LANG=C", "bash", $Script) -WorkingDirectory $Target -ExitCode $ExitCode 2>&1 | ForEach-Object {
         if ($ErrorLog -and $_ -is [System.Management.Automation.ErrorRecord]) { Add-Content -Path $ErrorLog -Value "$_" }
         $_
     } | Out-Host

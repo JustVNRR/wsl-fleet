@@ -84,7 +84,7 @@ echo "--- cancelled at the checklist (answer 0)"
 # on the hint is what tells the two apart - and it doubles as the answer the
 # keeping-the-image question reads next: not an 'n', so the image is kept,
 # which is the default this suite wants here.
-run_build 'pack-qtest-1\n\n0\n\n1\n\nqtestuser\n'
+run_build 'pack-qtest-1\n\n1\n0\n\n1\n\nqtestuser\n'
 check "says no pack was selected"     "$(contains '[OK] No pack selected.')" "yes"
 check "an empty answer takes the proposed name" "$(contains 'Lowercase letters, digits')" "no"
 check "does not mention any chosen pack" "$(contains 'The packs chosen earlier')" "no"
@@ -96,7 +96,7 @@ check "exit code 1"                      "$Code" "1"
 
 echo ""
 echo "--- the pre-ticked shell, applied as-is (answer v, then the confirmation)"
-run_build 'pack-qtest-2\n\nv\n\n\n1\n\nqtestuser\n'
+run_build 'pack-qtest-2\n\n1\nv\n\n\n1\n\nqtestuser\n'
 check "does not say no pack was selected" "$(contains '[OK] No pack selected.')" "no"
 check "exit code 1"                       "$Code" "1"
 
@@ -106,7 +106,7 @@ echo "--- one pack chosen (2 = the second in the list) and confirmed"
 # leading underscore adduser would not take - so the question's own re-ask
 # shows in the output. The Read-Host prompt itself cannot be asserted on -
 # the runner's pwsh does not write it to a captured stream, a Write-Host does.
-run_build 'pack-qtest-3\n\n2\nv\n\n\n1\nRoot\n_jean\nqtestuser\n'
+run_build 'pack-qtest-3\n\n1\n2\nv\n\n\n1\nRoot\n_jean\nqtestuser\n'
 # Which pack answer 2 chose is read from the run rather than written here: this
 # checkout's packs are not another checkout's packs.
 Chosen=$(grep -aoE 'Will install : .*' "$Out" | head -1 | sed 's/Will install : //' | tr -d '\r')
@@ -124,11 +124,39 @@ echo ""
 echo "--- the onboarding skipped (answer n): no account is asked for"
 # 'Root' follows the 'n': if the account question were asked, the rule would
 # refuse it and print the hint - with the onboarding off, nothing reads it.
-run_build 'pack-qtest-5\n\n0\nn\nRoot\n'
+run_build 'pack-qtest-5\n\n1\n0\nn\nRoot\n'
 check "says no pack was selected"         "$(contains '[OK] No pack selected.')" "yes"
 check "the account question is not asked" "$(contains 'Lowercase letters')" "no"
 check "and the run goes on to the build"  "$(contains '==> 1. Building')" "yes"
 check "exit code 1"                       "$Code" "1"
+
+echo ""
+echo "--- the registry road: the Hub door and the host door, each refusing and going on"
+# The road question is asked on every bare run now (three roads), and the
+# third takes a name from the registry - no list, no file to check. The
+# reference decides which door validates it: one naming no host goes to
+# Hub's API (the stand-in curl answers 200 for the one reference the scenes
+# know, 404 for the rest - fake-docker\curl.cmd), one naming its host keeps
+# the daemon's road (the stand-in docker refuses them all -
+# fake-docker\docker.cmd) - both with no network.
+run_build 'reg-qtest-1\n\n3\nzrgzrg\nalpine:latest\n0\nn\nn\n'
+check "the road question offers the registry" "$(contains 'Docker registry')" "yes"
+check "and asks for the reference"            "$(contains 'Docker image from a registry')" "yes"
+check "an unknown name comes back to the question" "$(contains "Unknown registry image 'zrgzrg'")" "yes"
+check "the Hub door's own words carry the why" "$(contains 'no such image or tag on Docker Hub')" "yes"
+check "before the packs are asked"            "$(before "Unknown registry image" "Packs for 'reg-qtest-1'")" "yes"
+check "the run reaches the build"             "$(contains '==> 1. Building')" "yes"
+check "exit code 1"                           "$Code" "1"
+
+# A reference naming its host skips Hub's door and is asked of the daemon:
+# the stand-in docker knows none, and the empty answer that follows is the
+# question's own cancel.
+run_build 'reg-qtest-2\n\n3\nexample.com/nope\n\n'
+check "a host-named reference is refused" "$(contains "Unknown registry image 'example.com/nope'")" "yes"
+check "with the daemon's words - not the Hub door's" "$(contains 'no such manifest: example.com/nope')" "yes"
+check "an empty answer cancels the run"   "$(contains '[ABORT] Operation cancelled by user.')" "yes"
+check "nothing is built"                  "$(contains '==> 1. Building')" "no"
+check "exit code 0"                       "$Code" "0"
 
 echo ""
 echo "--- the folder question's other answers: n, an unusable path, cancel"

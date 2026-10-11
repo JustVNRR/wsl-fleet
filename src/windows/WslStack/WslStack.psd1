@@ -60,6 +60,7 @@
         'Test-DockerQuestionDue'
         'Get-DockerState'
         'Set-DockerState'
+        'Test-RegistryImage'
         'Export-DockerRootfs'
         'Remove-DockerImage'
         'Save-DockerImage'

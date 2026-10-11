@@ -247,7 +247,7 @@ $btnAdd.Add_Click({
     # The line handed to the runner is assembled by hand, quotes and all: a
     # value that cannot survive one stops the launch here, before anything
     # starts (see Test-ProcessArguments).
-    if (-not (Test-ProcessArguments @($form.Name, $form.User, $form.Packs, $form.Dockerfile, $form.FirstBoot, $form.Image))) {
+    if (-not (Test-ProcessArguments @($form.Name, $form.User, $form.Packs, $form.Dockerfile, $form.FirstBoot, $form.Image, $form.Registry))) {
         & $SetStatus "A value carries a double quote or a trailing backslash - the build was not launched." -Alert
         return
     }
@@ -258,7 +258,7 @@ $btnAdd.Add_Click({
     $script:BuildChild = Start-Process pwsh -PassThru -ArgumentList @(
         "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "`"$RunnerPath`"",
         "`"$($form.Name)`"", "`"$($form.User)`"", "`"$($form.Packs -join ',')`"",
-        "`"$($form.Dockerfile)`"", "`"$($form.FirstBoot)`"", "`"$($form.Image)`"", "`"$($form.SaveImage)`"", "`"$($form.RegisterDocker)`"",
+        "`"$($form.Dockerfile)`"", "`"$($form.FirstBoot)`"", "`"$($form.Image)`"", "`"$($form.Registry)`"", "`"$($form.SaveImage)`"", "`"$($form.RegisterDocker)`"",
         "`"$ModulePath`"", "`"$BuildScript`""
     )
     # Input priority: the same starvation story as the job watcher (see

@@ -338,11 +338,11 @@ Check "the newcomer is placed BEFORE the removal asks its question" `
     ($script:Calls.IndexOf("~ :: mkdir -p $Directory/fake-a") -lt
      $script:Calls.IndexOf("~ :: test -f $Directory/fake-b/remove.sh")) "True"
 Check "the install comes BEFORE the removal" `
-    ($script:Calls.IndexOf("$Directory/fake-a :: bash install.sh") -lt
+    ($script:Calls.IndexOf("$Directory/fake-a :: env LANG=C bash install.sh") -lt
      $script:Calls.IndexOf("~ :: rm -rf $Directory/fake-b")) "True"
 Check "and the dependencies are taken back last" `
     ((@($script:Calls[-3..-1] | ForEach-Object { ($_ -split " :: ", 2)[1] }) -join " | ")) `
-    "cp cleanup_orphans.sh /tmp/cleanup_orphans.sh | env HOME=/home/u bash cleanup_orphans.sh | rm -f /tmp/cleanup_orphans.sh"
+    "cp cleanup_orphans.sh /tmp/cleanup_orphans.sh | env LANG=C HOME=/home/u bash cleanup_orphans.sh | rm -f /tmp/cleanup_orphans.sh"
 Check "nothing failed" ($null -eq $Result) "True"
 Check "  ... and the instance's own words are not in the answer" ("$Result".Contains("INSTANCE-SAYS")) "False"
 
@@ -358,13 +358,13 @@ $DoorClose = "rm -f /etc/sudoers.d/90-wsl-stack-packs"
 Reset
 $Result = $Inst.ApplyPacks($Add, @())
 Check "nothing to remove -> no removal, and no cleanup" `
-    ((Commands) -join " | ") "mkdir -p $Directory/fake-a | test -d /mnt/x/packs/fake-a | cp -r . $Directory/fake-a/ | sh -c find '$Directory/fake-a' -name '*.sh' -exec chmod +x {} + | test -f $Directory/fake-a/install_root.sh | env HOME=/home/u bash install_root.sh | $DoorOpen | bash install.sh | $DoorClose"
+    ((Commands) -join " | ") "mkdir -p $Directory/fake-a | test -d /mnt/x/packs/fake-a | cp -r . $Directory/fake-a/ | sh -c find '$Directory/fake-a' -name '*.sh' -exec chmod +x {} + | test -f $Directory/fake-a/install_root.sh | env LANG=C HOME=/home/u bash install_root.sh | $DoorOpen | env LANG=C bash install.sh | $DoorClose"
 
 # The root half runs BEFORE the door, as WSL's own root: the door is a
 # sudoers rule, and the shell pack carries sudo itself - on a bare Debian its
 # root half must run where no door can open yet.
 Check "  ... and it ran before the door opened" `
-    ($script:Calls.IndexOf("$Directory/fake-a :: env HOME=/home/u bash install_root.sh") -lt
+    ($script:Calls.IndexOf("$Directory/fake-a :: env LANG=C HOME=/home/u bash install_root.sh") -lt
      $script:Calls.IndexOf("~ :: $DoorOpen")) "True"
 
 # A pack without a root half - claude is one - installs all the same.
@@ -374,14 +374,14 @@ $Result = $Inst.ApplyPacks($Add, @())
 Check "a pack without a root half skips it" `
     (@($script:Calls | Where-Object { $_ -like "*install_root.sh*" }).Count) "1"
 Check "  ... and still runs its install behind the door" `
-    ($script:Calls.IndexOf("$Directory/fake-a :: bash install.sh") -gt
+    ($script:Calls.IndexOf("$Directory/fake-a :: env LANG=C bash install.sh") -gt
      $script:Calls.IndexOf("~ :: $DoorOpen")) "True"
 Check "  ... nothing failed" ($null -eq $Result) "True"
 
 # A root half that fails stops everything before the door: no install.sh has
 # run, so every folder goes back out - and the door never opens.
 Reset
-$script:FailCommand = "env HOME=/home/u bash install_root.sh"
+$script:FailCommand = "env LANG=C HOME=/home/u bash install_root.sh"
 $Result = $Inst.ApplyPacks($Add, @())
 Check "a failed root half names the pack" "$($Result.Pack)/$($Result.ExitCode)" "fake-a/1"
 Check "  ... no install.sh ran" `
@@ -396,7 +396,7 @@ $script:FailCommand = "test -f"
 $Result = $Inst.ApplyPacks(@(), @("fake-b"))
 Check "no remove.sh -> the folder leaves, no script runs" `
     ((Commands) -join " | ") `
-    "test -f $Directory/fake-b/remove.sh | rm -rf $Directory/fake-b | cp cleanup_orphans.sh /tmp/cleanup_orphans.sh | env HOME=/home/u bash cleanup_orphans.sh | rm -f /tmp/cleanup_orphans.sh"
+    "test -f $Directory/fake-b/remove.sh | rm -rf $Directory/fake-b | cp cleanup_orphans.sh /tmp/cleanup_orphans.sh | env LANG=C HOME=/home/u bash cleanup_orphans.sh | rm -f /tmp/cleanup_orphans.sh"
 
 Reset
 $script:FailCommand = "cp -r ."
@@ -405,28 +405,28 @@ Check "a failed copy names the pack that stopped it" "$($Result.Pack)/$($Result.
 Check "  ... and nothing else was touched" (@($script:Calls).Count) "4"
 
 Reset
-$script:FailCommand = "bash install.sh"
+$script:FailCommand = "env LANG=C bash install.sh"
 $Result = $Inst.ApplyPacks($Add, @())
 Check "a failed install takes the folder back out" "$($Result.Pack)/$($Result.ExitCode)" "fake-a/1"
 Check "  ... and the answer is one object, not that plus the output" (@($Result).Count) "1"
 Check "  ... after the failure, not before" `
     ($script:Calls.IndexOf("~ :: rm -rf $Directory/fake-a") -gt
-     $script:Calls.IndexOf("$Directory/fake-a :: bash install.sh")) "True"
+     $script:Calls.IndexOf("$Directory/fake-a :: env LANG=C bash install.sh")) "True"
 
 # Exit code 2 is a pack that asked a question and was told no, not a failure:
 # its folder goes back out (the menu reads the folder), but the run carries on -
 # no object naming a pack, no failure to explain, the other moves untouched.
 Reset
-$script:FailCommand = "bash install.sh"
+$script:FailCommand = "env LANG=C bash install.sh"
 $script:FailCode = 2
 $Result = $Inst.ApplyPacks($Add, @())
 Check "a declined install is not a failure" ($null -eq $Result) "True"
 Check "  ... its folder goes back out" `
     ($script:Calls.IndexOf("~ :: rm -rf $Directory/fake-a") -gt
-     $script:Calls.IndexOf("$Directory/fake-a :: bash install.sh")) "True"
+     $script:Calls.IndexOf("$Directory/fake-a :: env LANG=C bash install.sh")) "True"
 
 Reset
-$script:FailCommand = "env HOME=/home/u bash remove.sh"
+$script:FailCommand = "env LANG=C HOME=/home/u bash remove.sh"
 $Result = $Inst.ApplyPacks($Add, @("fake-b"))
 Check "a failed remove.sh names that pack" "$($Result.Pack)" "fake-b"
 Check "  ... and the newcomer was already installed - the failure does not undo it" `
@@ -444,13 +444,13 @@ $AddTwo = @(
     [WslPack]::new("fake-a", "X:\packs\fake-a"),
     [WslPack]::new("fake-b", "X:\packs\fake-b")
 )
-$script:FailCommand = "bash install.sh"
+$script:FailCommand = "env LANG=C bash install.sh"
 $Result = $Inst.ApplyPacks($AddTwo, @())
 Check "a failed install takes its own folder back out, and only it" `
     ((@($script:Calls | Where-Object { $_ -like "*rm -rf*" }) | ForEach-Object { ($_ -split " :: ", 2)[1] }) -join " | ") `
     "rm -rf $Directory/fake-a"
 Check "  ... and the pack after it never ran" `
-    (@($script:Calls | Where-Object { $_ -like "*fake-b :: bash install.sh*" }).Count) "0"
+    (@($script:Calls | Where-Object { $_ -like "*fake-b :: env LANG=C bash install.sh*" }).Count) "0"
 Check "  ... and the run names the pack that stopped it" "$($Result.Pack)/$($Result.ExitCode)" "fake-a/1"
 
 # A copy that fails takes its own half-done folder back out; the pack before

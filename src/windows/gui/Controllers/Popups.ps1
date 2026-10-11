@@ -704,6 +704,8 @@ function Show-AddInstance {
     $txtUser = $form.FindName("TxtUser")
     $txtUserError = $form.FindName("TxtUserError")
     $txtImageError = $form.FindName("TxtImageError")
+    $txtRegistry = $form.FindName("TxtRegistry")
+    $txtRegistryError = $form.FindName("TxtRegistryError")
     $lblUser = $form.FindName("LblUser")
     $btnCreate = $form.FindName("BtnAddCreate")
     $txtUser.Text = $ProposedUser
@@ -792,15 +794,20 @@ function Show-AddInstance {
     if ($cmbRoad.Items.Count -gt 0) { $cmbRoad.SelectedIndex = 0 }
     $boxDockerfile = $form.FindName("BoxDockerfile")
     $boxImage = $form.FindName("BoxDockerImage")
+    $boxRegistry = $form.FindName("BoxRegistry")
     $ShowRecipeBox = {
-        $fromImage = ($roadChoices[[Math]::Max(0, $cmbRoad.SelectedIndex)].Type -eq 'Image')
-        # The onboarding follows the road: an uploaded image is presumed
-        # complete as it is - or foreign, alpine having no bash - so its
-        # box arrives unticked; a Dockerfile build keeps it, our images
-        # need the account. The user re-ticks it like any other default.
-        $chkRunFirstBoot.IsChecked = -not $fromImage
-        $boxDockerfile.Visibility = if ($fromImage) { [System.Windows.Visibility]::Collapsed } else { [System.Windows.Visibility]::Visible }
+        $road = $roadChoices[[Math]::Max(0, $cmbRoad.SelectedIndex)].Type
+        # The onboarding follows the road: an uploaded image - or one from a
+        # registry - is presumed complete as it is (or foreign, alpine having
+        # no bash), so its box arrives unticked; a Dockerfile build keeps it,
+        # our images need the account. The user re-ticks it like any other
+        # default.
+        $fromImage = ($road -eq 'Image')
+        $fromRegistry = ($road -eq 'Registry')
+        $chkRunFirstBoot.IsChecked = -not ($fromImage -or $fromRegistry)
+        $boxDockerfile.Visibility = if ($road -eq 'Dockerfile') { [System.Windows.Visibility]::Visible } else { [System.Windows.Visibility]::Collapsed }
         $boxImage.Visibility = if ($fromImage) { [System.Windows.Visibility]::Visible } else { [System.Windows.Visibility]::Collapsed }
+        $boxRegistry.Visibility = if ($fromRegistry) { [System.Windows.Visibility]::Visible } else { [System.Windows.Visibility]::Collapsed }
     }
     $cmbRoad.Add_SelectionChanged({ & $ShowRecipeBox })
 
@@ -980,23 +987,34 @@ function Show-AddInstance {
         $runFirstBoot = [bool]$chkRunFirstBoot.IsChecked
         if ($runFirstBoot) { & $CheckUser } else { $script:AddUserOk = $true }
         $fromImage = ($roadChoices[[Math]::Max(0, $cmbRoad.SelectedIndex)].Type -eq 'Image')
+        $fromRegistry = ($roadChoices[[Math]::Max(0, $cmbRoad.SelectedIndex)].Type -eq 'Registry')
+        $registryRef = $txtRegistry.Text.Trim()
         $txtImageError.Text = if ($fromImage -and $cmbDockerImage.SelectedIndex -lt 0) { "Upload a Docker image first." } else { "" }
         $txtImageError.Visibility = if ($txtImageError.Text) { [System.Windows.Visibility]::Visible } else { [System.Windows.Visibility]::Collapsed }
-        if ($script:AddNameOk -and $script:AddUserOk -and -not $txtImageError.Text) {
+        $txtRegistryError.Text = if ($fromRegistry -and -not $registryRef) { "Name the image first, e.g. alpine:latest." } else { "" }
+        if ($fromRegistry -and -not $txtRegistryError.Text) {
+            # The registry itself is asked - no pull - so an unknown name is
+            # refused here, on the red line, and not at the birth.
+            $check = Test-RegistryImage $registryRef
+            if (-not $check.Ok) { $txtRegistryError.Text = "Unknown registry image '$registryRef' - $($check.Why)" }
+        }
+        $txtRegistryError.Visibility = if ($txtRegistryError.Text) { [System.Windows.Visibility]::Visible } else { [System.Windows.Visibility]::Collapsed }
+        if ($script:AddNameOk -and $script:AddUserOk -and -not $txtImageError.Text -and -not $txtRegistryError.Text) {
             # The packs are their own window's business now: CREATE opens it
             # over this form - Cancel closes it and comes back here, the form
             # untouched; APPLY answers the picks and this one closes into the
             # build. The family is the form's, read at this moment: the form
             # is frozen behind the modal.
-            $family = if ($fromImage) { "" } else { Get-BuildRecipeFamily -Dockerfile $dockerChoices[[Math]::Max(0, $cmbDockerfile.SelectedIndex)].Path }
+            $family = if ($fromImage -or $fromRegistry) { "" } else { Get-BuildRecipeFamily -Dockerfile $dockerChoices[[Math]::Max(0, $cmbDockerfile.SelectedIndex)].Path }
             $packs = Show-GuiPackPick -Catalog $Catalog -Family $family -Owner $form
             if ($null -eq $packs) { return }
             $script:AddResult = [PSCustomObject]@{
                 Name           = $txtName.Text.Trim()
                 User           = if ($runFirstBoot) { $txtUser.Text.Trim() } else { "" }
-                Dockerfile     = if ($fromImage) { "" } else { $dockerChoices[[Math]::Max(0, $cmbDockerfile.SelectedIndex)].Path }
+                Dockerfile     = if ($fromImage -or $fromRegistry) { "" } else { $dockerChoices[[Math]::Max(0, $cmbDockerfile.SelectedIndex)].Path }
                 FirstBoot      = if ($runFirstBoot) { $bootChoices[[Math]::Max(0, $cmbFirstBoot.SelectedIndex)].Path } else { "" }
                 Image          = if ($fromImage) { $imageChoices[$cmbDockerImage.SelectedIndex].Path } else { "" }
+                Registry       = if ($fromRegistry) { $registryRef } else { "" }
                 SaveImage      = [bool]$chkSaveImage.IsChecked
                 RegisterDocker = [bool]$chkRegisterDocker.IsChecked
                 Packs          = @($packs)

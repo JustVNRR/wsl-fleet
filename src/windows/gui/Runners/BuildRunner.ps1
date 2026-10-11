@@ -11,7 +11,7 @@
 # a [bool] parameter refuses every token pwsh -File hands it (measured - even
 # "1" and "$true" die at the binding), so the window sends True/False and the
 # conversion happens here.
-param([string]$Name, [string]$User, [string]$Packs, [string]$Dockerfile, [string]$FirstBoot, [string]$Image, [string]$SaveImage, [string]$RegisterDocker, [string]$Module, [string]$BuildScript)
+param([string]$Name, [string]$User, [string]$Packs, [string]$Dockerfile, [string]$FirstBoot, [string]$Image, [string]$Registry, [string]$SaveImage, [string]$RegisterDocker, [string]$Module, [string]$BuildScript)
 
 $failed = $false
 # Zeroed first, the entry's own rule: a run that simply ends returns zero -
@@ -29,6 +29,7 @@ try {
         Dockerfile     = $Dockerfile
         FirstBoot      = $FirstBoot
         Image          = $Image
+        Registry       = $Registry
         SaveImage      = [bool]::Parse($SaveImage)
         RegisterDocker = [bool]::Parse($RegisterDocker)
     }

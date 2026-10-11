@@ -44,7 +44,7 @@ function Read-BuildAnswers {
         else { $Typed[$Word] = "" }
     }
     foreach ($Option in @($Typed.Keys)) {
-        if ($Option -notin @("Dockerfile", "Image", "FirstBoot")) {
+        if ($Option -notin @("Dockerfile", "Image", "Registry", "FirstBoot")) {
             Write-Host ""
             Write-Host "[ABORT] Unknown options after the command." -ForegroundColor (Get-MessageColour error)
             Write-Host "        Run it on its own:  .\wsl.ps1 build" -ForegroundColor (Get-MessageColour hint)
@@ -53,43 +53,37 @@ function Read-BuildAnswers {
     }
     $Dockerfile = "$($Typed.Dockerfile)"
     $Image = "$($Typed.Image)"
+    $Registry = "$($Typed.Registry)"
     $FirstBootGiven = $Typed.ContainsKey("FirstBoot")
     $FirstBoot = "$($Typed.FirstBoot)"
 
     # A road was given on the command line - before any default below: the
     # default is not a choice, the road question still owes.
-    $RoadGiven = [bool]$Dockerfile -or [bool]$Image
+    $RoadGiven = [bool]$Dockerfile -or [bool]$Image -or [bool]$Registry
 
-    # The recipe: the chosen files, or the repository's own Dockerfile.
-    # Resolved here so a path typed on the command line may be relative to
-    # the repository, and checked before anything is asked - a path that
+    # The recipe: one road given on the command line, or none. A path that
     # names no file stops the run with nothing confirmed and nothing
-    # touched. Only presence is checked: whether a Dockerfile builds, or an
-    # image loads, is the engine's own to say.
-    if ($Image -and $Dockerfile) {
+    # touched - checked before anything is asked. Only presence is checked:
+    # whether a Dockerfile builds, an image loads, or a registry answers, is
+    # the engine's own to say.
+    if (@(@($Dockerfile, $Image, $Registry) | Where-Object { $_ }).Count -gt 1) {
         Write-Host ""
-        Write-Host "[ABORT] Choose one recipe: a Dockerfile, or a Docker image - not both." -ForegroundColor (Get-MessageColour error)
+        Write-Host "[ABORT] Choose one recipe: a Dockerfile, a Docker image, or a registry name - not several." -ForegroundColor (Get-MessageColour error)
         Write-Host "        Nothing was modified." -ForegroundColor (Get-MessageColour muted)
         return $null
     }
-    if (-not $Image -and -not $Dockerfile) {
-        $RecipeRows = Get-BuildRecipes -AssetsDir (Join-Path $RepoRoot "assets")
-        $DockerfileRows = @($RecipeRows.Dockerfiles)
-        if ($DockerfileRows.Count -gt 0) {
-            # The list's first row: the repository's own, seeded there.
-            $Dockerfile = $DockerfileRows[0].Path
-        } elseif ($RoadGiven -or @($RecipeRows.Images).Count -eq 0) {
-            # Nothing to fall back on: a road was given and its list is empty, or
-            # there is no image to ask about either.
+
+    # A registry name given on the command line is checked against the
+    # registry before anything is asked - the same road the files take - and
+    # a name the registry does not know stops the run with nothing touched.
+    if ($Registry) {
+        $Check = Test-RegistryImage $Registry
+        if (-not $Check.Ok) {
             Write-Host ""
-            Write-Host "[ABORT] No Dockerfile under 'assets\dockerfiles'." -ForegroundColor (Get-MessageColour error)
-            Write-Host "        Upload one, or delete that folder to get the repository's own back." -ForegroundColor (Get-MessageColour hint)
+            Write-Host "[ABORT] Unknown registry image '$Registry' - $($Check.Why)" -ForegroundColor (Get-MessageColour error)
             Write-Host "        Nothing was modified." -ForegroundColor (Get-MessageColour muted)
             return $null
         }
-        # Nothing chosen here with images around, on a bare command line: the
-        # road question below offers both, and refuses an empty Dockerfile list
-        # itself.
     }
 
     # The onboarding: given on the command line, it is THE answer - nothing
@@ -121,31 +115,48 @@ function Read-BuildAnswers {
     $Identity = Resolve-InstanceIdentity -Root $Manager.InstancesRoot
 
     # 0-bis-bis. What to build from, when the command line did not choose:
-    # the road first - a Dockerfile, or an image - then the list that road
-    # offers, uploads included. No image around, nothing is asked: the
-    # Dockerfile road, as always, and its default was taken above.
+    # the road first - a Dockerfile, an uploaded image, or a registry name -
+    # then what that road offers. The registry takes a reference typed by
+    # hand; the two lists open on what the checkout carries, a single row
+    # taken without a question.
     if (-not $RoadGiven) {
         $Recipes = Get-BuildRecipes -AssetsDir (Join-Path $RepoRoot "assets")
-        if ($Recipes.Images.Count -gt 0) {
-            # The roads the recipe class says a build can take - the same list the
-            # window's combo shows: one source, so the two cannot drift.
-            $Road = Select-FromList -Title "Build from" -Items @([WslRecipe]::Roads()) -Label { param($Row) $Row.Label }
-            if ($null -eq $Road) { Stop-Cancelled }
+        # The roads the recipe class says a build can take - the same list the
+        # window's combo shows: one source, so the two cannot drift.
+        $Road = Select-FromList -Title "Build from" -Items @([WslRecipe]::Roads()) -Label { param($Row) $Row.Label }
+        if ($null -eq $Road) { Stop-Cancelled }
 
-            # One selection for both roads: the list the road offers, then the
-            # path landing where the road keeps it.
+        if ($Road.Type -eq [WslBuildType]::Registry) {
+            # The reference as the registry knows it - "alpine:latest". The
+            # registry itself is asked before anything else goes on, so an
+            # unknown name comes back here - with docker's own words - and
+            # not after every question, at the birth.
+            while ($true) {
+                $Registry = "$(Read-Answer 'Docker image from a registry (e.g. alpine:latest)')".Trim()
+                if (-not $Registry) { Stop-Cancelled }
+                $Check = Test-RegistryImage $Registry
+                if ($Check.Ok) { break }
+                Write-Host "  Unknown registry image '$Registry' - $($Check.Why)" -ForegroundColor (Get-MessageColour warning)
+            }
+        } else {
             $Rows = if ($Road.Type -eq [WslBuildType]::Image) { @($Recipes.Images) } else { @($Recipes.Dockerfiles) }
             if ($Rows.Count -eq 0) {
                 Write-Host ""
-                Write-Host "[ABORT] No Dockerfile under 'assets\dockerfiles'." -ForegroundColor (Get-MessageColour error)
-                Write-Host "        Upload one, or delete that folder to get the repository's own back." -ForegroundColor (Get-MessageColour hint)
+                if ($Road.Type -eq [WslBuildType]::Image) {
+                    Write-Host "[ABORT] No Docker image under 'assets\dockerimages'." -ForegroundColor (Get-MessageColour error)
+                    Write-Host "        Upload one, or pick another road." -ForegroundColor (Get-MessageColour hint)
+                } else {
+                    Write-Host "[ABORT] No Dockerfile under 'assets\dockerfiles'." -ForegroundColor (Get-MessageColour error)
+                    Write-Host "        Upload one, or delete that folder to get the repository's own back." -ForegroundColor (Get-MessageColour hint)
+                }
                 Write-Host "        Nothing was modified." -ForegroundColor (Get-MessageColour muted)
                 return $null
             }
-            $Picked = Select-FromList -Title "$($Road.Label)" -Items $Rows -Label { param($Row) $Row.Name }
+            # A single row is the answer: asking which one of one is noise.
+            $Picked = if ($Rows.Count -eq 1) { $Rows[0] } else { Select-FromList -Title "$($Road.Label)" -Items $Rows -Label { param($Row) $Row.Name } }
             if ($null -eq $Picked) { Stop-Cancelled }
             if ($Road.Type -eq [WslBuildType]::Image) { $Image = $Picked.Path; $Dockerfile = "" }
-            else { $Dockerfile = $Picked.Path }
+            else { $Dockerfile = $Picked.Path; $Image = "" }
         }
     }
 
@@ -203,9 +214,9 @@ function Read-BuildAnswers {
     }
 
     # The last two answers, asked with everything else: what becomes of the
-    # working image (the Dockerfile road's own - an image road has nothing to
-    # keep), and Docker Desktop's question.
-    $KeepAnswer = if (-not $Image) { Confirm-YesNo "Keep Docker image?" } else { $false }
+    # working image (the Dockerfile road's own - the two other roads have
+    # nothing to keep), and Docker Desktop's question.
+    $KeepAnswer = if (-not $Image -and -not $Registry) { Confirm-YesNo "Keep Docker image?" } else { $false }
     $DockerAnswer = Confirm-YesNo "Add '$($Identity.Name)' to Docker Desktop? (it will be restarted)"
 
     # The answers, in the window's own shape.
@@ -215,6 +226,7 @@ function Read-BuildAnswers {
         Packs          = $PackNames
         Dockerfile     = $Dockerfile
         Image          = $Image
+        Registry       = $Registry
         FirstBoot      = $FirstBoot
         SaveImage      = $KeepAnswer
         RegisterDocker = $DockerAnswer

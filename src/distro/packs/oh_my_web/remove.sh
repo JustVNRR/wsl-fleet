@@ -48,9 +48,16 @@ for package in $declared; do
 done
 
 # Libraries installed beside the browser: marked automatic, they become
-# orphans for the cleanup remove_pack runs next.
+# orphans for the cleanup remove_pack runs next. The decoder's name is read
+# the way install_root.sh read it - the machine's own ffmpeg names it, and a
+# machine that never had one marks only the sound library.
 echo "Leaving the browser's decoder and its sound client to the cleanup that follows..."
-sudo -p "$sudo_prompt" apt-mark auto libavcodec60 libpulse0 2>/dev/null || true
+codec=$(apt-cache pkgnames libavcodec | grep -E '^libavcodec[0-9]+$' | sort -V | tail -1 || true)
+libs=(libpulse0)
+if [ -n "$codec" ]; then
+    libs+=("$codec")
+fi
+sudo -p "$sudo_prompt" apt-mark auto "${libs[@]}" 2>/dev/null || true
 
 # What the pack wrote in the browser's directory: the sound preference, and the
 # privacy link with the file it points at.

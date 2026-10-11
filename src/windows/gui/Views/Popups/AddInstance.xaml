@@ -55,6 +55,12 @@
                     </Grid>
                     <TextBlock Name="TxtImageError" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource AppDangerBrush}" Visibility="Collapsed"/>
                 </StackPanel>
+                <StackPanel Name="BoxRegistry" Visibility="Collapsed">
+                    <TextBlock Margin="0,10,0,0" Text="Registry image:"/>
+                    <TextBox Name="TxtRegistry" Margin="0,6,0,0" Background="{DynamicResource AppInputBackgroundBrush}" Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="{DynamicResource AppBorderBrush}" Padding="4"/>
+                    <TextBlock Margin="0,4,0,0" Text="e.g. alpine:latest - pulled by the build when the store does not carry it." Foreground="{DynamicResource AppMutedBrush}"/>
+                    <TextBlock Name="TxtRegistryError" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource AppDangerBrush}" Visibility="Collapsed"/>
+                </StackPanel>
                 <CheckBox Name="ChkRegisterDocker" Margin="0,12,0,0" Content="Add to Docker Desktop (it will be restarted)" IsChecked="True" Foreground="{DynamicResource AppForegroundBrush}"/>
                 <CheckBox Name="ChkRunFirstBoot" Margin="0,12,0,0" Content="Run onboarding shell" IsChecked="True" Foreground="{DynamicResource AppForegroundBrush}"/>
                 <StackPanel Name="BoxFirstBoot">

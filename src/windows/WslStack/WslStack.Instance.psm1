@@ -850,6 +850,77 @@ function Set-InstanceState {
 # exported from it - the tar WSL imports - and a tag taken back out. The
 # image itself is the recipe's own business (WslRecipe.MakeImage).
 
+# Whether a registry knows this image, without a pull. Two doors, and the name
+# picks one: a reference that names no host is Docker Hub's own - alpine:latest,
+# user/image, the host docker fills in - and is asked at Hub's API, a HEAD of a
+# quarter second where the daemon's road to the registry takes seconds; a
+# reference that names its host (ghcr.io/..., localhost:5000/...) or carries a
+# digest instead of a tag keeps docker manifest inspect, which knows every
+# registry the machine can log in to. Answers @{ Ok; Why } - the words of
+# whichever door said no, so a refusal can repeat them.
+function Test-RegistryImage {
+    param([string]$Reference)
+
+    if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
+        return @{ Ok = $false; Why = "docker is not on the PATH." }
+    }
+
+    # Only the first segment before a slash can name a host, and only one
+    # holding a dot or a colon, or reading localhost, does: in alpine:latest
+    # no host is named, and the colon is the tag's.
+    $OnHub = $true
+    $Segments = $Reference.Split("/")
+    if ($Segments.Count -gt 1) {
+        $First = $Segments[0]
+        if ($First.Contains(".") -or $First.Contains(":") -or $First -eq "localhost") { $OnHub = $false }
+    }
+    if ($Reference.Contains("@")) { $OnHub = $false }
+
+    # The first curl of the PATH, the way a shell would take it: Get-Command
+    # answers with every match - the stand-ins and the real one - and only
+    # the first is the one a call would run.
+    $Curl = Get-Command curl -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($OnHub -and $Curl) {
+        $Name = $Reference
+        $Tag = "latest"
+        $Colon = $Reference.LastIndexOf(":")
+        if ($Colon -ge 0) {
+            $Name = $Reference.Substring(0, $Colon)
+            $Tag = $Reference.Substring($Colon + 1)
+        }
+        if (-not $Name.Contains("/")) { $Name = "library/$Name" }
+        $Url = "https://hub.docker.com/v2/repositories/$Name/tags/$Tag"
+
+        $PreviousEAP = $ErrorActionPreference
+        $ErrorActionPreference = "Continue"
+        $Answer = @(& $Curl.Path -s -o NUL -w "%{http_code}" -I $Url 2>&1)
+        $ErrorActionPreference = $PreviousEAP
+        $Http = "$($Answer[-1])".Trim()
+
+        if ($Http -eq "200") { return @{ Ok = $true; Why = "" } }
+        if ($Http -eq "404") { return @{ Ok = $false; Why = "no such image or tag on Docker Hub." } }
+        if ($Http -eq "000") { return @{ Ok = $false; Why = "Docker Hub could not be reached." } }
+        return @{ Ok = $false; Why = "Docker Hub answered '$Http'." }
+    }
+
+    $PreviousEAP = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    $Output = @(& docker manifest inspect $Reference 2>&1)
+    $Code = $LASTEXITCODE
+    $ErrorActionPreference = $PreviousEAP
+
+    if ($Code -eq 0) { return @{ Ok = $true; Why = "" } }
+
+    # The first thing docker said - "no such manifest: ...", "denied", or the
+    # daemon's own complaint; an empty channel falls back on the code.
+    $Why = ""
+    foreach ($Line in $Output) {
+        if ("$Line") { $Why = "$Line"; break }
+    }
+    if (-not $Why) { $Why = "docker exited with code $Code." }
+    return @{ Ok = $false; Why = $Why }
+}
+
 # The image, as a filesystem tar WSL can import: a throwaway container inside
 # the image, exported, removed. The container is the build's; the image is
 # not touched.
@@ -861,7 +932,7 @@ function Export-DockerRootfs {
         # The container's ID lands on stdout and says nothing here; the
         # assignment swallows it and nothing else - stderr, the why of a
         # failure, stays on screen.
-        Invoke-NativeCommand { $null = docker create --name $Container $Image } "Container creation failed."
+        Invoke-NativeCommand { $null = docker create --name $Container $Image } "Docker could not create a container from '$Image' (its own words are above)."
         Invoke-NativeCommand { docker export -o $OutputPath $Container } "Docker export failed."
     } finally {
         # Best effort, and nothing here may raise: the finally runs on a
@@ -940,7 +1011,10 @@ function Install-FirstBootScript {
 function Invoke-WslFirstBoot {
     param([string]$DistroName, [string]$User)
 
-    $Arguments = '-d {0} -u root /root/onboarding.sh {1}' -f $DistroName, $User
+    # env LANG=C for the same reason as the pack scripts: WSL hands the
+    # Windows locale, and the onboarding installs its own tools - apt, then
+    # the perl under it - on a machine that has never generated that locale.
+    $Arguments = '-d {0} -u root env LANG=C /root/onboarding.sh {1}' -f $DistroName, $User
     $Process = Start-Process wsl.exe -ArgumentList $Arguments -NoNewWindow -PassThru
     $Process.WaitForExit()
     if ($Process.ExitCode -ne 0) {

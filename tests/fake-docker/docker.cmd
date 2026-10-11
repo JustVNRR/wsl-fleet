@@ -4,6 +4,13 @@ rem build.ps1's preflight, build, create, export and rm. The export writes a
 rem file that is not a tar, so the import that follows fails on purpose and the
 rem run takes its failure path - the one that says what became of the packs.
 if /i "%1"=="info" exit /b 0
+if /i "%1"=="manifest" (
+    rem The host-named road of Test-RegistryImage - ghcr.io/... and the like,
+    rem which Hub's door must not touch: any such name is refused here the
+    rem way a registry refuses one it does not carry, with no network.
+    echo no such manifest: %3
+    exit /b 1
+)
 if /i "%1"=="build" exit /b 0
 if /i "%1"=="create" exit /b 0
 if /i "%1"=="rm" exit /b 0

@@ -7,8 +7,8 @@
 using module .\WslTheme.psm1
 using module .\WslPack.psm1
 
-# The roads to an image - every recipe comes by one. Registry is not walked
-# yet: named here so the third road is a value, not a type to widen.
+# The roads to an image - every recipe comes by one: a Dockerfile, an
+# uploaded image, or a name pulled from a registry.
 enum WslBuildType {
     Dockerfile
     Image
@@ -84,12 +84,12 @@ class WslRecipe {
 
     # The roads a build can take, in the order a chooser offers them, each
     # with the word it goes by: the console's question and the window's combo
-    # both read this - one list, so the two cannot drift. Registry waits for
-    # the day it is walked.
+    # both read this - one list, so the two cannot drift.
     static [object[]] Roads() {
         return @(
             [PSCustomObject]@{ Type = [WslBuildType]::Dockerfile; Label = "Dockerfile" },
-            [PSCustomObject]@{ Type = [WslBuildType]::Image; Label = "Docker image" }
+            [PSCustomObject]@{ Type = [WslBuildType]::Image; Label = "Docker image" },
+            [PSCustomObject]@{ Type = [WslBuildType]::Registry; Label = "Docker registry" }
         )
     }
 
@@ -109,6 +109,15 @@ class WslRecipe {
         if (-not $imagePath) { return $this }
         $this.BuildType = [WslBuildType]::Image
         $this.BuildPath = $imagePath
+        return $this
+    }
+
+    # A name from a registry - "alpine:latest", "debian:12" - pulled by the
+    # birth's own docker create, which fetches what the store does not have.
+    [WslRecipe] WithRegistry([string]$imageRef) {
+        if (-not $imageRef) { return $this }
+        $this.BuildType = [WslBuildType]::Registry
+        $this.BuildPath = $imageRef
         return $this
     }
 
@@ -139,13 +148,13 @@ class WslRecipe {
 
     # --------------------------------------------------------------------------
 
-    # Makes the image this recipe stands for, in the local Docker store, and
-    # answers the name the birth works under from there: for the Dockerfile
-    # road the working tag its instance's name wears - the image is built
-    # under it - and for an uploaded image's tar whatever docker load read
-    # out of it, name or bare id. The tar's own name, never a second one put
-    # on it: an image made elsewhere keeps its name. The roads not walked -
-    # Registry named before its time - throw.
+    # Resolves the image this recipe stands for, answering the name the birth
+    # works under from there: for the Dockerfile road the working tag its
+    # instance's name wears - the image is built under it - for an uploaded
+    # image's tar whatever docker load read out of it, name or bare id (the
+    # tar's own name, never a second one put on it: an image made elsewhere
+    # keeps its name), and for a registry name the reference as it stands -
+    # the birth's create pulls it, store or no store.
     [string] MakeImage([string]$name) {
         $Tag = [WslRecipe]::TagFor($name)
         switch ($this.BuildType) {
@@ -189,6 +198,12 @@ class WslRecipe {
                 }
                 if (-not $Loaded) { throw "docker load told nothing usable about the image in '$ImagePath'." }
                 return $Loaded
+            }
+            ([WslBuildType]::Registry) {
+                # Nothing is made or loaded here: the reference is what the
+                # birth's docker create hands the registry, pulling whatever
+                # the local store does not carry.
+                return $this.BuildPath
             }
             default {
                 throw "Invalid WslBuildType: '$($this.BuildType)'."

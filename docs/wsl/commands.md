@@ -156,15 +156,19 @@ gate of the same manners as the instance's - what is lost, spelled out, and
 the exact name typed back - and the folder goes for good, tar and look
 together. The header carries its icons beside the title: **+**, a new
 instance - name, user, the build's recipe and packs in one form. **Build
-from** is a toggle - **Dockerfile** or **Docker image**, one road or
-the other, and only its row shows. A **Run onboarding shell** box sits above
-the **Onboarding:** row - ticked for a Dockerfile, unticked for an image, an
-uploaded one being presumed complete as it is (or foreign, alpine having no
+from** is a toggle - **Dockerfile**, **Docker image** or **Docker registry**,
+one road at a time, and only its row shows. A **Run onboarding shell** box
+sits above
+the **Onboarding:** row - ticked for a Dockerfile, unticked for an image or
+a registry name, both
+being presumed complete as they are (or foreign, alpine having no
 bash). Unticked, the user-name field and the row grey out with it, they are
 what the onboarding brings. The **Dockerfile** and the **onboarding shell**
 rows open on their list's first row - the repository's own among them,
 editable and deletable like any other; the **Docker image** row lists what
-was uploaded under `assets\dockerimages\` (the repository ships none). Those
+was uploaded under `assets\dockerimages\` (the repository ships none), and
+the **Docker registry** row is a box taking a reference typed by hand -
+`alpine:latest`. Those
 two are seeded into the assets on the first run - a missing folder is filled
 from `src\distro\build\` - and they come back by deleting the folder. Each
 row carries an upload button, a
@@ -255,14 +259,15 @@ included; the build's console closes with the run.
 
 It asks for the name, for the folder, for the user the instance will open as,
 and — when this checkout carries packs — which of them the instance should
-start with. Options name the **recipe** — a Dockerfile, *or* an uploaded
-Docker image, plus the first_boot — and without them the first recipe under
-`assets\dockerfiles\` is used, the repository's own (the window's form,
-`gui`, offers the same as lists behind a toggle):
+start with. Options name the **recipe** — a Dockerfile, an uploaded
+Docker image, *or* a registry name, plus the first_boot — and without them
+the road is asked, each road then offering what it has (the window's form,
+`gui`, offers the same three behind its toggle):
 
 ```powershell
 .\wsl.ps1 build -Dockerfile <path> -FirstBoot <path>
 .\wsl.ps1 build -Image <path-to.tar> -FirstBoot <path>
+.\wsl.ps1 build -Registry alpine:latest -FirstBoot <path>
 ```
 
 The **Dockerfile** is what the image is built from: `docker build -f` with
@@ -280,7 +285,19 @@ the image, and loading it again costs seconds. The tag this run added is
 taken back at the end, and the image itself, under its own name, stays where
 Docker put it.
 
-The **first_boot** is the onboarding script, common to both roads. It is
+The **registry** name is the third road: any image a registry knows,
+`alpine:latest` or `debian:12`, pulled by the build itself when the local
+store does not carry it (`docker create` fetches it). The name is checked
+against the registry before anything else is asked — a name that carries no
+host (`alpine:latest`) is answered by Docker Hub's own API in a fraction of
+a second, a name that carries one (`ghcr.io/...`) by the daemon's manifest
+call; nothing is pulled either way — so an unknown one comes back to the
+question, or stops the run when it was
+given on the command line. Nothing is rebuilt and
+nothing is taken back afterwards — the image is the registry's, not the
+run's — and, like the uploaded-image road, no Keep question is asked.
+
+The **first_boot** is the onboarding script, common to all roads. It is
 placed in the instance *after* the import — `/root/onboarding.sh`,
 executable, armed in root's `.bashrc` — and then run as step 6 below. The
 image carries none: changing the first_boot never rebuilds the image. A path
@@ -298,10 +315,11 @@ What was used is recorded on the instance (`instance.json`, the file an
 archive carries): a copy, an archive and a restore keep it, so what an
 instance was built with is never guessed.
 
-In console, when at least one image has been uploaded, the build asks
-**Build from** before anything else: the Dockerfiles under
-`assets\dockerfiles\`, or one of the images — the window answers that
-question with its toggle and is asked nothing twice.
+In console, the build asks **Build from** before anything else: a
+Dockerfile (the Dockerfiles under `assets\dockerfiles\`, the repository's
+own first), an uploaded image, or a registry name typed by hand — the
+window answers the same question with its toggle and is asked nothing
+twice.
 
 ```text
 ==> Creating a new instance

@@ -58,11 +58,23 @@ if dpkg -s systemd-resolved >/dev/null 2>&1; then
 fi
 
 # 2. wireguard-tools, kmod (the module dies with 'wsl --shutdown' without
-#    modprobe), iproute2 and iptables for wg-quick and the kill switch.
-#    libavcodec60 and libpulse0 are libraries the browser loads at runtime:
-#    never in PACK_PACKAGES, installed beside it on purpose.
+#    modprobe), iproute2 and iptables for wg-quick and the kill switch, plus
+#    libpulse0 and the browser's decoder - never in PACK_PACKAGES, installed
+#    beside it on purpose. The decoder is named after the machine's ffmpeg
+#    (libavcodec60 on Ubuntu 24.04, libavcodec61 on Debian trixie), so the
+#    name is read, not spelled; a machine carrying none gets the browser
+#    without it.
 apt-get -qq update
-apt_install "${packages[@]}" libavcodec60 libpulse0
+# || true: no name found is grep's exit 1, which pipefail would read as the
+# script's own failure.
+codec=$(apt-cache pkgnames libavcodec | grep -E '^libavcodec[0-9]+$' | sort -V | tail -1 || true)
+codecs=()
+if [ -n "$codec" ]; then
+    codecs=("$codec")
+else
+    echo "No libavcodec package in this machine's apt - the browser goes without its decoder."
+fi
+apt_install "${packages[@]}" libpulse0 "${codecs[@]}"
 
 # 3. The resolver, from Debian's archive (no such package in Ubuntu 24.04).
 resolver_deb=/tmp/$resolver_package.deb

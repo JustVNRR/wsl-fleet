@@ -55,6 +55,9 @@ $User = $Form.User
 $Packs = $Form.Packs
 $Dockerfile = $Form.Dockerfile
 $Image = $Form.Image
+# A registry name is not a path: it rides through untouched, whatever the
+# working folder.
+$Registry = $Form.Registry
 $FirstBoot = $Form.FirstBoot
 $KeepImage = $Form.SaveImage
 $RegisterDocker = $Form.RegisterDocker
@@ -133,6 +136,7 @@ try {
     $Recipe = [WslRecipe]::new().
     WithImage($Image).
     WithDockerfile($Dockerfile, $RepoRoot).
+    WithRegistry($Registry).
     WithFirstBoot($FirstBoot).
     WithLook([WslTheme]::Default($DistroName)).
     WithPacks([WslPack[]]@($PackSelection ? $PackSelection.ToAdd : @())).

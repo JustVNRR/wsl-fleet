@@ -75,6 +75,10 @@ fi
 # files the gmake keeps your variables in are not in this folder either way.
 echo "Installing the shell configuration..."
 mkdir -p "$HOME/.config/zsh" "$HOME/.local/state/zsh" "$HOME/.cache/zsh"
+# The projects folder the gmake targets are gated on (the Makefile stops
+# outside it): created once, and never over a folder of yours - mkdir -p's
+# own rule.
+mkdir -p "$HOME/projects"
 cp -r --update=none "$here/config/." "$HOME/.config/zsh/"
 
 # The one line that points zsh at the settings. A ~/.zshenv of your own is

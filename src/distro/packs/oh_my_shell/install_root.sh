@@ -152,5 +152,5 @@ if [ -d /etc/skel ]; then
         mkdir -p /etc/skel/.config/zsh
         cp -r "$here/config/." /etc/skel/.config/zsh/
     fi
-    mkdir -p /etc/skel/.local/state/zsh /etc/skel/.cache/zsh
+    mkdir -p /etc/skel/.local/state/zsh /etc/skel/.cache/zsh /etc/skel/projects
 fi

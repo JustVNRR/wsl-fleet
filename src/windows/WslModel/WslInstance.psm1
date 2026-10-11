@@ -135,6 +135,11 @@ class WslInstance {
     # `~` rides inside the string, where nothing expands it. The shell's own
     # exit code comes back - handed over, not read.
     [int] Shell() {
+        # The name crosses into wsl.exe's own line below - refused here if it
+        # cannot survive one, whatever upstream promised.
+        if (-not (Test-ProcessArguments @($this.Name))) {
+            throw "'$($this.Name)' cannot cross a command line (a double quote or a trailing backslash)."
+        }
         $Arguments = '-d {0} --cd ~' -f $this.Name
         # -Wait waits on the process AND its descendants: a WSL helper that
         # outlives the shell holds the hand back. The session's own process is
@@ -183,6 +188,11 @@ class WslInstance {
     # whatever follows `-p`, and a note passed there came out as a program
     # name (measured: 0x80070002). The profile opens bare.
     [void] OpenShell() {
+        # Both lines below carry the name - wt.exe's and wsl.exe's - and both
+        # break on the same two shapes: refused at the door.
+        if (-not (Test-ProcessArguments @($this.Name))) {
+            throw "'$($this.Name)' cannot cross a command line (a double quote or a trailing backslash)."
+        }
         # The fragment WSL wrote for the instance, on disk: without it
         # `wt -p` resolves to nothing and Terminal opens its DEFAULT profile
         # instead - a Windows PowerShell, measured. The scan is quick and has

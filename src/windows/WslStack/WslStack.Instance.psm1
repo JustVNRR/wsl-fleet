@@ -289,6 +289,20 @@ function Get-ColorSchemes {
     return ,$Schemes
 }
 
+# What a hand-assembled command line cannot carry: a value holding a double
+# quote unpairs the quotes wrapped around it, and one ending in a backslash
+# eats the closing one - Start-Process joins its arguments blindly, so both
+# shift or swallow what follows. Asked where the line is built, of every
+# value, wherever it came from: a client is not trusted with its own shape.
+function Test-ProcessArguments {
+    param([object[]]$Values)
+
+    foreach ($Value in $Values) {
+        if ("$Value" -match '"' -or "$Value".EndsWith('\')) { return $false }
+    }
+    return $true
+}
+
 # The fonts keys name every file after the face it holds - "MesloLGS NF Regular
 # (TrueType)" - so one pass over them gives family -> file.
 function Get-FontFiles {

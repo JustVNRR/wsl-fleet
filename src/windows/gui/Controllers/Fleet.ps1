@@ -243,6 +243,13 @@ $RowAction = [System.Windows.RoutedEventHandler]{
         # exit 64, nothing in the trail).
         $ModulePath = (Resolve-Path (Join-Path $GuiRoot "..\WslStack\WslStack.psd1")).Path
         $RunnerPath = (Resolve-Path (Join-Path $GuiRoot "Runners\EditRunner.ps1")).Path
+        # The line is assembled by hand below, quotes and all: a value that
+        # cannot survive one stops the launch here, said on the status line
+        # (see Test-ProcessArguments).
+        if (-not (Test-ProcessArguments @($inst.Name, ($selection.ToAdd -join ','), ($selection.ToRemove -join ',')))) {
+            & $SetStatus "A value carries a double quote or a trailing backslash - the packs window was not opened." -Alert
+            return
+        }
         # Every argument quoted, the lists included: an empty list would
         # otherwise vanish from the command line and shift every argument
         # after it by one (measured - Import-Module received the wrong file,

@@ -182,6 +182,13 @@ $btnSettings.Add_Click({
     if ($newRoot -and ($newRoot -ne $Manager.InstancesRoot.TrimEnd('\'))) {
         $confirmed = if ($look.MoveTo) { $true } else { Show-GuiConfirm -Owner $window -Title "Move the fleet" -Question "All existing instances will be archived and moved to '$newRoot'. Continue?" }
         if ($confirmed) {
+            # The folder is typed by hand and crosses into a hand-assembled
+            # line: refused here if it cannot survive one (see
+            # Test-ProcessArguments).
+            if (-not (Test-ProcessArguments @($newRoot))) {
+                & $SetStatus "The folder carries a double quote or a trailing backslash - the move was not launched." -Alert
+                return
+            }
             $RunnerPath = Join-Path $PSScriptRoot "..\gui\Runners\MigrateRunner.ps1"
             $ModulePath = Join-Path $PSScriptRoot "..\WslStack\WslStack.psd1"
             $Entry = Join-Path $PSScriptRoot "..\..\..\wsl.ps1"
@@ -230,6 +237,14 @@ $btnAdd.Add_Click({
     $catalog = $Manager.Catalog
     $form = Show-AddInstance -Catalog $catalog -ProposedUser (Get-WindowsUserProposal) -InstancesRoot $Manager.InstancesRoot -Manager $Manager
     if ($null -eq $form) { return }
+
+    # The line handed to the runner is assembled by hand, quotes and all: a
+    # value that cannot survive one stops the launch here, before anything
+    # starts (see Test-ProcessArguments).
+    if (-not (Test-ProcessArguments @($form.Name, $form.User, $form.Packs, $form.Dockerfile, $form.FirstBoot, $form.Image))) {
+        & $SetStatus "A value carries a double quote or a trailing backslash - the build was not launched." -Alert
+        return
+    }
 
     $ModulePath = Join-Path $PSScriptRoot "..\WslStack\WslStack.psd1"
     $BuildScript = Join-Path $PSScriptRoot "build.ps1"
@@ -318,7 +333,7 @@ try {
     # terminal - and the lookups' thread, which a popup harvests only when
     # one opened, is stopped and taken back out here.
     $window.Dispatcher.Remove_UnhandledException($safetyNet)
-    if ($Poller) { $Poller.Stop() }
+    if ($script:Poller) { $script:Poller.Stop() }
     if ($script:BuildWatch) { $script:BuildWatch.Stop() }
     if ($script:GuiLookupJob) {
         Stop-Job $script:GuiLookupJob -ErrorAction SilentlyContinue

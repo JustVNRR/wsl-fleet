@@ -84,6 +84,14 @@ $LaunchJob = {
     $RunnerPath = (Resolve-Path (Join-Path $GuiRoot "Runners\JobRunner.ps1")).Path
     Remove-Item -LiteralPath (Join-Path $env:TEMP "wsl-stack-gui-job.log") -ErrorAction SilentlyContinue
 
+    # The line is assembled by hand below: a name that cannot survive one
+    # stops the launch here, said on the status line (see
+    # Test-ProcessArguments).
+    if (-not (Test-ProcessArguments @($Name))) {
+        & $SetStatus "The job was not launched: the name carries a double quote or a trailing backslash." -Alert
+        return
+    }
+
     # The paths travel quoted - an array of arguments is joined blindly, and a
     # folder with a space would split it. -NonInteractive: a hidden console
     # cannot answer, and a Read-Host reached in the chain would wait forever -

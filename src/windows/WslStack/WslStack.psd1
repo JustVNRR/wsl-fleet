@@ -70,6 +70,7 @@
         'Remove-StaleAppearanceFragments'
         'Remove-DockerIntegration'
         'Invoke-External'
+        'Test-ProcessArguments'
         'Invoke-NativeCommand'
         'Test-NativeCommand'
         'Get-Distros'

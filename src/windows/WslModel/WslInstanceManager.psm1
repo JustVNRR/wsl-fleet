@@ -761,6 +761,18 @@ class WslInstanceManager {
     # routes and pretends nothing; a machine without the profile throws, and
     # the interface says it.
 
+    # The look as Windows shows it now, and the icon's recipe as the instance
+    # noted it - the two reads the theme family and the window's form need,
+    # answered by the instance so the name they hang off stays its own
+    # business.
+    [WslTheme] AppearanceOf([WslInstance]$Instance) {
+        return $Instance.Appearance()
+    }
+
+    [hashtable] IconRecipeOf([WslInstance]$Instance) {
+        return $Instance.IconRecipe()
+    }
+
     [WslInstance] SetFont([WslInstance]$Instance, [string]$FontName) {
         $Instance.SetFont($FontName)
         return $Instance

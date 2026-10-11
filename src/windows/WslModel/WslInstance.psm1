@@ -253,7 +253,7 @@ class WslInstance {
     [PSCustomObject] Duplicate([string]$newName, [string]$newFolder) {
         # What Windows shows now, captured before the export; the icon's
         # recipe rides along (KeepIconRecipe).
-        $this.Recipe.Look = $this.KeepIconRecipe((Get-InstanceAppearance -Name $this.Name))
+        $this.Recipe.Look = $this.KeepIconRecipe($this.Appearance())
         $Docker = Get-DockerState -Name $this.Name
 
         $stopped = $false
@@ -331,7 +331,7 @@ class WslInstance {
     # icon. Returns what the caller reports (a class does not write to the
     # screen): the font, the colours, whether the icon came, Docker's answer.
     [object] ArchiveLook([string]$folder) {
-        $Appearance = Get-InstanceAppearance -Name $this.Name
+        $Appearance = $this.Appearance()
         # The same file the instance keeps in its own folder, refreshed: what
         # this machine has right now, and the icon's recipe as the instance
         # noted it. Written into the archive's folder - the instance's own
@@ -568,6 +568,19 @@ class WslInstance {
         try { $this.Save() } catch { }
     }
 
+    # The look as Windows shows it now - the fragment this repository wrote,
+    # Terminal's own settings over it, the template's defaults under both -
+    # and the icon's recipe as the instance noted it. The two reads the theme
+    # family used to ask by name from outside: the instance answers them
+    # itself, since it owns the name they hang off.
+    [WslTheme] Appearance() {
+        return Get-InstanceAppearance -Name $this.Name
+    }
+
+    [hashtable] IconRecipe() {
+        return Get-IconRecipe -Name $this.Name
+    }
+
     # The four gestures of the look: what the theme's children change, one at a
     # time. The writing itself is the one hidden door below - the profile's
     # guid, the refusal when Terminal knows no profile, the fragment, the
@@ -578,13 +591,13 @@ class WslInstance {
     # on it - the font ensure, the drawing, the ghost pruning.
 
     [void] SetFont([string]$FontName) {
-        $Theme = $this.KeepIconRecipe((Get-InstanceAppearance -Name $this.Name))
+        $Theme = $this.KeepIconRecipe($this.Appearance())
         $Theme.FontName = $FontName
         $this.WriteLook("font", $Theme)
     }
 
     [void] SetColourScheme([string]$SchemeName) {
-        $Theme = $this.KeepIconRecipe((Get-InstanceAppearance -Name $this.Name))
+        $Theme = $this.KeepIconRecipe($this.Appearance())
         $Theme.ColorScheme = $SchemeName
         $this.WriteLook("colours", $Theme)
     }
@@ -619,7 +632,7 @@ class WslInstance {
 
         # The drawn recipe replaces the old one whole - the look around it is
         # what Windows shows now.
-        $this.Recipe.Look = Get-InstanceAppearance -Name $this.Name
+        $this.Recipe.Look = $this.Appearance()
         $this.Recipe.Look.IconText      = $Drawn.Text
         $this.Recipe.Look.IconTop       = $Drawn.Top
         $this.Recipe.Look.IconBottom    = $Drawn.Bottom

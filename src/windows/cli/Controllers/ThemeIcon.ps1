@@ -189,7 +189,7 @@ function Read-ThemeIconAnswers {
         @{ What = "local file"; How = "image" }
     )
 
-    $Known = Get-IconRecipe -Name $DistroName
+    $Known = $Manager.IconRecipeOf($Distro)
     $Image = ""
     $Default = 0
     $Decided = $false

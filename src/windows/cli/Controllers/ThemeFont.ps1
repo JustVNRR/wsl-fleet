@@ -90,7 +90,7 @@ function Read-ThemeFontAnswers {
     $Picks = @()
     $Default = 0
     while ($true) {
-        $Current = if ($Picks.Count -gt 0) { $Picks[-1] } else { (Get-InstanceAppearance -Name $DistroName).FontName }
+        $Current = if ($Picks.Count -gt 0) { $Picks[-1] } else { $Manager.AppearanceOf($Distro).FontName }
 
         # The one in use stays in the list, and the mark rides the row: the
         # label reads nothing from around itself.

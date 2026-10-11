@@ -104,7 +104,7 @@ function Read-ThemeColourAnswers {
     $Picks = @()
     $Default = 0
     while ($true) {
-        $Current = if ($Picks.Count -gt 0) { $Picks[-1] } else { (Get-InstanceAppearance -Name $DistroName).ColorScheme }
+        $Current = if ($Picks.Count -gt 0) { $Picks[-1] } else { $Manager.AppearanceOf($Distro).ColorScheme }
 
         $Rows = @($Names | ForEach-Object {
             $Name = $_

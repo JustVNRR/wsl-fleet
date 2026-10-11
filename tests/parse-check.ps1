@@ -30,7 +30,7 @@ $errors = $null
 $ClassText = (@($ClassPaths | ForEach-Object { (Get-Content -Path $_ -Raw) -replace '(?m)^using module .*\r?\n', '' }) -join "`n")
 [void][System.Management.Automation.Language.Parser]::ParseInput($ClassText, [ref]$null, [ref]$errors)
 if ($errors.Count -gt 0) {
-    Write-Host "::error file=scripts\WslModel::$($errors.Count) parse error(s)"
+    Write-Host "::error file=src\windows\WslModel::$($errors.Count) parse error(s)"
     foreach ($e in $errors) { Write-Host ("  line {0}: {1}" -f $e.Extent.StartLineNumber, $e.Message) }
     $bad = 1
 }

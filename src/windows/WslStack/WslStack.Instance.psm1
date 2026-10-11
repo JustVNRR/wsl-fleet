@@ -221,6 +221,20 @@ function Get-UsableFonts {
     return @($Fonts | Where-Object { $_.Icons -eq $true } | Sort-Object @{ Expression = { $_.Name } })
 }
 
+# A list of fonts with the one in use kept among them, whether GDI+ offered it
+# or not: a list without it would mark another row as the current one, and an
+# untouched apply would silently rewrite the look. The console's font command
+# and the window's appearance form both come through here, so the two cannot
+# drift.
+function Get-FontChoices {
+    param([object[]]$Fonts, [string]$Current)
+
+    if ($Current -and -not @($Fonts | Where-Object { $_.Name -eq $Current }).Count) {
+        return @(($Fonts + @{ Name = $Current }) | Sort-Object @{ Expression = { $_.Name } })
+    }
+    return @($Fonts)
+}
+
 # The fonts keys name every file after the face it holds - "MesloLGS NF Regular
 # (TrueType)" - so one pass over them gives family -> file.
 function Get-FontFiles {

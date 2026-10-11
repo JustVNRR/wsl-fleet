@@ -1,9 +1,9 @@
-# Runs one command of scripts\WslCommands\ the way wsl.ps1 does: the module is
+# Runs one command of src\windows\WslCommands\ the way wsl.ps1 does: the module is
 # imported here, first, for the case - the commands carry no load of their own
 # any more, they run through the entry and use what it imported. The manager
 # travels in as a parameter, typed and bound from the command's first line -
 # and for the commands whose questions live in the console's conversation
-# (archive, restore, duplicate, unregister, shrink, migrate, stop, restart, remove_pack, add_pack, manage_packs), the
+# (archive, restore, duplicate, unregister, shrink, migrate, stop, restart, remove_pack, add_pack, manage_packs, theme_font, theme_icon), the
 # controller is mounted and asked here, and the form it renders travels in
 # too: the entry's two roles, played the same way.
 #
@@ -70,6 +70,12 @@ if ($Key -eq "archive") {
 } elseif ($Key -eq "manage_packs") {
     . (Join-Path $PSScriptRoot "..\src\windows\cli\Controllers\ManagePacks.ps1")
     $Form = Read-ManagePacksAnswers -Manager $Manager -Options @()
+} elseif ($Key -eq "theme_font") {
+    . (Join-Path $PSScriptRoot "..\src\windows\cli\Controllers\ThemeFont.ps1")
+    $Form = Read-ThemeFontAnswers -Manager $Manager -Options @()
+} elseif ($Key -eq "theme_icon") {
+    . (Join-Path $PSScriptRoot "..\src\windows\cli\Controllers\ThemeIcon.ps1")
+    $Form = Read-ThemeIconAnswers -Manager $Manager -Options @()
 } else {
     $Asks = $false
 }

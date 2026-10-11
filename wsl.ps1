@@ -233,6 +233,16 @@ if ($Chosen.Key -eq "manage_packs") {
     $Answers = Read-ManagePacksAnswers -Manager $Manager -Options $RemainingArgs
     if ($null -eq $Answers) { exit 1 }
 }
+if ($Chosen.Key -eq "theme_font") {
+    . (Join-Path $CommandFiles "..\cli\Controllers\ThemeFont.ps1")
+    $Answers = Read-ThemeFontAnswers -Manager $Manager -Options $RemainingArgs
+    if ($null -eq $Answers) { exit 1 }
+}
+if ($Chosen.Key -eq "theme_icon") {
+    . (Join-Path $CommandFiles "..\cli\Controllers\ThemeIcon.ps1")
+    $Answers = Read-ThemeIconAnswers -Manager $Manager -Options $RemainingArgs
+    if ($null -eq $Answers) { exit 1 }
+}
 
 # Whatever followed the command travels in this run context: the gesture
 # rebuilds it into named parameters and loose values (see above), so a command
@@ -247,6 +257,14 @@ $Run = @{
 if ($null -ne $Answers) { $Run.Answers = $Answers }
 
 & $Chosen.Action $Chosen $Run
+
+# A look written on its own, and the visit over: Terminal is asked to look
+# again once the prompt is back - a reload cannot land while a menu is
+# running, and behind the theme menu its own ending writes the touch (see
+# theme.ps1).
+if (($Chosen.Key -eq "theme_font" -or $Chosen.Key -eq "theme_icon") -and $LASTEXITCODE -eq 0) {
+    Update-TerminalSettings
+}
 
 # A console build that went through opens the shell its summary promised -
 # the window's runner does the same on its side.

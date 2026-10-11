@@ -475,7 +475,7 @@ class WslInstance {
             # -What: the letters and colours read back into the instance's file,
             # so a later change of one keeps the other. -Quiet: nothing said
             # about a drawing that worked. In a method, $PSScriptRoot is this
-            # file's folder - under scripts\, where the icon script lives.
+            # file's folder - under src\windows\, where the icon script lives.
             $IconScript = Join-Path $PSScriptRoot "..\make-icon.ps1"
             $Drawn = & $IconScript -Name $this.Name -Out $IconPath -Quiet -What | ConvertFrom-Json
             $IconDrawn = $true
@@ -600,8 +600,8 @@ class WslInstance {
 
     # The recipe is drawn to the instance's own icon file
     # (terminal-icon.png, next to its disk), then worn. $PSScriptRoot in a
-    # class method is the class file's folder - scripts\WslModel - so the
-    # drawing script is two levels up, in assets. The drawn recipe comes
+    # class method is the class file's folder - src\windows\WslModel - so the
+    # drawing script is one level up, in src\windows. The drawn recipe comes
     # back whole: the drawing settles the parts the recipe left open.
     [object] SetIcon([object]$Drawing) {
         $IconPath = Join-Path $this.Path "terminal-icon.png"

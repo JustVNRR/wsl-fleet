@@ -11,7 +11,8 @@
 #
 #   wsl.ps1                            the menu of the commands, and the
 #     |                                dispatch
-#     +- scripts\<command>.ps1         the INTERFACE of one command: it asks,
+#     +- src\windows\WslCommands\<command>.ps1
+#          |                           the INTERFACE of one command: it asks,
 #          |                           hands the answers to the engine, and
 #          |                           shows what comes back
 #          +- [WslMenu] / [WslConsole]  the asking device (console today)

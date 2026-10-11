@@ -30,7 +30,7 @@ foreach ($Choice in $Choices) {
     $Script = Join-Path $PSScriptRoot "$($Choice.File).ps1"
     if (-not (Test-Path $Script)) {
         Write-Host ""
-        Write-Host "[ABORT] scripts\WslCommands\$($Choice.File).ps1 is missing - the scripts\ folder is incomplete." -ForegroundColor (Get-MessageColour error)
+        Write-Host "[ABORT] src\windows\WslCommands\$($Choice.File).ps1 is missing - the src\windows\ folder is incomplete." -ForegroundColor (Get-MessageColour error)
         exit 1
     }
 }
@@ -66,8 +66,26 @@ while ($true) {
         $Default = [array]::IndexOf($Choices, $Chosen)
 
         # The command named takes the screen and clears it itself, the way it came in.
-        # Hands both -DistroName and the shared -Manager over to the child command.
-        & (Join-Path $PSScriptRoot "$($Chosen.File).ps1") -DistroName $DistroName -Manager $Manager
+        # theme_font and theme_icon have followed the family already: their
+        # questions live in the console's conversations and the commands are
+        # agnostic - this menu plays the entry's two roles for them until its
+        # own lot. theme_color still asks for itself, and is handed the
+        # instance as before.
+        if ($Chosen.File -eq "theme_font") {
+            . (Join-Path $PSScriptRoot "..\cli\Controllers\ThemeFont.ps1")
+            $FontAnswers = Read-ThemeFontAnswers -Manager $Manager -DistroName $DistroName -Options @()
+            if ($null -ne $FontAnswers) {
+                & (Join-Path $PSScriptRoot "theme_font.ps1") -Manager $Manager -Form $FontAnswers
+            }
+        } elseif ($Chosen.File -eq "theme_icon") {
+            . (Join-Path $PSScriptRoot "..\cli\Controllers\ThemeIcon.ps1")
+            $IconAnswers = Read-ThemeIconAnswers -Manager $Manager -DistroName $DistroName -Options @()
+            if ($null -ne $IconAnswers) {
+                & (Join-Path $PSScriptRoot "theme_icon.ps1") -Manager $Manager -Form $IconAnswers
+            }
+        } else {
+            & (Join-Path $PSScriptRoot "$($Chosen.File).ps1") -DistroName $DistroName -Manager $Manager
+        }
         $Visited = $true
     }
 }

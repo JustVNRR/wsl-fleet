@@ -273,8 +273,11 @@ $RowAction = [System.Windows.RoutedEventHandler]{
         # open was this form's slow part.
         $machine = Get-GuiLookups
 
+        # The font in use stays in the list, whether GDI+ offered it or not -
+        # the console's font command follows the same rule, the module's.
+        $fontChoices = @(Get-FontChoices -Fonts $machine.Fonts -Current $appearance.FontName)
         $look = Show-Appearance -InstanceName $inst.Name -HasFragment ([bool](Test-Path $ourFragment)) `
-            -Fonts $machine.Fonts -CurrentFont $appearance.FontName `
+            -Fonts $fontChoices -CurrentFont $appearance.FontName `
             -Schemes $machine.Schemes -CurrentScheme $appearance.ColorScheme `
             -Recipe $recipe -Pairs $pairs -SuggestedText $suggested `
             -IconPath (Join-Path $inst.Path "terminal-icon.png") -IconScript $IconScript

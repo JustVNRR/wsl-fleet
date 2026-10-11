@@ -42,6 +42,7 @@
         'Test-FontInstalled'
         'Get-BundledFont'
         'Get-UsableFonts'
+        'Get-FontChoices'
         'Get-InstanceFolder'
         'Get-RegisteredDistros'
         'Get-InstanceLook'

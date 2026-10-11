@@ -10,8 +10,8 @@ commands themselves live in `src\windows\`.
 ```text
 
 WSL Stack
-  > gui          open graphical fleet manager
-    cli          the console's commands
+  > gui          WSL Fleet GUI
+    cli          WSL Fleet CLI
   up/down to move, Enter to choose, Escape to cancel
 ```
 
@@ -59,7 +59,7 @@ read, the colours a console has always had are used.
 
 | Command | What it does |
 | :--- | :--- |
-| [`.\wsl.ps1 gui`](#gui) | open graphical fleet manager |
+| [`.\wsl.ps1 gui`](#gui) | WSL Fleet GUI |
 | [`.\wsl.ps1 list`](#list) | list our instances and the archives |
 | [`.\wsl.ps1 build`](#build) | build an instance from the image |
 | [`.\wsl.ps1 start`](#start) | start a stopped instance |

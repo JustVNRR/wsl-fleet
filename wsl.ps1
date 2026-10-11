@@ -116,8 +116,8 @@ $Gesture = {
 # question and never crowds the commands'. The word 'gui' still routes: it has
 # its own seat below, with the window it opens.
 $Main = [WslMenu]::new("WSL Stack").
-    Add("gui", "open graphical fleet manager", $Gesture).
-    Add("cli", "the console's commands",       $Gesture)
+    Add("gui", "WSL Fleet GUI", $Gesture).
+    Add("cli", "WSL Fleet CLI",       $Gesture)
 
 $Menu = [WslMenu]::new("WSL Stack - console").
     Add("list",         "list our instances and the archives",      $Gesture).
@@ -185,90 +185,43 @@ if (-not (Test-Path $Script)) {
 # or wsl.exe.
 $Manager = New-InstanceManager
 
-# The console's conversations, one arm per command that asks - the window's
-# popups have their caller in gui.ps1, and these are theirs. The answers
-# ride the run context; the words they were built from are spent.
+# The console's conversations: one entry per command whose questions live in
+# one - the word to the controller it mounts. The commands with nothing to
+# ask - list, shell, wslconfig, delete_archive - are not in the map and go
+# straight to their file. The answers ride the run context; the words they
+# were built from are spent.
+$Conversations = @{
+    "build"        = "Build"
+    "archive"      = "Archive"
+    "restore"      = "Restore"
+    "duplicate"    = "Duplicate"
+    "unregister"   = "Unregister"
+    "shrink"       = "Shrink"
+    "migrate"      = "Migrate"
+    "stop"         = "Stop"
+    "restart"      = "Restart"
+    "remove_pack"  = "RemovePack"
+    "add_pack"     = "AddPack"
+    "manage_packs" = "ManagePacks"
+    "theme_font"   = "ThemeFont"
+    "theme_icon"   = "ThemeIcon"
+    "theme_color"  = "ThemeColor"
+    "theme"        = "Theme"
+}
+
 $Answers = $null
-if ($Chosen.Key -eq "build") {
-    . (Join-Path $CommandFiles "..\cli\Controllers\Build.ps1")
-    Write-Host ""
-    Write-Host "==> Creating a new instance" -ForegroundColor (Get-MessageColour info)
-    $Answers = Read-BuildAnswers -Manager $Manager -RepoRoot $PSScriptRoot -Options $RemainingArgs
-    if ($null -eq $Answers) { exit 1 }
-}
-if ($Chosen.Key -eq "archive") {
-    . (Join-Path $CommandFiles "..\cli\Controllers\Archive.ps1")
-    $Answers = Read-ArchiveAnswers -Manager $Manager -Options $RemainingArgs
-    if ($null -eq $Answers) { exit 1 }
-}
-if ($Chosen.Key -eq "restore") {
-    . (Join-Path $CommandFiles "..\cli\Controllers\Restore.ps1")
-    $Answers = Read-RestoreAnswers -Manager $Manager -Options $RemainingArgs
-    if ($null -eq $Answers) { exit 1 }
-}
-if ($Chosen.Key -eq "duplicate") {
-    . (Join-Path $CommandFiles "..\cli\Controllers\Duplicate.ps1")
-    $Answers = Read-DuplicateAnswers -Manager $Manager -Options $RemainingArgs
-    if ($null -eq $Answers) { exit 1 }
-}
-if ($Chosen.Key -eq "unregister") {
-    . (Join-Path $CommandFiles "..\cli\Controllers\Unregister.ps1")
-    $Answers = Read-UnregisterAnswers -Manager $Manager -Options $RemainingArgs
-    if ($null -eq $Answers) { exit 1 }
-}
-if ($Chosen.Key -eq "shrink") {
-    . (Join-Path $CommandFiles "..\cli\Controllers\Shrink.ps1")
-    $Answers = Read-ShrinkAnswers -Manager $Manager -Options $RemainingArgs
-    if ($null -eq $Answers) { exit 1 }
-}
-if ($Chosen.Key -eq "migrate") {
-    . (Join-Path $CommandFiles "..\cli\Controllers\Migrate.ps1")
-    $Answers = Read-MigrateAnswers -Manager $Manager -Options $RemainingArgs
-    if ($null -eq $Answers) { exit 1 }
-}
-if ($Chosen.Key -eq "stop") {
-    . (Join-Path $CommandFiles "..\cli\Controllers\Stop.ps1")
-    $Answers = Read-StopAnswers -Manager $Manager -Options $RemainingArgs
-    if ($null -eq $Answers) { exit 1 }
-}
-if ($Chosen.Key -eq "restart") {
-    . (Join-Path $CommandFiles "..\cli\Controllers\Restart.ps1")
-    $Answers = Read-RestartAnswers -Manager $Manager -Options $RemainingArgs
-    if ($null -eq $Answers) { exit 1 }
-}
-if ($Chosen.Key -eq "remove_pack") {
-    . (Join-Path $CommandFiles "..\cli\Controllers\RemovePack.ps1")
-    $Answers = Read-RemovePackAnswers -Manager $Manager -Options $RemainingArgs
-    if ($null -eq $Answers) { exit 1 }
-}
-if ($Chosen.Key -eq "add_pack") {
-    . (Join-Path $CommandFiles "..\cli\Controllers\AddPack.ps1")
-    $Answers = Read-AddPackAnswers -Manager $Manager -Options $RemainingArgs
-    if ($null -eq $Answers) { exit 1 }
-}
-if ($Chosen.Key -eq "manage_packs") {
-    . (Join-Path $CommandFiles "..\cli\Controllers\ManagePacks.ps1")
-    $Answers = Read-ManagePacksAnswers -Manager $Manager -Options $RemainingArgs
-    if ($null -eq $Answers) { exit 1 }
-}
-if ($Chosen.Key -eq "theme_font") {
-    . (Join-Path $CommandFiles "..\cli\Controllers\ThemeFont.ps1")
-    $Answers = Read-ThemeFontAnswers -Manager $Manager -Options $RemainingArgs
-    if ($null -eq $Answers) { exit 1 }
-}
-if ($Chosen.Key -eq "theme_icon") {
-    . (Join-Path $CommandFiles "..\cli\Controllers\ThemeIcon.ps1")
-    $Answers = Read-ThemeIconAnswers -Manager $Manager -Options $RemainingArgs
-    if ($null -eq $Answers) { exit 1 }
-}
-if ($Chosen.Key -eq "theme_color") {
-    . (Join-Path $CommandFiles "..\cli\Controllers\ThemeColour.ps1")
-    $Answers = Read-ThemeColourAnswers -Manager $Manager -Options $RemainingArgs
-    if ($null -eq $Answers) { exit 1 }
-}
-if ($Chosen.Key -eq "theme") {
-    . (Join-Path $CommandFiles "..\cli\Controllers\Theme.ps1")
-    $Answers = Read-ThemeAnswers -Manager $Manager -Options $RemainingArgs
+$Controller = $Conversations[$Chosen.Key]
+if ($Controller) {
+    . (Join-Path $CommandFiles "..\cli\Controllers\$Controller.ps1")
+    if ($Chosen.Key -eq "build") {
+        Write-Host ""
+        Write-Host "==> Creating a new instance" -ForegroundColor (Get-MessageColour info)
+    }
+    $Params = @{ Manager = $Manager; Options = $RemainingArgs }
+    # The build's first question needs the checkout's root: where its recipe
+    # templates live.
+    if ($Chosen.Key -eq "build") { $Params["RepoRoot"] = $PSScriptRoot }
+    $Answers = & "Read-$($Controller)Answers" @Params
     if ($null -eq $Answers) { exit 1 }
 }
 

@@ -77,8 +77,8 @@ if ($Key -eq "archive") {
     . (Join-Path $PSScriptRoot "..\src\windows\cli\Controllers\ThemeIcon.ps1")
     $Form = Read-ThemeIconAnswers -Manager $Manager -Options @()
 } elseif ($Key -eq "theme_color") {
-    . (Join-Path $PSScriptRoot "..\src\windows\cli\Controllers\ThemeColour.ps1")
-    $Form = Read-ThemeColourAnswers -Manager $Manager -Options @()
+    . (Join-Path $PSScriptRoot "..\src\windows\cli\Controllers\ThemeColor.ps1")
+    $Form = Read-ThemeColorAnswers -Manager $Manager -Options @()
 } elseif ($Key -eq "theme") {
     . (Join-Path $PSScriptRoot "..\src\windows\cli\Controllers\Theme.ps1")
     $Form = Read-ThemeAnswers -Manager $Manager -Options @()

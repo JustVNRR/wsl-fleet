@@ -10,7 +10,7 @@ param (
     [WslInstanceManager]$Manager,
 
     # The answers, whole - the console's conversation (src\windows\cli\
-    # Controllers\ThemeColour.ps1) renders them: the instance and the schemes
+    # Controllers\ThemeColor.ps1) renders them: the instance and the schemes
     # picked, in order. This file never asks.
     [object]$Form
 )

@@ -227,6 +227,7 @@ $WatchBuild = {
     if ($null -eq $script:BuildChild -or -not $script:BuildChild.HasExited) { return }
     $script:BuildWatch.Stop()
     $script:BuildChild = $null
+    & $SetBusyState $false $null
     & $LoadFleet
     & $SetStatus "The build ended - the fleet was reread."
 }
@@ -266,7 +267,9 @@ $btnAdd.Add_Click({
     $script:BuildWatch.Interval = [TimeSpan]::FromMilliseconds(1000)
     $script:BuildWatch.Add_Tick($WatchBuild)
     $script:BuildWatch.Start()
-    & $SetStatus "Creating '$($form.Name)' in a window of its own."
+    # The build gets the same manners as every row operation: the band runs,
+    # the list holds, until the watcher sees the child out.
+    & $SetBusyState $true "Creating '$($form.Name)' in a window of its own."
 })
 $lstInstances.AddHandler([System.Windows.Controls.Button]::ClickEvent, $RowAction)
 

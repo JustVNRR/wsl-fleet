@@ -5,7 +5,7 @@
 # abandoned at the end changes nothing.
 using module ..\..\WslModel\WslModel.psd1
 
-function Read-ThemeColourAnswers {
+function Read-ThemeColorAnswers {
     param(
         [WslInstanceManager]$Manager,
 

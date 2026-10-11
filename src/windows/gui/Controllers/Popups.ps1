@@ -635,6 +635,53 @@ function Save-GuiFile {
 # Dockerfile and Image the toggle did not choose left empty - or $null when
 # cancelled; the run itself then gets a console window of its own, because it
 # is long, it is loud, and it still has questions only it can ask.
+# -----------------------------------------------------------------------------
+# THE BUILD'S PACKS, ASKED IN THEIR OWN WINDOW
+# -----------------------------------------------------------------------------
+# The build form no longer carries the checklist - it made the form heavy -
+# and CREATE opens this one over it: Cancel closes this and comes back to the
+# form, untouched; APPLY answers the picks, and the form closes into the
+# build. A dialog of its OWNER, never through the gate: sinking a dialog
+# window ends it (see Show-GuiConfirm). The family is the form's, read when
+# the button was pressed - the form is frozen behind the modal, so the
+# checklist is built once, the same surface and the same default rule as the
+# console's.
+function Show-GuiPackPick {
+    param($Catalog, [string]$Family, [System.Windows.Window]$Owner)
+
+    [xml]$pickXaml = [System.IO.File]::ReadAllText((Join-Path $GuiRoot "Views\Popups\PackPick.xaml"))
+
+    $pick = [Windows.Markup.XamlReader]::Load([System.Xml.XmlNodeReader]::new($pickXaml))
+    $pick.Resources.MergedDictionaries.Add((Get-ThemeDictionary))
+    Set-WindowPhosphorFrame -Win $pick -UiFont $GuiFonts.UiFont -UiFontSize $GuiFonts.UiSize
+
+    # A family that cannot be read is SAID, not hidden: the packs stay in
+    # reach - the image may well be Debian under a name we cannot read - and
+    # the line is the guard for whoever does not know.
+    $pick.FindName("TxtPacksForeign").Visibility = if ($Family) { [System.Windows.Visibility]::Collapsed } else { [System.Windows.Visibility]::Visible }
+
+    New-PackChecklist -Panel $pick.FindName("Boxes") -Installed @() -Catalog $Catalog `
+        -Checked (Get-BuildDefaultPacks -Catalog $Catalog -Family $Family) `
+        -TxtAdd $pick.FindName("TxtAdd") -TxtDel $pick.FindName("TxtDel") -TxtNotes $pick.FindName("TxtNotes") `
+        -NothingText "No pack selected - it will start bare." `
+        -Family $Family
+
+    $script:PackPickResult = $null
+    $pick.FindName("BtnPickCancel").Add_Click({ $pick.Close() })
+    $pick.FindName("BtnPickApply").Add_Click({
+        $script:PackPickResult = @($script:ChecklistSelection.ToAdd | ForEach-Object { $_.Name })
+        $pick.Close()
+    })
+
+    Set-WindowFitToContent -Win $pick
+    if ($Owner) { $pick.Owner = $Owner }
+    $null = $pick.ShowDialog()
+    # The comma: a function's output is unrolled, and "no pack ticked" - a
+    # real answer, it builds bare - must arrive as an empty list, not as
+    # $null, which the caller reads as a cancel.
+    return ,$script:PackPickResult
+}
+
 function Show-AddInstance {
     param($Catalog, [string]$ProposedUser, [string]$InstancesRoot, $Manager)
 
@@ -697,11 +744,6 @@ function Show-AddInstance {
         $btnCreate.IsEnabled = [bool]($script:AddNameOk -and $script:AddUserOk)
     }
 
-    New-PackChecklist -Panel $form.FindName("Boxes") -Installed @() -Catalog $Catalog `
-        -Checked (Get-BuildDefaultPacks -Catalog $Catalog) `
-        -TxtAdd $form.FindName("TxtAdd") -TxtDel $form.FindName("TxtDel") -TxtNotes $form.FindName("TxtNotes") `
-        -NothingText "No pack selected - it will start bare."
-
     $txtName.Add_TextChanged($CheckName)
     $txtUser.Add_TextChanged($CheckUser)
     & $CheckName
@@ -760,7 +802,7 @@ function Show-AddInstance {
         $boxDockerfile.Visibility = if ($fromImage) { [System.Windows.Visibility]::Collapsed } else { [System.Windows.Visibility]::Visible }
         $boxImage.Visibility = if ($fromImage) { [System.Windows.Visibility]::Visible } else { [System.Windows.Visibility]::Collapsed }
     }
-    $cmbRoad.Add_SelectionChanged({ & $ShowRecipeBox; & $RefreshChecklist })
+    $cmbRoad.Add_SelectionChanged({ & $ShowRecipeBox })
 
     # The onboarding box: unticked, the image is used as it is - nothing of
     # the first_boot is placed or run, and there is no account to name: the
@@ -777,31 +819,6 @@ function Show-AddInstance {
     # came by, so this one shows on both.
     $chkRegisterDocker = $form.FindName("ChkRegisterDocker")
 
-    # The checklist follows the recipe: the shell pack is ticked for a
-    # Debian-family one and for it alone - the family is read off the chosen
-    # Dockerfile's FROM, and an image, whose family cannot be read off a
-    # save-tar, ticks nothing. What the last paint ticked BY DEFAULT goes
-    # with the old family; what the user ticked themselves survives the
-    # redraw, and so do the boxes the new family still offers.
-    $script:ChecklistDefaults = @(Get-BuildDefaultPacks -Catalog $Catalog)
-    $RefreshChecklist = {
-        $fromImage = ($roadChoices[[Math]::Max(0, $cmbRoad.SelectedIndex)].Type -eq 'Image')
-        $family = if ($fromImage) { "" } else { Get-BuildRecipeFamily -Dockerfile $dockerChoices[[Math]::Max(0, $cmbDockerfile.SelectedIndex)].Path }
-        # A family that cannot be read is SAID, not hidden: the packs stay in
-        # reach - the image may well be Debian under a name we cannot read -
-        # and the line is the guard for whoever does not know.
-        $form.FindName("TxtPacksForeign").Visibility = if ($family) { [System.Windows.Visibility]::Collapsed } else { [System.Windows.Visibility]::Visible }
-        $ticked = @($script:ChecklistEntries | Where-Object { $_.Check.IsChecked } | ForEach-Object { $_.Pack.Name })
-        $mine = @($ticked | Where-Object { $_ -notin $script:ChecklistDefaults })
-        $defaults = @(Get-BuildDefaultPacks -Catalog $Catalog -Family $family)
-        $script:ChecklistDefaults = $defaults
-        $form.FindName("Boxes").Children.Clear()
-        New-PackChecklist -Panel $form.FindName("Boxes") -Installed @() -Catalog $Catalog `
-            -Checked (@($mine) + $defaults) `
-            -TxtAdd $form.FindName("TxtAdd") -TxtDel $form.FindName("TxtDel") -TxtNotes $form.FindName("TxtNotes") `
-            -NothingText "No pack selected - it will start bare." `
-            -Family $family
-    }
     $UpdateOnboarding = {
         $on = [bool]$chkRunFirstBoot.IsChecked
         $txtUser.IsEnabled = $on
@@ -837,9 +854,9 @@ function Show-AddInstance {
         $btnFirstBootDownload.IsEnabled = ($cmbFirstBoot.SelectedIndex -ge 0)
         $btnDockerImageDownload.IsEnabled = ($cmbDockerImage.SelectedIndex -ge 0)
     }
-    $cmbDockerfile.Add_SelectionChanged({ & $UpdateTrash; & $UpdateDownload; & $RefreshChecklist })
+    $cmbDockerfile.Add_SelectionChanged({ & $UpdateTrash; & $UpdateDownload })
     $cmbFirstBoot.Add_SelectionChanged({ & $UpdateTrash; & $UpdateDownload })
-    $cmbDockerImage.Add_SelectionChanged({ & $UpdateTrash; & $UpdateDownload; & $RefreshChecklist })
+    $cmbDockerImage.Add_SelectionChanged({ & $UpdateTrash; & $UpdateDownload })
     & $UpdateTrash
     & $UpdateDownload
 
@@ -966,6 +983,14 @@ function Show-AddInstance {
         $txtImageError.Text = if ($fromImage -and $cmbDockerImage.SelectedIndex -lt 0) { "Upload a Docker image first." } else { "" }
         $txtImageError.Visibility = if ($txtImageError.Text) { [System.Windows.Visibility]::Visible } else { [System.Windows.Visibility]::Collapsed }
         if ($script:AddNameOk -and $script:AddUserOk -and -not $txtImageError.Text) {
+            # The packs are their own window's business now: CREATE opens it
+            # over this form - Cancel closes it and comes back here, the form
+            # untouched; APPLY answers the picks and this one closes into the
+            # build. The family is the form's, read at this moment: the form
+            # is frozen behind the modal.
+            $family = if ($fromImage) { "" } else { Get-BuildRecipeFamily -Dockerfile $dockerChoices[[Math]::Max(0, $cmbDockerfile.SelectedIndex)].Path }
+            $packs = Show-GuiPackPick -Catalog $Catalog -Family $family -Owner $form
+            if ($null -eq $packs) { return }
             $script:AddResult = [PSCustomObject]@{
                 Name           = $txtName.Text.Trim()
                 User           = if ($runFirstBoot) { $txtUser.Text.Trim() } else { "" }
@@ -974,7 +999,7 @@ function Show-AddInstance {
                 Image          = if ($fromImage) { $imageChoices[$cmbDockerImage.SelectedIndex].Path } else { "" }
                 SaveImage      = [bool]$chkSaveImage.IsChecked
                 RegisterDocker = [bool]$chkRegisterDocker.IsChecked
-                Packs          = @($script:ChecklistSelection.ToAdd | ForEach-Object { $_.Name })
+                Packs          = @($packs)
             }
             $form.Close()
         }

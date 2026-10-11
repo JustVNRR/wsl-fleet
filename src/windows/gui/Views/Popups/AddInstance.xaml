@@ -72,14 +72,6 @@
                         <Button Name="BtnFirstBootDelete" Grid.Column="3" Content="&#xF1F8;" FontFamily="{DynamicResource IconFace}" Width="34" Margin="8,0,0,0" IsEnabled="False" ToolTip="Delete the selected uploaded file"/>
                     </Grid>
                 </StackPanel>
-                <TextBlock Margin="0,12,0,0" Text="Packs:"/>
-                <TextBlock Name="TxtPacksForeign" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource AppWarningBrush}" Visibility="Collapsed" Text="The recipe's system cannot be read. Please make sure your Docker image is compatible with the following packs before ticking them."/>
-                <ScrollViewer MaxHeight="260" Margin="0,6,0,0" VerticalScrollBarVisibility="Auto">
-                    <StackPanel Name="Boxes"/>
-                </ScrollViewer>
-                <TextBlock Name="TxtAdd" Margin="0,12,0,0" TextWrapping="Wrap" Foreground="{DynamicResource AppForegroundBrush}" Visibility="Collapsed"/>
-                <TextBlock Name="TxtDel" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource AppSoftDangerBrush}" Visibility="Collapsed"/>
-                <TextBlock Name="TxtNotes" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource AppMutedBrush}"/>
             </StackPanel>
         </ScrollViewer>
         <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="18,10,18,16">

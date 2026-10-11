@@ -9,7 +9,7 @@ using module ..\..\WslModel\WslModel.psd1
 # at the level they are chosen from.
 . (Join-Path $PSScriptRoot "ThemeIcon.ps1")
 . (Join-Path $PSScriptRoot "ThemeFont.ps1")
-. (Join-Path $PSScriptRoot "ThemeColour.ps1")
+. (Join-Path $PSScriptRoot "ThemeColor.ps1")
 
 function Read-ThemeAnswers {
     param(
@@ -102,7 +102,7 @@ function Read-ThemeAnswers {
             } elseif ($Chosen.File -eq "theme_font") {
                 $ChildForm = Read-ThemeFontAnswers -Manager $Manager -DistroName $DistroName -Options @()
             } else {
-                $ChildForm = Read-ThemeColourAnswers -Manager $Manager -DistroName $DistroName -Options @()
+                $ChildForm = Read-ThemeColorAnswers -Manager $Manager -DistroName $DistroName -Options @()
             }
             if ($null -ne $ChildForm) {
                 $Runs += [PSCustomObject]@{ File = $Chosen.File; Form = $ChildForm }

@@ -243,6 +243,16 @@ if ($Chosen.Key -eq "theme_icon") {
     $Answers = Read-ThemeIconAnswers -Manager $Manager -Options $RemainingArgs
     if ($null -eq $Answers) { exit 1 }
 }
+if ($Chosen.Key -eq "theme_color") {
+    . (Join-Path $CommandFiles "..\cli\Controllers\ThemeColour.ps1")
+    $Answers = Read-ThemeColourAnswers -Manager $Manager -Options $RemainingArgs
+    if ($null -eq $Answers) { exit 1 }
+}
+if ($Chosen.Key -eq "theme") {
+    . (Join-Path $CommandFiles "..\cli\Controllers\Theme.ps1")
+    $Answers = Read-ThemeAnswers -Manager $Manager -Options $RemainingArgs
+    if ($null -eq $Answers) { exit 1 }
+}
 
 # Whatever followed the command travels in this run context: the gesture
 # rebuilds it into named parameters and loose values (see above), so a command
@@ -262,7 +272,7 @@ if ($null -ne $Answers) { $Run.Answers = $Answers }
 # again once the prompt is back - a reload cannot land while a menu is
 # running, and behind the theme menu its own ending writes the touch (see
 # theme.ps1).
-if (($Chosen.Key -eq "theme_font" -or $Chosen.Key -eq "theme_icon") -and $LASTEXITCODE -eq 0) {
+if (($Chosen.Key -eq "theme" -or $Chosen.Key -eq "theme_font" -or $Chosen.Key -eq "theme_icon" -or $Chosen.Key -eq "theme_color") -and $LASTEXITCODE -eq 0) {
     Update-TerminalSettings
 }
 

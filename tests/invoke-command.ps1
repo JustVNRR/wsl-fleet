@@ -3,7 +3,7 @@
 # any more, they run through the entry and use what it imported. The manager
 # travels in as a parameter, typed and bound from the command's first line -
 # and for the commands whose questions live in the console's conversation
-# (archive, restore, duplicate, unregister, shrink, migrate, stop, restart, remove_pack, add_pack, manage_packs, theme_font, theme_icon), the
+# (archive, restore, duplicate, unregister, shrink, migrate, stop, restart, remove_pack, add_pack, manage_packs, theme, theme_font, theme_icon, theme_color), the
 # controller is mounted and asked here, and the form it renders travels in
 # too: the entry's two roles, played the same way.
 #
@@ -76,6 +76,12 @@ if ($Key -eq "archive") {
 } elseif ($Key -eq "theme_icon") {
     . (Join-Path $PSScriptRoot "..\src\windows\cli\Controllers\ThemeIcon.ps1")
     $Form = Read-ThemeIconAnswers -Manager $Manager -Options @()
+} elseif ($Key -eq "theme_color") {
+    . (Join-Path $PSScriptRoot "..\src\windows\cli\Controllers\ThemeColour.ps1")
+    $Form = Read-ThemeColourAnswers -Manager $Manager -Options @()
+} elseif ($Key -eq "theme") {
+    . (Join-Path $PSScriptRoot "..\src\windows\cli\Controllers\Theme.ps1")
+    $Form = Read-ThemeAnswers -Manager $Manager -Options @()
 } else {
     $Asks = $false
 }

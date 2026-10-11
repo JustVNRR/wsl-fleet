@@ -569,30 +569,31 @@ class WslInstance {
     }
 
     # The four gestures of the look: what the theme's children change, one at a
-    # time. ApplyTerminalProfile above walks the same road (the profile's guid,
-    # the fragment, then the look - the icon recipe kept through: a font or
-    # colour change must not eat the tile; that was a real defect once); the
-    # two should share that walk one day instead of walking it twice.
+    # time. The writing itself is the one hidden door below - the profile's
+    # guid, the refusal when Terminal knows no profile, the fragment, the
+    # look, the instance's own file - so a change of one part and a change of
+    # another cannot drift apart; the icon recipe is kept through the caller's
+    # merge (a font or colour change must not eat the tile; that was a real
+    # defect once). ApplyTerminalProfile above walks the same road with more
+    # on it - the font ensure, the drawing, the ghost pruning.
 
     [void] SetFont([string]$FontName) {
-        $Guid = Get-WslProfileGuid -Name $this.Name
-        if (-not $Guid) {
-            throw "Windows Terminal has no profile for '$($this.Name)' - the font cannot be applied."
-        }
         $Theme = $this.KeepIconRecipe((Get-InstanceAppearance -Name $this.Name))
         $Theme.FontName = $FontName
-        Set-InstanceFragment -Name $this.Name -Guid $Guid -Theme $Theme
-        $this.Recipe.Look = $Theme
-        $this.Save()
+        $this.WriteLook("font", $Theme)
     }
 
     [void] SetColourScheme([string]$SchemeName) {
-        $Guid = Get-WslProfileGuid -Name $this.Name
-        if (-not $Guid) {
-            throw "Windows Terminal has no profile for '$($this.Name)' - the colours cannot be applied."
-        }
         $Theme = $this.KeepIconRecipe((Get-InstanceAppearance -Name $this.Name))
         $Theme.ColorScheme = $SchemeName
+        $this.WriteLook("colours", $Theme)
+    }
+
+    hidden [void] WriteLook([string]$What, [WslTheme]$Theme) {
+        $Guid = Get-WslProfileGuid -Name $this.Name
+        if (-not $Guid) {
+            throw "Windows Terminal has no profile for '$($this.Name)' - the $What cannot be applied."
+        }
         Set-InstanceFragment -Name $this.Name -Guid $Guid -Theme $Theme
         $this.Recipe.Look = $Theme
         $this.Save()

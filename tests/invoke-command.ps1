@@ -55,9 +55,6 @@ if ($Key -eq "archive") {
 } elseif ($Key -eq "migrate") {
     . (Join-Path $PSScriptRoot "..\src\windows\cli\Controllers\Migrate.ps1")
     $Form = Read-MigrateAnswers -Manager $Manager -Options @()
-} elseif ($Key -eq "stop") {
-    . (Join-Path $PSScriptRoot "..\src\windows\cli\Controllers\Stop.ps1")
-    $Form = Read-StopAnswers -Manager $Manager -Options @()
 } elseif ($Key -eq "restart") {
     . (Join-Path $PSScriptRoot "..\src\windows\cli\Controllers\Restart.ps1")
     $Form = Read-RestartAnswers -Manager $Manager -Options @()

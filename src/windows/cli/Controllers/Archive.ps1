@@ -65,7 +65,7 @@ function Read-ArchiveAnswers {
     # The yes is the permit the instance's own Archive receives; a no stops
     # the whole run, nothing asked further.
     $Permit = $true
-    if ($Distro.State -eq [WslState]::Running) {
+    if ((Get-DistroNames -Running) -contains $Distro.Name) {
         Write-Host ""
         Write-Host "  '$($Distro.Name)' is running, and this needs it stopped." -ForegroundColor (Get-MessageColour warning)
         Write-Host "  Save what you have open in there: stopping it loses anything unsaved." -ForegroundColor (Get-MessageColour warning)

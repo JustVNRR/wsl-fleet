@@ -141,9 +141,11 @@ function Select-Distro {
         exit 1
     }
 
+    # Who runs, asked once for the whole menu.
+    $Running = Get-DistroNames -Running
     $Menu = [WslMenu]::new("Our Instances")
     foreach ($Instance in $All) {
-        $State = if ($Instance.State -eq [WslState]::Running) { "running" } else { "stopped" }
+        $State = if ($Running -contains $Instance.Name) { "running" } else { "stopped" }
         $null = $Menu.Add([WslMenuItem]::new(
             ("{0,-30} {1,-8} {2,10}" -f $Instance.Name, $State, (Format-Size ($Instance.DiskBytes()))), $Instance))
     }

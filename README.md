@@ -424,9 +424,8 @@ workflow is documented in full at the top of its own file.
 
 ## Instance Administration (wsl.ps1)
 
-Instances are listed, built, started, stopped, restarted, opened, copied,
-archived, restored, compacted and removed from `wsl.ps1`, at the root of the
-repository.
+Instances are listed, built, restarted, opened, copied, archived, restored,
+compacted and removed from `wsl.ps1`, at the root of the repository.
 The scripts themselves live in `src\windows\` — `wsl.ps1` is the only thing to type.
 
 | Command | What it does |
@@ -434,8 +433,6 @@ The scripts themselves live in `src\windows\` — `wsl.ps1` is the only thing to
 | [`.\wsl.ps1 gui`](docs/wsl/commands.md#gui) | WSL Fleet GUI |
 | [`.\wsl.ps1 list`](docs/wsl/commands.md#list) | list our instances and the archives |
 | [`.\wsl.ps1 build`](docs/wsl/commands.md#build) | build an instance from the image |
-| [`.\wsl.ps1 start`](docs/wsl/commands.md#start) | start a stopped instance |
-| [`.\wsl.ps1 stop`](docs/wsl/commands.md#stop) | stop a running instance |
 | [`.\wsl.ps1 restart`](docs/wsl/commands.md#restart) | restart an instance |
 | [`.\wsl.ps1 shell`](docs/wsl/commands.md#shell) | open a shell inside an instance |
 | [`.\wsl.ps1 add_pack`](docs/wsl/commands.md#add_pack) | install a pack into an instance |

@@ -23,8 +23,6 @@ answers to its word all the same, `.\wsl.ps1 gui`:
 WSL Stack - console
   > list         list our instances and the archives
     build        build an instance from the image
-    start        start a stopped instance
-    stop         stop a running instance
     restart      restart an instance
     shell        open a shell inside an instance
     add_pack     install a pack into an instance
@@ -62,8 +60,6 @@ read, the colours a console has always had are used.
 | [`.\wsl.ps1 gui`](#gui) | WSL Fleet GUI |
 | [`.\wsl.ps1 list`](#list) | list our instances and the archives |
 | [`.\wsl.ps1 build`](#build) | build an instance from the image |
-| [`.\wsl.ps1 start`](#start) | start a stopped instance |
-| [`.\wsl.ps1 stop`](#stop) | stop a running instance |
 | [`.\wsl.ps1 restart`](#restart) | restart an instance |
 | [`.\wsl.ps1 shell`](#shell) | open a shell inside an instance |
 | [`.\wsl.ps1 add_pack`](#add_pack) | install a pack into an instance |
@@ -127,8 +123,8 @@ everything else asks.
 It lists our instances - state and size, the same list `list` prints - with,
 on each row, its verbs: **open** (a new terminal window on the instance's
 own profile - its icon, colours and font ride along - where `shell` would
-borrow the console), **start** or **stop** (whichever the state allows),
-**edit** (the packs: tickboxes with the same rules as `manage_packs` -
+borrow the console), **edit** (the packs: tickboxes with the same rules
+as `manage_packs` -
 requirements and removals shown live underneath, with their reasons, and its
 APPLY greys while there is nothing to do - the run opens in a console window
 of its own, where the déroulé, the same
@@ -389,51 +385,6 @@ onboarding is skipped, this question is not asked at all.
 
 ---
 
-## `start`
-
-Starts a stopped instance, without opening a shell in it.
-
-```powershell
-.\wsl.ps1 start
-```
-
-Only stopped instances are listed — an instance already running has nothing to
-do here:
-
-```text
-Stopped instances - the ones that can be started:
-   1.  template-bac                  1.1 GB
-   2.  ubuntu-template               2.4 GB
-   0.  Cancel
-```
-
-To work inside it, open its Windows Terminal profile — it is the profile the
-build wrote, icon, font and colours included.
-
----
-
-## `stop`
-
-Stops a running instance.
-
-```powershell
-.\wsl.ps1 stop
-```
-
-Only running instances are listed:
-
-```text
-Running instances - the ones that can be stopped:
-   1.  template-bac                  1.1 GB
-   0.  Cancel
-```
-
-**Whatever is open in there and not saved is lost.** What is written on the
-disk stays: stopping ends the running processes, it does not touch the disk.
-Asked once, and the default is to go ahead.
-
----
-
 ## `restart`
 
 Stops an instance and starts it again, in one command.
@@ -442,7 +393,7 @@ Stops an instance and starts it again, in one command.
 .\wsl.ps1 restart
 ```
 
-Only running instances are listed — a stopped one has `start`:
+Only running instances are listed:
 
 ```text
 Running instances - the ones that can be restarted:
@@ -450,7 +401,7 @@ Running instances - the ones that can be restarted:
    0.  Cancel
 ```
 
-**Whatever is open in there and not saved is lost**, exactly as with `stop`.
+**Whatever is open in there and not saved is lost**, exactly as when an instance is stopped.
 The disk is not touched: the instance comes back with everything it had
 written.
 
@@ -479,9 +430,9 @@ Our Instances
    0.  Cancel
 ```
 
-An instance that was stopped is started on the way in: `start` first is not
-needed. The shell opens **in your home**, not in the Windows folder you ran the
-command from — the same thing the build does when a new instance is ready.
+An instance that was stopped is started on the way in. The shell opens **in
+your home**, not in the Windows folder you ran the command from — the same
+thing the build does when a new instance is ready.
 
 `exit` in there brings you back to PowerShell.
 

@@ -70,14 +70,6 @@ try {
                 Write-Stamp ("RESULT OK " + $Name + ": archived as '" + $Name + "' (" + [math]::Round($r.Archive.Archive.Length / 1MB, 1) + " MB)")
             }
             Write-Stamp ("RESULT OK " + $Name + ": compacted - reclaimed " + [math]::Round($r.Freed / 1MB, 1) + " MB")
-        } elseif ($Verb -eq "start") {
-            Write-Stamp "starting"
-            $inst.Start()
-            Write-Stamp ("RESULT OK " + $Name + ": started")
-        } elseif ($Verb -eq "stop") {
-            Write-Stamp "stopping"
-            $inst.Stop()
-            Write-Stamp ("RESULT OK " + $Name + ": stopped")
         } else {
             Write-Stamp "removing"
             $r = $mgr.Unregister($inst, [bool]::Parse($ArchiveFirst))

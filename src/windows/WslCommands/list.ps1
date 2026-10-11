@@ -35,9 +35,11 @@ if ($All.Count -eq 0 -and $Archives.Count -eq 0 -and $Forgotten.Count -eq 0) {
 if ($All.Count -gt 0) {
     Write-Host ""
     Write-Host "Instances of this template:" -ForegroundColor (Get-MessageColour info)
+    # Who runs, asked once for the whole table.
+    $Running = Get-DistroNames -Running
     for ($Index = 0; $Index -lt $All.Count; $Index++) {
         $Entry = $All[$Index]
-        $State = if ($Entry.State -eq [WslState]::Running) { "running" } else { "stopped" }
+        $State = if ($Running -contains $Entry.Name) { "running" } else { "stopped" }
         Write-Host ("  {0,2}.  {1,-30} {2,-8} {3,10}  {4}" -f ($Index + 1), $Entry.Name, $State,
             (Format-Size ($Entry.DiskBytes())), $Entry.Path)
     }

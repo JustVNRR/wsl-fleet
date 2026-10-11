@@ -76,20 +76,6 @@ class WslInstance {
     # INSTANCE METHODS: Lifecycle (State, Start, Stop, Restart, Shrink)
     # =========================================================================
 
-    [void] RefreshArchiveStatus() {
-        $archiveDir = $null
-        if ($this.Path) {
-            $archiveDir = Join-Path (Split-Path $this.Path -Parent) "archives\$($this.Name)"
-        }
-        if ($archiveDir -and (Test-Path $archiveDir)) {
-            $this.HasArchive  = $true
-            $this.ArchivePath = $archiveDir
-            return
-        }
-        $this.HasArchive  = $false
-        $this.ArchivePath = $null
-    }
-
     [void] RefreshState() {
         # Asked of wsl.exe: the registry does not say whether one is RUNNING.
         # An instance that is not there at all reads as Archived when an
@@ -262,7 +248,9 @@ class WslInstance {
     # whether the stopping was ours.
     [PSCustomObject] Duplicate([string]$newName, [string]$newFolder) {
         # What Windows shows now, captured before the export; the icon's
-        # recipe rides along (KeepIconRecipe).
+        # recipe rides along (KeepIconRecipe), over the recipe read from the
+        # instance's own file - the copy must carry all of it.
+        $this.LoadRecipe()
         $this.Recipe.Look = $this.KeepIconRecipe($this.Appearance())
         $Docker = Get-DockerState -Name $this.Name
 
@@ -341,6 +329,7 @@ class WslInstance {
     # icon. Returns what the caller reports (a class does not write to the
     # screen): the font, the colours, whether the icon came, Docker's answer.
     [object] ArchiveLook([string]$folder) {
+        $this.LoadRecipe()
         $Appearance = $this.Appearance()
         # The same file the instance keeps in its own folder, refreshed: what
         # this machine has right now, and the icon's recipe as the instance
@@ -600,13 +589,24 @@ class WslInstance {
     # defect once). ApplyTerminalProfile above walks the same road with more
     # on it - the font ensure, the drawing, the ghost pruning.
 
+    # The recipe, read from the instance's own file when a gesture needs it.
+    # The objects a list holds carry none - Refresh loads light - and every
+    # door below writes the recipe back whole (Save): read first, or the
+    # write would erase what the file held. The file is the truth an edit
+    # carries forward.
+    hidden [void] LoadRecipe() {
+        $this.Recipe = Get-InstanceRecipe -Name $this.Name
+    }
+
     [void] SetFont([string]$FontName) {
+        $this.LoadRecipe()
         $Theme = $this.KeepIconRecipe($this.Appearance())
         $Theme.FontName = $FontName
         $this.WriteLook("font", $Theme)
     }
 
     [void] SetColourScheme([string]$SchemeName) {
+        $this.LoadRecipe()
         $Theme = $this.KeepIconRecipe($this.Appearance())
         $Theme.ColorScheme = $SchemeName
         $this.WriteLook("colours", $Theme)
@@ -628,6 +628,7 @@ class WslInstance {
     # drawing script is one level up, in src\windows. The drawn recipe comes
     # back whole: the drawing settles the parts the recipe left open.
     [object] SetIcon([object]$Drawing) {
+        $this.LoadRecipe()
         $IconPath = Join-Path $this.Path "terminal-icon.png"
         # Key by key, not a table merge: "Name" travels in the drawing too, and
         # a hashtable += over a key already there throws - a plain drawing must
@@ -1067,11 +1068,12 @@ class WslInstance {
         return ($all | Where-Object { $_.Name -eq $name } | Select-Object -First 1)
     }
 
-    # Every registered instance: name, folder, WSL version (1 or 2), and its
-    # recipe - off its own file, born empty (Pending) when there is none: an
-    # instance always carries its state. The empty constructor on purpose -
-    # the four-argument one asks wsl.exe about the state, and asking once per
-    # instance is not this call's business.
+    # Every registered instance: its name, its folder and its WSL version
+    # (1 or 2) - nothing more. The recipe and the state are read where they
+    # are used, never here: a list wants names and sizes, not a file per row.
+    # The empty constructor on purpose - the four-argument one asks wsl.exe
+    # about the state, and asking once per instance is not this call's
+    # business.
     static [WslInstance[]] GetAll() {
         $found = @()
         $regPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss"
@@ -1087,7 +1089,6 @@ class WslInstance {
                 try { $instance.SetName($props.DistributionName) } catch { continue }
                 $instance.Path = ($props.BasePath -replace '^\\\\\?\\', '').TrimEnd('\')
                 if ($props.Version) { $instance.Version = [int]$props.Version }
-                $instance.Recipe = Get-InstanceRecipe -Name $instance.Name
                 $found += $instance
             }
         }

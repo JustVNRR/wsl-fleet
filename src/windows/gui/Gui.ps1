@@ -99,7 +99,7 @@ $UpdateThemeButton = {
 
 # The watcher first: a click here drains whatever the timer has not - if the
 # tick ever fails to fire, Refresh still ends the job and reports it.
-$btnRefresh.Add_Click({ & $WatchJob; & $LoadFleet })
+$btnRefresh.Add_Click({ & $WatchJob; $Manager.Refresh(); & $LoadFleet })
 $btnQuit.Add_Click({ $window.Close() })
 
 # The safety net: a UI-thread exception kills the process outright - a family
@@ -153,8 +153,9 @@ $ApplyLook = {
     $window.Resources.MergedDictionaries[0] = (Get-ThemeDictionary)
     & $UpdateThemeButton
     Set-WindowPhosphorFrame -Win $window -UiFont $Family -UiFontSize $Size
-    # The columns re-measure under the new face, and the fitted width follows
-    # the zoom - then the face speaks, after the reload's own count line.
+    # The columns are measured from the rows themselves, so the list is
+    # redrawn for the new font - the same rows, nothing re-read. The status
+    # line comes after: $LoadFleet writes its own, and it would bury this one.
     & $LoadFleet
     $setName = if ($ColourSet) { $ColourSet } else { "default" }
     & $SetStatus "Window face: '$Name' at $Size pt, theme '$setName'. Popups follow on their next open."
@@ -228,6 +229,7 @@ $WatchBuild = {
     $script:BuildWatch.Stop()
     $script:BuildChild = $null
     & $SetBusyState $false $null
+    $Manager.Refresh()
     & $LoadFleet
     & $SetStatus "The build ended - the fleet was reread."
 }
@@ -320,12 +322,9 @@ $window.Add_PreviewKeyDown({
 $window.MinHeight = 240
 $window.MaxHeight = [Math]::Max(360, [System.Windows.SystemParameters]::WorkArea.Height - 40)
 $FitCeiling = {
-    try {
-        $handle = [System.Windows.Interop.WindowInteropHelper]::new($window).Handle
-        $area = [System.Windows.Forms.Screen]::FromHandle($handle).WorkingArea
-        $dpi = [System.Windows.Media.VisualTreeHelper]::GetDpi($window)
-        $window.MaxHeight = [Math]::Max(360, [int]($area.Height / $dpi.DpiScaleY) - 40)
-    } catch { }
+    # The read lives with the forms' fit, once: same screen, same units.
+    $area = Get-ScreenWorkingArea -Win $window
+    if ($area) { $window.MaxHeight = [Math]::Max(360, [int]$area.Height - 40) }
 }
 $window.Add_DpiChanged({ & $FitCeiling })
 $window.Add_MouseLeftButtonUp({ & $FitCeiling })

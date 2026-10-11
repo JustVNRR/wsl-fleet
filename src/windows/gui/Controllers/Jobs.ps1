@@ -51,6 +51,7 @@ $WatchJob = {
     } finally {
         $script:Child = $null
         & $SetBusyState $false $null
+        $Manager.Refresh()
         & $LoadFleet
         # After the reload: its own count line would otherwise bury the ending.
         if ($script:EndingText) { & $SetStatus $script:EndingText -Alert:$script:EndingAlert }

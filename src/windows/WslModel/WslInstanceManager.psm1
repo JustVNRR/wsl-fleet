@@ -163,17 +163,10 @@ class WslInstanceManager {
 
         # 1. The distributions registered in the Windows registry - ours only:
         # the marker vouches for them, so the held list never shows a distro
-        # this template did not make. Their state comes from one batched
-        # question - wsl --list says what runs, about everyone at once - not
-        # from one wsl.exe per instance.
-        $Running = Get-DistroNames -Running
+        # this template did not make. Nothing else is read: no wsl call, no
+        # instance.json - the state and the recipe are read where they are
+        # used (the questions ask wsl live; the look gestures load their file).
         foreach ($inst in @([WslInstance]::GetAll() | Where-Object { Test-TemplateInstance -Folder $_.Path })) {
-            $inst.RefreshArchiveStatus()
-            if ($Running -contains $inst.Name) {
-                $inst.State = [WslState]::Running
-            } else {
-                $inst.State = [WslState]::Stopped
-            }
             $this.Instances += $inst
             $registeredPaths += $inst.Path
         }
@@ -733,7 +726,8 @@ class WslInstanceManager {
             }
         }
 
-        $WasRunning = ($Instance.State -eq [WslState]::Running)
+        # Whether it ran, asked live - the list holds no state any more.
+        $WasRunning = (Get-DistroNames -Running) -contains $Instance.Name
         $Result = $Instance.Shrink()
 
         $Restarted = $false

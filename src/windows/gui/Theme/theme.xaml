@@ -120,7 +120,7 @@
                         </Trigger>
                         <!-- An archived row reads greyed - cold storage
                              next to the live ones. -->
-                        <DataTrigger Binding="{Binding Status}" Value="Archived">
+                        <DataTrigger Binding="{Binding Instance.State}" Value="Archived">
                             <Setter Property="Foreground" Value="{DynamicResource AppMutedBrush}"/>
                         </DataTrigger>
                     </ControlTemplate.Triggers>
@@ -231,12 +231,12 @@
         </Style.Triggers>
     </Style>
 
-    <!-- What a row's Status allows: an archived row carries its own two -
-         restore and the trash - a live one the eight gestures. The states
-         hide what does not apply, the way Start/Stop already did. -->
+    <!-- What a row allows, by its instance's own state: an archived row
+         carries its own two - restore and the trash - a live one the seven
+         gestures. The state hides what does not apply. -->
     <Style x:Key="LiveRowButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
         <Style.Triggers>
-            <DataTrigger Binding="{Binding Status}" Value="Archived">
+            <DataTrigger Binding="{Binding Instance.State}" Value="Archived">
                 <Setter Property="Visibility" Value="Collapsed"/>
             </DataTrigger>
         </Style.Triggers>
@@ -245,28 +245,8 @@
     <Style x:Key="ArchivedRowButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
         <Setter Property="Visibility" Value="Collapsed"/>
         <Style.Triggers>
-            <DataTrigger Binding="{Binding Status}" Value="Archived">
+            <DataTrigger Binding="{Binding Instance.State}" Value="Archived">
                 <Setter Property="Visibility" Value="Visible"/>
-            </DataTrigger>
-        </Style.Triggers>
-    </Style>
-
-    <!-- The two that hide themselves on the row's own state: Start steps
-         aside while it runs, Stop while it does not. They live here rather
-         than inline in the template: the template reaches styles by
-         DynamicResource only, and a BasedOn cannot be dynamic. -->
-    <Style x:Key="BtnRowStart" TargetType="Button" BasedOn="{StaticResource LiveRowButton}">
-        <Style.Triggers>
-            <DataTrigger Binding="{Binding Status}" Value="Running">
-                <Setter Property="Visibility" Value="Collapsed"/>
-            </DataTrigger>
-        </Style.Triggers>
-    </Style>
-
-    <Style x:Key="BtnRowStop" TargetType="Button" BasedOn="{StaticResource LiveRowButton}">
-        <Style.Triggers>
-            <DataTrigger Binding="{Binding Status}" Value="Stopped">
-                <Setter Property="Visibility" Value="Collapsed"/>
             </DataTrigger>
         </Style.Triggers>
     </Style>

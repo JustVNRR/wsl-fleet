@@ -36,19 +36,18 @@ $LoadFleet = {
     try {
         $rows = @()
 
-        # The manager's own list, refreshed first - the same the console
-        # doors show, at the freshness every load needs.
-        $Manager.Refresh()
+        # Draws the list from the manager's state as it stands: it never
+        # re-reads. A caller that needs fresh data calls $Manager.Refresh()
+        # itself first - the refresh button, the job and build endings, the
+        # shell tick.
         $instances = @($Manager.WslRegisteredInstances())
         foreach ($inst in $instances) {
-            $isRunning = ($inst.State -eq [WslState]::Running)
             # The disk's size, the way the console's lists read it: the folder
             # holds ext4.vhdx, and Format-Size spells the bytes.
             $sizeStr = Format-Size ($inst.DiskBytes())
 
             $rows += [PSCustomObject]@{
                 Name     = $inst.Name
-                Status   = if ($isRunning) { "Running" } else { "Stopped" }
                 Size     = $sizeStr
                 Instance = $inst
             }
@@ -63,7 +62,6 @@ $LoadFleet = {
         foreach ($archive in $archives) {
             $rows += [PSCustomObject]@{
                 Name     = $archive.Name
-                Status   = "Archived"
                 Size     = Format-Size ($archive.DiskBytes())
                 Instance = $archive
             }
@@ -76,10 +74,10 @@ $LoadFleet = {
             $null = $lstInstances.Items.Add($row)
         }
 
-        # The first three columns measured to their content: a GridView never
+        # The first two columns measured to their content: a GridView never
         # sizes itself, and Name sat three times wider than the longest name.
         # The header is measured too, its text must fit; the action column
-        # keeps its width - icons do not vary.
+        # is left to WPF - its buttons are fixed-size, and it measures them.
         if ($sorted.Count -gt 0) {
             # Measured with the face the window actually wears: the columns
             # keep their promise under a custom family too. The size is the
@@ -87,9 +85,8 @@ $LoadFleet = {
             $typeface = New-Object Windows.Media.Typeface($window.FontFamily,
                 [Windows.FontStyles]::Normal, [Windows.FontWeights]::Normal, [Windows.FontStretches]::Normal)
             $measures = @(
-                @{ Column = 0; Header = "Name";   Values = @($sorted | ForEach-Object { "$($_.Name)" }) },
-                @{ Column = 1; Header = "Status"; Values = @($sorted | ForEach-Object { "$($_.Status)" }) },
-                @{ Column = 2; Header = "Size";   Values = @($sorted | ForEach-Object { "$($_.Size)" }) }
+                @{ Column = 0; Header = "Name"; Values = @($sorted | ForEach-Object { "$($_.Name)" }) },
+                @{ Column = 1; Header = "Size"; Values = @($sorted | ForEach-Object { "$($_.Size)" }) }
             )
             foreach ($m in $measures) {
                 $widest = 0.0
@@ -108,14 +105,22 @@ $LoadFleet = {
             # Action column grew while the others shrank. The budget is every
             # pixel the frame eats: border margin 28, the border's line 2,
             # the grid's margin 28, the list's own line 2, the vertical
-            # scrollbar 17, and a breath.
+            # scrollbar 17, and a breath - 13 rather than 7: before the
+            # window is shown, the Action column's auto width measures a
+            # couple of pixels narrow, and the breath absorbs that.
+            # The list is laid out first, and ActualWidth is what is summed:
+            # the Action column measures itself (Auto), and has no Width
+            # until then.
+            $lstInstances.UpdateLayout()
             $total = 0.0
-            foreach ($column in $lstInstances.View.Columns) { $total += $column.Width }
+            foreach ($column in $lstInstances.View.Columns) { $total += $column.ActualWidth }
             # The frame's own 58 pixels - its margins and its line, all
             # OUTSIDE the zoom - do not scale: multiplied like the rest, the
             # budget left them a smaller and smaller share under 15, and at
             # 11 the list wore a scrollbar (measured: ~15 pixels short).
-            $base = [Math]::Min(1100, [Math]::Max(560, $total + 84))
+            # The floor only catches a width that could not be measured at
+            # all (zeros) - every real list lands at 476 and beyond.
+            $base = [Math]::Min(1100, [Math]::Max(460, $total + 90))
             $window.Width = ($base - 58) * ($GuiFonts.UiSize / 15.0) + 58
         }
 
@@ -138,6 +143,7 @@ $LoadFleet = {
 $ShellReloadTick = {
     param($source, $e)
     $source.Stop()
+    $Manager.Refresh()
     & $LoadFleet
 }
 
@@ -177,7 +183,7 @@ $RowAction = [System.Windows.RoutedEventHandler]{
     }
     if ($button.Name -eq "BtnRowOpen") {
         try {
-            $wasStopped = ($row.Status -eq "Stopped")
+            $wasStopped = -not ((Get-DistroNames -Running) -contains $inst.Name)
             $inst.OpenShell()
             $note = if ($wasStopped) { " It was stopped: WSL starts it on the way in." } else { "" }
             & $SetStatus "A shell for '$($inst.Name)' opened in a new window.$note"
@@ -191,18 +197,6 @@ $RowAction = [System.Windows.RoutedEventHandler]{
         } catch {
             & $SetStatus "Could not open a shell for '$($inst.Name)': $($_.Exception.Message)" -Alert
         }
-        return
-    }
-    if ($button.Name -eq "BtnRowStart") {
-        & $MarkRow $button
-        & $SetBusyState $true "Starting '$($inst.Name)'..."
-        & $LaunchJob "start" $inst.Name "False"
-        return
-    }
-    if ($button.Name -eq "BtnRowStop") {
-        & $MarkRow $button
-        & $SetBusyState $true "Stopping '$($inst.Name)'..."
-        & $LaunchJob "stop" $inst.Name "False"
         return
     }
     if ($button.Name -eq "BtnRowEdit") {
@@ -341,7 +335,10 @@ $RowAction = [System.Windows.RoutedEventHandler]{
         # long, and the engine's own gesture stops the source for a
         # consistent read and puts it back when it is over.
         $names = @($lstInstances.Items | ForEach-Object { $_.Name })
-        $name = Show-DuplicatePrompt $inst.Name ($row.Status -eq "Running") "$($inst.Name)-copy" $names
+        # "Is it running" is asked at the click, live: the list holds no state
+        # any more, and this question is the only thing that wants it.
+        $running = (Get-DistroNames -Running) -contains $inst.Name
+        $name = Show-DuplicatePrompt $inst.Name $running "$($inst.Name)-copy" $names
         if (-not $name) { return }
         & $MarkRow $button
         & $SetBusyState $true "Duplicating '$($inst.Name)' as '$name'..."
@@ -351,7 +348,8 @@ $RowAction = [System.Windows.RoutedEventHandler]{
     if ($button.Name -eq "BtnRowArchive") {
         # The name first - the instance's own, prefilled - then the console's
         # rail: a name that is a path would land outside the archives folder.
-        $name = Show-ArchivePrompt $inst.Name ($row.Status -eq "Running") $Manager.ArchivesRoot
+        $running = (Get-DistroNames -Running) -contains $inst.Name
+        $name = Show-ArchivePrompt $inst.Name $running $Manager.ArchivesRoot
         if (-not $name) { return }
         if (-not $Manager.IsNameUsable($name)) {
             & $SetStatus "'$name' is not usable as an archive name (letters, digits, '.', '_' and '-' only)." -Alert

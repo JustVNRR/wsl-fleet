@@ -81,7 +81,7 @@ function Show-GuiConfirm {
     $confirm.FindName("BtnConfirmCancel").Add_Click({ $script:ConfirmResult = $false; $confirm.Close() })
     $confirm.FindName("BtnConfirmOk").Add_Click({ $script:ConfirmResult = $true; $confirm.Close() })
 
-    Set-WindowFitToContent -Win $confirm
+    Set-WindowFitToContent -Win $confirm -ScreenOf $window
     # The owner goes in by property, then the window opens bare: PowerShell's
     # binder refuses Window.ShowDialog(owner) - "no overload with 1 argument"
     # (measured) - while the bare ShowDialog is the one every window in this
@@ -116,7 +116,7 @@ function Show-GuiRootMove {
         $move.Close()
     })
 
-    Set-WindowFitToContent -Win $move
+    Set-WindowFitToContent -Win $move -ScreenOf $window
     if ($Owner) { $move.Owner = $Owner }
     $null = $move.ShowDialog()
     return $script:RootMoveResult
@@ -162,7 +162,7 @@ function Show-GuiPackDuplicate {
         $dup.Close()
     })
 
-    Set-WindowFitToContent -Win $dup
+    Set-WindowFitToContent -Win $dup -ScreenOf $window
     if ($Owner) { $dup.Owner = $Owner }
     $null = $dup.ShowDialog()
     return $script:PackDupResult
@@ -205,7 +205,7 @@ function Show-RemoveGate {
         $gate.Close()
     })
 
-    Set-WindowFitToContent -Win $gate
+    Set-WindowFitToContent -Win $gate -ScreenOf $window
     Show-PopupExclusive $window { $null = $gate.ShowDialog() }
     return $script:GateResult
 }
@@ -240,7 +240,7 @@ function Show-ShrinkGate {
         $gate.Close()
     })
 
-    Set-WindowFitToContent -Win $gate
+    Set-WindowFitToContent -Win $gate -ScreenOf $window
     Show-PopupExclusive $window { $null = $gate.ShowDialog() }
     return $script:GateResult
 }
@@ -277,7 +277,7 @@ function Show-RestorePrompt {
         $prompt.Close()
     })
 
-    Set-WindowFitToContent -Win $prompt
+    Set-WindowFitToContent -Win $prompt -ScreenOf $window
     Show-PopupExclusive $window { $null = $prompt.ShowDialog() }
     if ([string]::IsNullOrWhiteSpace($script:RestoreResult)) { return $null }
     return $script:RestoreResult
@@ -315,7 +315,7 @@ function Show-ArchiveGate {
     $gate.FindName("BtnArchiveCancel").Add_Click({ $script:ArchiveGateResult = $false; $gate.Close() })
     $btnDelete.Add_Click({ $script:ArchiveGateResult = $true; $gate.Close() })
 
-    Set-WindowFitToContent -Win $gate
+    Set-WindowFitToContent -Win $gate -ScreenOf $window
     Show-PopupExclusive $window { $null = $gate.ShowDialog() }
     return $script:ArchiveGateResult
 }
@@ -361,7 +361,7 @@ function Show-ArchivePrompt {
         $prompt.Close()
     })
 
-    Set-WindowFitToContent -Win $prompt
+    Set-WindowFitToContent -Win $prompt -ScreenOf $window
     Show-PopupExclusive $window { $null = $prompt.ShowDialog() }
     if ([string]::IsNullOrWhiteSpace($script:ArchivePromptResult)) { return $null }
     return $script:ArchivePromptResult
@@ -537,7 +537,7 @@ function Show-PackEditor {
         $editor.Close()
     })
 
-    Set-WindowFitToContent -Win $editor
+    Set-WindowFitToContent -Win $editor -ScreenOf $window
     Show-PopupExclusive $window { $null = $editor.ShowDialog() }
     return $script:PackEditResult
 }
@@ -673,7 +673,7 @@ function Show-GuiPackPick {
         $pick.Close()
     })
 
-    Set-WindowFitToContent -Win $pick
+    Set-WindowFitToContent -Win $pick -ScreenOf $window
     if ($Owner) { $pick.Owner = $Owner }
     $null = $pick.ShowDialog()
     # The comma: a function's output is unrolled, and "no pack ticked" - a
@@ -692,11 +692,10 @@ function Show-AddInstance {
     # The trash glyphs are Font Awesome, handed to the form the way the main
     # window hands them over; without the resource they would be empty boxes.
     if ($GuiFonts.IconFont) { $form.Resources["IconFace"] = $GuiFonts.IconFont }
-    # The window may use the screen: the markup's 760 was a guess, and a big
-    # window font makes the form taller than it (measured at 19pt). At this
-    # cap the content scrolls, whatever the font, and the buttons below stay
-    # put - the same rule as the main window's own height.
-    $form.MaxHeight = [Math]::Max(360, [System.Windows.SystemParameters]::WorkArea.Height - 40)
+    # The window's ceiling is the common fit's, at the end of the function:
+    # the markup's 760 was a guess, and a big window font makes the form
+    # taller than it (measured at 19pt). At that cap the content scrolls,
+    # whatever the font, and the buttons below stay put.
 
     Set-WindowPhosphorFrame -Win $form -UiFont $GuiFonts.UiFont -UiFontSize $GuiFonts.UiSize
     $txtName = $form.FindName("TxtName")
@@ -1023,7 +1022,7 @@ function Show-AddInstance {
         }
     })
 
-    Set-WindowFitToContent -Win $form
+    Set-WindowFitToContent -Win $form -ScreenOf $window
 
     # Docker, asked in parallel now: the probe rides behind the form where
     # it used to hold the door for a second. Not up when it answers: a
@@ -1367,7 +1366,7 @@ function Show-Appearance {
         $form.Close()
     })
 
-    Set-WindowFitToContent -Win $form
+    Set-WindowFitToContent -Win $form -ScreenOf $window
     Show-PopupExclusive $window { $null = $form.ShowDialog() }
     return $script:LookResult
 }
@@ -1427,7 +1426,7 @@ function Show-DuplicatePrompt {
         $prompt.Close()
     })
 
-    Set-WindowFitToContent -Win $prompt
+    Set-WindowFitToContent -Win $prompt -ScreenOf $window
     Show-PopupExclusive $window { $null = $prompt.ShowDialog() }
     return $script:DupResult
 }
@@ -1570,7 +1569,7 @@ function Show-GuiSettings {
         # their next open" starts with this one.
         $form.Resources.MergedDictionaries[0] = (Get-ThemeDictionary)
         Set-WindowPhosphorFrame -Win $form -UiFont $choice.Family -UiFontSize $size
-        Set-WindowFitToContent -Win $form -Shrink -Cap 700
+        Set-WindowFitToContent -Win $form -ScreenOf $window -Shrink -Cap 700
     }
     $lstFonts.Add_SelectionChanged({ & $ApplySelection })
     $lstSizes.Add_SelectionChanged({ & $ApplySelection })
@@ -1823,7 +1822,7 @@ function Show-GuiSettings {
         $form.Close()
     })
 
-    Set-WindowFitToContent -Win $form -Shrink -Cap 700
+    Set-WindowFitToContent -Win $form -ScreenOf $window -Shrink -Cap 700
     Show-PopupExclusive $window { $null = $form.ShowDialog() }
     return $script:GuiSettingsResult
 }

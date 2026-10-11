@@ -61,7 +61,7 @@ function Read-DuplicateAnswers {
     # disk - and unsaved work is gone: ask rather than surprise. The yes is
     # the word the engine's own copy acts on: the instance stops itself for
     # the export and comes back up when the stopping was ours to do.
-    if ($Source.State -eq [WslState]::Running) {
+    if ((Get-DistroNames -Running) -contains $Source.Name) {
         Write-Host ""
         Write-Host "  '$($Source.Name)' is running, and this needs it stopped." -ForegroundColor (Get-MessageColour warning)
         Write-Host "  Save what you have open in there: stopping it loses anything unsaved." -ForegroundColor (Get-MessageColour warning)

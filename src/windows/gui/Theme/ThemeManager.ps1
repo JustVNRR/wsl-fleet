@@ -302,8 +302,26 @@ function Test-GuiThemeHasLight {
 # its text measures unwrapped under an infinite constraint. The measurement
 # is the device width: a zoom riding inside the content comes into its
 # parent's desire, so a wide face neither clips nor folds its long lines.
+# The working area of the screen a window is really on - not the primary one
+# SystemParameters knows, which is what a form opened on another screen wore
+# (measured: the laptop's ceiling on the external screen). Read by the
+# window's own handle, in the window's own units, so a move to another screen
+# or a scaling change is simply the next read. $null when the interrogation
+# fails: the caller keeps what it had - nothing breaks quietly.
+function Get-ScreenWorkingArea {
+    param($Win)
+
+    try {
+        $handle = [System.Windows.Interop.WindowInteropHelper]::new($Win).Handle
+        if (-not $handle) { return $null }
+        $area = [System.Windows.Forms.Screen]::FromHandle($handle).WorkingArea
+        $dpi = [System.Windows.Media.VisualTreeHelper]::GetDpi($Win)
+        return [PSCustomObject]@{ Width = $area.Width / $dpi.DpiScaleX; Height = $area.Height / $dpi.DpiScaleY }
+    } catch { return $null }
+}
+
 function Set-WindowFitToContent {
-    param($Win, [double]$Cap = 1100, [switch]$Shrink)
+    param($Win, [double]$Cap = 1100, [switch]$Shrink, $ScreenOf)
 
     $content = $Win.Content
     if (-not $content) { return }
@@ -312,7 +330,15 @@ function Set-WindowFitToContent {
     # widens nothing (measured the hard way).
     $content.Measure([System.Windows.Size]::new([double]::PositiveInfinity, [double]::PositiveInfinity))
     $needed = [Math]::Ceiling($content.DesiredSize.Width) + 2
-    $cap = [Math]::Min($Cap, [System.Windows.SystemParameters]::WorkArea.Width - 80)
+
+    # The screen of the window the form opens over, -ScreenOf: a form has no
+    # handle before it is shown, and SystemParameters knows only the primary
+    # screen. The height takes the whole working area - a tall form's body
+    # scrolls, its buttons pinned - and a failed read leaves the file's own.
+    $area = if ($ScreenOf) { Get-ScreenWorkingArea -Win $ScreenOf } else { $null }
+    $cap = if ($area) { [Math]::Min($Cap, $area.Width - 80) } else { $Cap }
+    if ($area) { $Win.MaxHeight = [Math]::Floor($area.Height) }
+
     $fitted = [Math]::Min($needed, $cap)
     if ($Shrink) {
         $Win.Width = [Math]::Max($Win.MinWidth, $fitted)

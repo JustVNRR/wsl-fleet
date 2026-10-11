@@ -1,6 +1,6 @@
-# Drives the lifecycle commands - start, stop, restart, shell, shrink, list -
-# the way a script would: the numbered prompt, answers on standard input, no
-# console anywhere, and a stand-in wsl.exe ahead on the PATH - built from
+# Drives the lifecycle commands - restart, shell, shrink, list - the way a
+# script would: the numbered prompt, answers on standard input, no console
+# anywhere, and a stand-in wsl.exe ahead on the PATH - built from
 # tests\fake-wsl\wsl.cs, logging every call and answering from its own log: a
 # distribution counts as running once a boot command has gone through.
 #
@@ -9,10 +9,8 @@
 # taken back out at the end. Nothing real is started or stopped: what is
 # checked is the command emitted, its order, and what is said.
 #
-# What is checked: for `start`, the boot names the instance picked, the news
-# is said, and cancelling boots nothing; for `restart`, the stop comes before
-# the boot; for `stop`, the terminate is asked only after the confirmation;
-# for `shell`, the session is asked by name; for `shrink`, the compact, and
+# What is checked: for `restart`, the stop comes before the boot; for
+# `shell`, the session is asked by name; for `shrink`, the compact, and
 # the restart only when it was running; for `list`, what the machine says -
 # stopped or running.
 #
@@ -25,9 +23,7 @@ $ErrorActionPreference = "Stop"
 # For Get-Distros and the marker test: the list the command itself builds.
 Import-Module (Join-Path $PSScriptRoot "..\src\windows\WslStack\WslStack.psd1") -Force
 
-$StartScript = Join-Path $PSScriptRoot "..\src\windows\WslCommands\start.ps1"
 $RestartScript = Join-Path $PSScriptRoot "..\src\windows\WslCommands\restart.ps1"
-$StopScript = Join-Path $PSScriptRoot "..\src\windows\WslCommands\stop.ps1"
 $ShellScript = Join-Path $PSScriptRoot "..\src\windows\WslCommands\shell.ps1"
 $ShrinkScript = Join-Path $PSScriptRoot "..\src\windows\WslCommands\shrink.ps1"
 $ListScript = Join-Path $PSScriptRoot "..\src\windows\WslCommands\list.ps1"
@@ -111,24 +107,7 @@ try {
     $Pick = [array]::IndexOf(@($All.Name), $FakeName) + 1
     Check "the test's instance is in the list" ($Pick -ge 1) $true
 
-    # 1. start: the boot names the instance picked, and the command says so.
-    # The log starts empty, so nothing runs and the instance is there to pick.
-    Remove-Item $Log -Force -ErrorAction SilentlyContinue
-    $Out = Invoke-Child -Script $StartScript -Answers @("$Pick")
-    Check "start boots the instance picked, by name" `
-        (@(Get-Calls | Where-Object { $_ -eq "-d $FakeName --exec /bin/true" }).Count) 1
-    Check "and says it is running" (@($Out | Where-Object { "$_".Contains("'$FakeName' is running") }).Count -gt 0) $true
-    Check "and ends on zero" $script:ChildExit 0
-
-    # 2. Escape is not a boot: the number 0 is the way out, and nothing is
-    # asked of WSL.
-    Remove-Item $Log -Force -ErrorAction SilentlyContinue
-    $Out = Invoke-Child -Script $StartScript -Answers @("0")
-    Check "cancelling boots nothing" (@(Get-Calls | Where-Object { $_ -like "*--exec*" }).Count) 0
-    Check "and says nothing was modified" (@($Out | Where-Object { "$_".Contains("Operation cancelled by user") }).Count -gt 0) $true
-    Check "and ends on zero" $script:ChildExit 0
-
-    # 3. restart: the stop comes first, the boot after it, and the news last.
+    # 1. restart: the stop comes first, the boot after it, and the news last.
     # A boot in the log is what an earlier start would have left; the instance
     # is one of the running ones, so it is there to pick.
     Remove-Item $Log -Force -ErrorAction SilentlyContinue
@@ -141,29 +120,7 @@ try {
     Check "and says it is running again" (@($Out | Where-Object { "$_".Contains("'$FakeName' is running again") }).Count -gt 0) $true
     Check "and ends on zero" $script:ChildExit 0
 
-    # 4. stop: the instance is one of the running ones, the confirmation is
-    # taken, and the terminate names it. An empty answer is a yes - only an
-    # "n" calls it off, and then nothing is asked of WSL.
-    Remove-Item $Log -Force -ErrorAction SilentlyContinue
-    Add-Content -Path $Log -Value "-d $FakeName --exec /bin/true"
-    $Out = Invoke-Child -Script $StopScript -Answers @("$Pick", "")
-    Check "stop terminates the instance picked" (@(Get-Calls | Where-Object { $_ -eq "--terminate $FakeName" }).Count) 1
-    Check "and says it is stopped" (@($Out | Where-Object { "$_".Contains("'$FakeName' is stopped") }).Count -gt 0) $true
-    Check "and ends on zero" $script:ChildExit 0
-
-    Remove-Item $Log -Force -ErrorAction SilentlyContinue
-    Add-Content -Path $Log -Value "-d $FakeName --exec /bin/true"
-    $Out = Invoke-Child -Script $StopScript -Answers @("$Pick", "n")
-    Check "answered n: nothing is terminated" (@(Get-Calls | Where-Object { $_ -like "*--terminate*" }).Count) 0
-    Check "and nothing was modified" (@($Out | Where-Object { "$_".Contains("Operation cancelled by user") }).Count -gt 0) $true
-
-    # With nothing running there is nothing to stop: said, not opened.
-    Remove-Item $Log -Force -ErrorAction SilentlyContinue
-    $Out = Invoke-Child -Script $StopScript -Answers @("")
-    Check "nothing running -> stop says so" (@($Out | Where-Object { "$_".Contains("No instance is running") }).Count -gt 0) $true
-    Check "and ends on one" $script:ChildExit 1
-
-    # 5. shell: the session is asked of WSL by name, from the instance's home.
+    # 2. shell: the session is asked of WSL by name, from the instance's home.
     # Nothing is captured from the session: its code is handed back as it came.
     Remove-Item $Log -Force -ErrorAction SilentlyContinue
     $Out = Invoke-Child -Script $ShellScript -Answers @("$Pick")
@@ -177,7 +134,7 @@ try {
     Check "and says what it is doing" (@($Out | Where-Object { "$_".Contains("Opening a shell in '$FakeName'") }).Count -gt 0) $true
     Check "and hands the session's code over" $script:ChildExit 0
 
-    # 6. shrink: one command, in place - and the instance comes back up only
+    # 3. shrink: one command, in place - and the instance comes back up only
     # if it was up. The archive question is answered no: a yes takes the
     # archive path, another suite's country.
     Remove-Item $Log -Force -ErrorAction SilentlyContinue
@@ -195,7 +152,7 @@ try {
         (([array]::IndexOf($Calls, "--manage $FakeName --compact")) -lt ([array]::LastIndexOf($Calls, "-d $FakeName --exec /bin/true"))) $true
     Check "and says it is running again" (@($Out | Where-Object { "$_".Contains("'$FakeName' is running again") }).Count -gt 0) $true
 
-    # 7. list: the row says what the machine says, stopped or running - and an
+    # 4. list: the row says what the machine says, stopped or running - and an
     # empty machine is an answer with its own code, not a table over nothing.
     Remove-Item $Log -Force -ErrorAction SilentlyContinue
     $Out = Invoke-Child -Script $ListScript -Answers @("")

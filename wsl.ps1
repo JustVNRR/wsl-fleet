@@ -122,8 +122,6 @@ $Main = [WslMenu]::new("WSL Stack").
 $Menu = [WslMenu]::new("WSL Stack - console").
     Add("list",         "list our instances and the archives",      $Gesture).
     Add("build",        "build an instance from the image",         $Gesture).
-    Add("start",        "start a stopped instance",                 $Gesture).
-    Add("stop",         "stop a running instance",                  $Gesture).
     Add("restart",      "restart an instance",                      $Gesture).
     Add("shell",        "open a shell inside an instance",          $Gesture).
     Add("add_pack",     "install a pack into an instance",          $Gesture).
@@ -198,7 +196,6 @@ $Conversations = @{
     "unregister"   = "Unregister"
     "shrink"       = "Shrink"
     "migrate"      = "Migrate"
-    "stop"         = "Stop"
     "restart"      = "Restart"
     "remove_pack"  = "RemovePack"
     "add_pack"     = "AddPack"

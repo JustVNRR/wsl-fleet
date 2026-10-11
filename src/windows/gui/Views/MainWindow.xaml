@@ -58,21 +58,20 @@
 
         <!-- The instances -->
         <ListView Name="LstInstances" Grid.Row="1" Background="{DynamicResource AppSurfaceBrush}" BorderBrush="{DynamicResource AppDividerBrush}" Foreground="{DynamicResource AppForegroundBrush}"
-                  AlternationCount="2" KeyboardNavigation.TabNavigation="Continue">
+                  AlternationCount="2" KeyboardNavigation.TabNavigation="Continue"
+                  ScrollViewer.HorizontalScrollBarVisibility="Disabled">
             <ListView.View>
                 <GridView>
                     <GridViewColumn Header="Name" Width="200" DisplayMemberBinding="{Binding Name}"/>
-                    <GridViewColumn Header="Status" Width="100" DisplayMemberBinding="{Binding Status}"/>
                     <GridViewColumn Header="Size" Width="110" DisplayMemberBinding="{Binding Size}"/>
-                    <GridViewColumn Header="Action" Width="264">
+                    <GridViewColumn Header="Action" Width="Auto">
                         <GridViewColumn.CellTemplate>
                             <DataTemplate>
-                                <Grid Width="236" Height="22">
+                                <Grid Height="22">
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                         <!-- An archived row carries its own two - restore
                                              and the trash; a live row the rest: a shell
-                                             in a terminal of its own, then Start or Stop -
-                                             whichever the state allows - the pack editor,
+                                             in a terminal of its own, the pack editor,
                                              the appearance, the copy, the archive, the
                                              Compact and the trash. The styles arrive by
                                              DynamicResource: this template loads after the
@@ -94,16 +93,6 @@
                                                 Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="Transparent"
                                                 Style="{DynamicResource LiveRowButton}"
                                                 ToolTip="Shell"/>
-                                        <Button Name="BtnRowStart" Content="&#xF04B;" FontFamily="{DynamicResource IconFace}" FontSize="13"
-                                                Width="26" Height="22" Padding="0" Margin="0,0,4,0" Background="Transparent"
-                                                Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="Transparent"
-                                                Style="{DynamicResource BtnRowStart}"
-                                                ToolTip="Start"/>
-                                        <Button Name="BtnRowStop" Content="&#xF04D;" FontFamily="{DynamicResource IconFace}" FontSize="13"
-                                                Width="26" Height="22" Padding="0" Margin="0,0,4,0" Background="Transparent"
-                                                Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="Transparent"
-                                                Style="{DynamicResource BtnRowStop}"
-                                                ToolTip="Stop"/>
                                         <Button Name="BtnRowEdit" Content="&#xF304;" FontFamily="{DynamicResource IconFace}" FontSize="13"
                                                 Width="26" Height="22" Padding="0" Margin="0,0,4,0" Background="Transparent"
                                                 Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="Transparent"

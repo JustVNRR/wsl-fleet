@@ -283,10 +283,12 @@ function Select-EligibleInstance {
         exit 1
     }
 
+    # Which of them run, asked live - the list holds no state any more.
+    $Running = Get-DistroNames -Running
     $Eligible = if ($State -eq "Running") {
-        @($All | Where-Object { $_.State -eq [WslState]::Running })
+        @($All | Where-Object { $Running -contains $_.Name })
     } else {
-        @($All | Where-Object { $_.State -ne [WslState]::Running })
+        @($All | Where-Object { $Running -notcontains $_.Name })
     }
     if ($Eligible.Count -eq 0) {
         Write-Host ""

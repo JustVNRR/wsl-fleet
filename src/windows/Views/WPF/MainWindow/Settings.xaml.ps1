@@ -59,6 +59,13 @@ class WpfSettingsView : BaseViewWpf {
             }
         })
 
+        # Les choix : liens à sens unique — la vue relaie chaque sélection au
+        # ViewModel, qui crie et fait repeindre la face.
+        $this.Find("LstGuiFonts").Add_SelectionChanged({ param($source, $e) $self.Vm.SetFontIndex([int]$source.SelectedIndex) })
+        $this.Find("LstGuiSizes").Add_SelectionChanged({ param($source, $e) $self.Vm.SetSizeIndex([int]$source.SelectedIndex) })
+        $this.Find("LstGuiColours").Add_SelectionChanged({ param($source, $e) $self.Vm.SetColourIndex([int]$source.SelectedIndex) })
+        $this.Find("LstGuiPacks").Add_SelectionChanged({ param($source, $e) $self.Vm.SetPackIndex([int]$source.SelectedIndex) })
+
         $this.Find("BtnGuiRootEdit").Add_Click({ $self.Vm.EditRoot() })
 
         # Une police téléversée : le fichier posé par le ViewModel (au

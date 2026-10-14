@@ -8,6 +8,21 @@ using module ..\Dto\WpfDto.psm1
 using module ..\Dto\PackCatalogDto.psm1
 using module ..\Tools\Helpers.psm1
 
+# Les lignes des listes : le libellé que la liste montre. De VRAIES classes —
+# WPF ne lit que les vraies propriétés .NET : un PSCustomObject s'afficherait
+# brut (« @{Name=…; Label=…} », mesuré sur sa machine).
+class SettingsLabelRow {
+    [string]$Name = ""
+    [string]$Label = ""
+}
+
+class SettingsPackRow {
+    [string]$Name = ""
+    [string]$Family = ""
+    [string]$Description = ""
+    [string]$Label = ""
+}
+
 # La fenêtre Réglages : la racine (montrée ; le crayon ouvre la question du
 # déplacement), la face (police, taille, thème — EN DIRECT, la vue repeint),
 # et le catalogue (les packs du dépôt : ouvrir le dossier, dupliquer,
@@ -26,19 +41,28 @@ class SettingsViewModel : BaseViewModel {
     hidden [string]$_assets = ""
     hidden [string]$_views = ""
 
-    hidden [object[]]$_fontRows = @()
-    hidden [int]$_fontIndex = 0
-    hidden [string[]]$_sizes = @()
-    hidden [int]$_sizeIndex = 0
-    hidden [object[]]$_colourRows = @()
-    hidden [int]$_colourIndex = 0
-    hidden [object[]]$_packRows = @()
-    hidden [int]$_packIndex = -1
+    # L'état bindable : de VRAIES propriétés de classe — WPF ne lit que
+    # celles-là. Les listes montrent leurs LIBELLÉS, en chaînes (WPF les
+    # affiche sûrement — mesuré : la taille s'affiche, un DisplayMemberPath
+    # sur nos objets reste muet), les lignes gardent le reste.
+    [object[]]$Fonts = @()
+    [string[]]$FontLabels = @()
+    [int]$FontIndex = 0
+    [string[]]$Sizes = @()
+    [int]$SizeIndex = 0
+    [object[]]$Colours = @()
+    [string[]]$ColourLabels = @()
+    [int]$ColourIndex = 0
+    [object[]]$Packs = @()
+    [string[]]$PackLabels = @()
+    [int]$PackIndex = -1
+    [string]$Root = ""
+    [string]$Variant = "Dark"
+    [string]$ThemeError = ""
+    [string]$CatalogueError = ""
+    [bool]$CanTheme = $false
+    [bool]$CanPack = $false
 
-    hidden [string]$_root = ""
-    hidden [string]$_variant = "Dark"
-    hidden [string]$_themeError = ""
-    hidden [string]$_catalogueError = ""
     hidden [string]$_newRoot = ""
 
     SettingsViewModel([object]$wpfService, [object]$catalogueService, [object]$fleetService, [string]$assetsDir, [string]$viewsRoot) {
@@ -49,31 +73,34 @@ class SettingsViewModel : BaseViewModel {
         $this._views = $viewsRoot
 
         try { $theme = $this._wpf.GetTheme() } catch { $theme = $null }
-        $this._variant = if ($theme -and "$($theme.Variant)") { "$($theme.Variant)" } else { "Dark" }
-        try { $this._root = "$($this._fleet.GetRoot())" } catch { }
+        $this.Variant = if ($theme -and "$($theme.Variant)") { "$($theme.Variant)" } else { "Dark" }
+        try { $this.Root = "$($this._fleet.GetRoot())" } catch { }
         try { $themes = @($this._wpf.GetColorThemes()) } catch { $themes = @() }
-        try { $fonts = @($this._wpf.GetFontChoices()) } catch { $fonts = @() }
-        try { $packs = @($this._catalogue.GetAllPacks()) } catch { $packs = @() }
+        try { $choices = @($this._wpf.GetFontChoices()) } catch { $choices = @() }
+        try { $stock = @($this._catalogue.GetAllPacks()) } catch { $stock = @() }
 
         # La police : les familles reçues, celle qu'on porte marquée et
         # sélectionnée — prépendue quand elle n'y est pas.
         $fontNames = @()
-        foreach ($font in @($fonts)) { $fontNames += "$font" }
+        foreach ($font in @($choices)) { $fontNames += "$font" }
         if ($theme -and $fontNames -notcontains "$($theme.FontFamily)") { $fontNames = @("$($theme.FontFamily)") + $fontNames }
         $fontRows = @()
         for ($i = 0; $i -lt $fontNames.Count; $i++) {
-            $fontRows += [PSCustomObject]@{ Name = "$($fontNames[$i])"; Label = "$($fontNames[$i])" }
+            $fontRows += [SettingsLabelRow]@{ Name = "$($fontNames[$i])"; Label = "$($fontNames[$i])" }
         }
-        $this._fontRows = @($fontRows)
+        $this.Fonts = @($fontRows)
+        $this.FontLabels = @($fontRows | ForEach-Object { "$($_.Label)" })
         if ($theme) {
-            for ($i = 0; $i -lt $fontRows.Count; $i++) { if ("$($fontRows[$i].Name)" -eq "$($theme.FontFamily)") { $this._fontIndex = $i } }
+            for ($i = 0; $i -lt $fontRows.Count; $i++) { if ("$($fontRows[$i].Name)" -eq "$($theme.FontFamily)") { $this.FontIndex = $i } }
         }
 
-        $sizes = @("11", "13", "15", "17", "19")
-        if ($theme -and $sizes -notcontains "$([int]$theme.FontSize)") { $sizes = @("$([int]$theme.FontSize)") + $sizes }
-        $this._sizes = @($sizes)
+        # $sizeList : une locale ne peut pas porter le nom d'une propriété
+        # réelle (mesuré au parse).
+        $sizeList = @("11", "13", "15", "17", "19")
+        if ($theme -and $sizeList -notcontains "$([int]$theme.FontSize)") { $sizeList = @("$([int]$theme.FontSize)") + $sizeList }
+        $this.Sizes = @($sizeList)
         if ($theme) {
-            for ($i = 0; $i -lt $sizes.Count; $i++) { if ("$($sizes[$i])" -eq "$([int]$theme.FontSize)") { $this._sizeIndex = $i } }
+            for ($i = 0; $i -lt $sizeList.Count; $i++) { if ("$($sizeList[$i])" -eq "$([int]$theme.FontSize)") { $this.SizeIndex = $i } }
         }
 
         # Les thèmes : celui qu'on porte marqué — prépendu (sous « Default »)
@@ -83,70 +110,59 @@ class SettingsViewModel : BaseViewModel {
         foreach ($name in @($themes)) { $sets += "$name" }
         $colourRows = @()
         foreach ($set in $sets) {
-            $colourRows += [PSCustomObject]@{ Name = "$set"; Label = if ($set) { "$set" } else { "Default" } }
+            $colourRows += [SettingsLabelRow]@{ Name = "$set"; Label = if ($set) { "$set" } else { "Default" } }
         }
-        $this._colourRows = @($colourRows)
+        $this.Colours = @($colourRows)
+        $this.ColourLabels = @($colourRows | ForEach-Object { "$($_.Label)" })
         if ($theme) {
-            for ($i = 0; $i -lt $colourRows.Count; $i++) { if ("$($colourRows[$i].Name)" -eq "$($theme.ColorTheme)") { $this._colourIndex = $i } }
+            for ($i = 0; $i -lt $colourRows.Count; $i++) { if ("$($colourRows[$i].Name)" -eq "$($theme.ColorTheme)") { $this.ColourIndex = $i } }
         }
 
-        $this._packRows = @($this.PackRowsOf($packs))
-        if ($this._packRows.Count -gt 0) { $this._packIndex = 0 }
+        $this.Packs = @($this.PackRowsOf($stock))
+        $this.PackLabels = @($this.Packs | ForEach-Object { "$($_.Label)" })
+        if ($this.Packs.Count -gt 0) { $this.PackIndex = 0 }
+        $this.CanTheme = $this.HasRealTheme()
+        $this.CanPack = ($this.PackIndex -ge 0)
+    }
 
-        $this.AddProperty("Root", { return $this._root }, {
-            param($value)
-            if ($this._root -ne "$value") { $this._root = "$value"; $this.OnPropertyChanged("Root") }
-        })
-        $this.AddProperty("Fonts", { return $this._fontRows }, { param($value) })
-        $this.AddProperty("FontIndex", { return $this._fontIndex }, {
-            param($value)
-            if ($this._fontIndex -ne [int]$value) { $this._fontIndex = [int]$value; $this.OnPropertyChanged("FontIndex") }
-        })
-        $this.AddProperty("Sizes", { return $this._sizes }, { param($value) })
-        $this.AddProperty("SizeIndex", { return $this._sizeIndex }, {
-            param($value)
-            if ($this._sizeIndex -ne [int]$value) { $this._sizeIndex = [int]$value; $this.OnPropertyChanged("SizeIndex") }
-        })
-        $this.AddProperty("Colours", { return $this._colourRows }, { param($value) })
-        $this.AddProperty("ColourIndex", { return $this._colourIndex }, {
-            param($value)
-            if ($this._colourIndex -ne [int]$value) {
-                $this._colourIndex = [int]$value
-                $this.OnPropertyChanged("ColourIndex")
-                $this.OnPropertyChanged("CanTheme")
-            }
-        })
-        $this.AddProperty("Packs", { return $this._packRows }, { param($value) })
-        $this.AddProperty("PackIndex", { return $this._packIndex }, {
-            param($value)
-            if ($this._packIndex -ne [int]$value) {
-                $this._packIndex = [int]$value
-                $this.OnPropertyChanged("PackIndex")
-                $this.OnPropertyChanged("CanPack")
-            }
-        })
-        # Les mains : un thème qui a un fichier (pas « Default »), un pack
-        # choisi.
-        $this.AddProperty("CanTheme", { return $this.HasRealTheme() }, { param($value) })
-        $this.AddProperty("CanPack", { return ($this._packIndex -ge 0) }, { param($value) })
-        $this.AddProperty("Variant", { return $this._variant }, {
-            param($value)
-            if ($this._variant -ne "$value") { $this._variant = "$value"; $this.OnPropertyChanged("Variant") }
-        })
-        $this.AddProperty("ThemeError", { return $this._themeError }, {
-            param($value)
-            if ($this._themeError -ne "$value") { $this._themeError = "$value"; $this.OnPropertyChanged("ThemeError") }
-        })
-        $this.AddProperty("CatalogueError", { return $this._catalogueError }, {
-            param($value)
-            if ($this._catalogueError -ne "$value") { $this._catalogueError = "$value"; $this.OnPropertyChanged("CatalogueError") }
-        })
+    # Les liens XAML sont à sens unique : la vue relaie chaque choix ici — le
+    # choix, la garde et le cri des mains vivent d'un seul côté.
+    [void] SetFontIndex([int]$value) {
+        if ($this.FontIndex -ne $value) {
+            $this.FontIndex = $value
+            $this.OnPropertyChanged("FontIndex")
+        }
+    }
+
+    [void] SetSizeIndex([int]$value) {
+        if ($this.SizeIndex -ne $value) {
+            $this.SizeIndex = $value
+            $this.OnPropertyChanged("SizeIndex")
+        }
+    }
+
+    [void] SetColourIndex([int]$value) {
+        if ($this.ColourIndex -ne $value) {
+            $this.ColourIndex = $value
+            $this.OnPropertyChanged("ColourIndex")
+            $this.CanTheme = $this.HasRealTheme()
+            $this.OnPropertyChanged("CanTheme")
+        }
+    }
+
+    [void] SetPackIndex([int]$value) {
+        if ($this.PackIndex -ne $value) {
+            $this.PackIndex = $value
+            $this.OnPropertyChanged("PackIndex")
+            $this.CanPack = ($this.PackIndex -ge 0)
+            $this.OnPropertyChanged("CanPack")
+        }
     }
 
     hidden [object[]] PackRowsOf([object[]]$packs) {
         $rows = @()
         foreach ($pack in @($packs | Sort-Object Name)) {
-            $rows += [PSCustomObject]@{ Name = "$($pack.Name)"; Family = "$($pack.Family)"; Description = "$($pack.Description)"; Label = "$($pack.Name) ($($pack.Family))" }
+            $rows += [SettingsPackRow]@{ Name = "$($pack.Name)"; Family = "$($pack.Family)"; Description = "$($pack.Description)"; Label = "$($pack.Name) ($($pack.Family))" }
         }
         return @($rows)
     }
@@ -154,26 +170,26 @@ class SettingsViewModel : BaseViewModel {
     # --- ce que la vue lit, par méthode ---------------------------------------
 
     [string] SelectedFont() {
-        if ($this._fontRows.Count -eq 0) { return "" }
-        $at = [Math]::Max(0, [Math]::Min($this._fontIndex, $this._fontRows.Count - 1))
-        return "$($this._fontRows[$at].Name)"
+        if ($this.Fonts.Count -eq 0) { return "" }
+        $at = [Math]::Max(0, [Math]::Min($this.FontIndex, $this.Fonts.Count - 1))
+        return "$($this.Fonts[$at].Name)"
     }
 
     [int] SelectedSize() {
-        if ($this._sizes.Count -eq 0) { return 15 }
-        $at = [Math]::Max(0, [Math]::Min($this._sizeIndex, $this._sizes.Count - 1))
-        return [int]$this._sizes[$at]
+        if ($this.Sizes.Count -eq 0) { return 15 }
+        $at = [Math]::Max(0, [Math]::Min($this.SizeIndex, $this.Sizes.Count - 1))
+        return [int]$this.Sizes[$at]
     }
 
     [string] SelectedColour() {
-        if ($this._colourRows.Count -eq 0) { return "" }
-        $at = [Math]::Max(0, [Math]::Min($this._colourIndex, $this._colourRows.Count - 1))
-        return "$($this._colourRows[$at].Name)"
+        if ($this.Colours.Count -eq 0) { return "" }
+        $at = [Math]::Max(0, [Math]::Min($this.ColourIndex, $this.Colours.Count - 1))
+        return "$($this.Colours[$at].Name)"
     }
 
     [object] SelectedPack() {
-        if ($this._packIndex -lt 0 -or $this._packIndex -ge $this._packRows.Count) { return $null }
-        return $this._packRows[$this._packIndex]
+        if ($this.PackIndex -lt 0 -or $this.PackIndex -ge $this.Packs.Count) { return $null }
+        return $this.Packs[$this.PackIndex]
     }
 
     [bool] HasRealTheme() {
@@ -181,7 +197,7 @@ class SettingsViewModel : BaseViewModel {
     }
 
     [bool] HasTheme([string]$name) {
-        foreach ($row in $this._colourRows) { if ("$($row.Name)" -eq "$name") { return $true } }
+        foreach ($row in $this.Colours) { if ("$($row.Name)" -eq "$name") { return $true } }
         return $false
     }
 
@@ -192,7 +208,7 @@ class SettingsViewModel : BaseViewModel {
             FontFamily = $this.SelectedFont()
             FontSize   = $this.SelectedSize()
             ColorTheme = $this.SelectedColour()
-            Variant    = $this._variant
+            Variant    = $this.Variant
             NewRoot    = $this._newRoot
         }
     }
@@ -207,19 +223,21 @@ class SettingsViewModel : BaseViewModel {
 
     [void] AddFont([string]$familyName) {
         if (-not $familyName) { return }
-        $this._fontRows = @($this._fontRows) + @([PSCustomObject]@{ Name = "$familyName"; Label = "$familyName  (just uploaded)" })
-        $this._fontIndex = $this._fontRows.Count - 1
+        $this.Fonts = @($this.Fonts) + @([SettingsLabelRow]@{ Name = "$familyName"; Label = "$familyName  (just uploaded)" })
+        $this.FontLabels = @($this.Fonts | ForEach-Object { "$($_.Label)" })
+        $this.FontIndex = $this.Fonts.Count - 1
         $this.OnPropertyChanged("Fonts")
+        $this.OnPropertyChanged("FontLabels")
         $this.OnPropertyChanged("FontIndex")
     }
 
     [void] FailTheme([string]$message) {
-        $this._themeError = $message
+        $this.ThemeError = $message
         $this.OnPropertyChanged("ThemeError")
     }
 
     [void] ClearThemeError() {
-        $this._themeError = ""
+        $this.ThemeError = ""
         $this.OnPropertyChanged("ThemeError")
     }
 
@@ -228,14 +246,17 @@ class SettingsViewModel : BaseViewModel {
     [void] UploadTheme([string]$source, [string]$name) {
         try { $null = $this._wpf.UploadTheme($source) } catch { return }
         $existing = -1
-        for ($i = 0; $i -lt $this._colourRows.Count; $i++) { if ("$($this._colourRows[$i].Name)" -eq "$name") { $existing = $i; break } }
+        for ($i = 0; $i -lt $this.Colours.Count; $i++) { if ("$($this.Colours[$i].Name)" -eq "$name") { $existing = $i; break } }
         if ($existing -lt 0) {
-            $this._colourRows = @($this._colourRows) + @([PSCustomObject]@{ Name = "$name"; Label = "$name  (just uploaded)" })
-            $existing = $this._colourRows.Count - 1
+            $this.Colours = @($this.Colours) + @([SettingsLabelRow]@{ Name = "$name"; Label = "$name  (just uploaded)" })
+            $this.ColourLabels = @($this.Colours | ForEach-Object { "$($_.Label)" })
+            $existing = $this.Colours.Count - 1
             $this.OnPropertyChanged("Colours")
+            $this.OnPropertyChanged("ColourLabels")
         }
-        $this._colourIndex = $existing
+        $this.ColourIndex = $existing
         $this.OnPropertyChanged("ColourIndex")
+        $this.CanTheme = $this.HasRealTheme()
         $this.OnPropertyChanged("CanTheme")
     }
 
@@ -262,11 +283,14 @@ class SettingsViewModel : BaseViewModel {
     [void] DeleteTheme([string]$name) {
         if (-not $name) { return }
         try { $this._wpf.DeleteTheme($name) } catch { return }
-        $kept = @($this._colourRows | Where-Object { "$($_.Name)" -ne "$name" })
-        $this._colourRows = @($kept)
-        $this._colourIndex = if ($kept.Count -gt 0) { [Math]::Min($this._colourIndex, $kept.Count - 1) } else { 0 }
+        $kept = @($this.Colours | Where-Object { "$($_.Name)" -ne "$name" })
+        $this.Colours = @($kept)
+        $this.ColourLabels = @($this.Colours | ForEach-Object { "$($_.Label)" })
+        $this.ColourIndex = if ($kept.Count -gt 0) { [Math]::Min($this.ColourIndex, $kept.Count - 1) } else { 0 }
         $this.OnPropertyChanged("Colours")
+        $this.OnPropertyChanged("ColourLabels")
         $this.OnPropertyChanged("ColourIndex")
+        $this.CanTheme = $this.HasRealTheme()
         $this.OnPropertyChanged("CanTheme")
     }
 
@@ -281,13 +305,16 @@ class SettingsViewModel : BaseViewModel {
 
     hidden [void] RefreshPacks([string]$select) {
         try { $refreshed = @($this._catalogue.GetAllPacks()) } catch { return }
-        $this._packRows = @($this.PackRowsOf($refreshed))
-        $this._packIndex = 0
+        $this.Packs = @($this.PackRowsOf($refreshed))
+        $this.PackLabels = @($this.Packs | ForEach-Object { "$($_.Label)" })
+        $this.PackIndex = 0
         if ($select) {
-            for ($i = 0; $i -lt $this._packRows.Count; $i++) { if ("$($this._packRows[$i].Name)" -eq "$select") { $this._packIndex = $i; break } }
+            for ($i = 0; $i -lt $this.Packs.Count; $i++) { if ("$($this.Packs[$i].Name)" -eq "$select") { $this.PackIndex = $i; break } }
         }
         $this.OnPropertyChanged("Packs")
+        $this.OnPropertyChanged("PackLabels")
         $this.OnPropertyChanged("PackIndex")
+        $this.CanPack = ($this.PackIndex -ge 0)
         $this.OnPropertyChanged("CanPack")
     }
 
@@ -295,7 +322,7 @@ class SettingsViewModel : BaseViewModel {
         $row = $this.SelectedPack()
         if (-not $row) { return }
         try { $this._catalogue.OpenPackFolder("$($row.Name)") } catch {
-            $this._catalogueError = "The folder did not open: $($_.Exception.Message)"
+            $this.CatalogueError = "The folder did not open: $($_.Exception.Message)"
             $this.OnPropertyChanged("CatalogueError")
         }
     }
@@ -305,7 +332,7 @@ class SettingsViewModel : BaseViewModel {
     [void] DuplicatePack() {
         $row = $this.SelectedPack()
         if (-not $row) { return }
-        $taken = @($this._packRows | ForEach-Object { "$($_.Name)" })
+        $taken = @($this.Packs | ForEach-Object { "$($_.Name)" })
         $answer = [BaseViewModel]::OpenFace($this._views, "PackDuplicate", @("$($row.Name)", "$($row.Description)", $taken))
         if ($null -eq $answer) { return }
         try {
@@ -315,7 +342,7 @@ class SettingsViewModel : BaseViewModel {
             $dto.Description = "$($answer.Description)"
             $this._catalogue.CreatePack($dto)
         } catch {
-            $this._catalogueError = "The pack was not duplicated: $($_.Exception.Message)"
+            $this.CatalogueError = "The pack was not duplicated: $($_.Exception.Message)"
             $this.OnPropertyChanged("CatalogueError")
             return
         }
@@ -326,7 +353,7 @@ class SettingsViewModel : BaseViewModel {
         $row = $this.SelectedPack()
         if (-not $row) { return }
         try { $this._catalogue.DeletePack("$($row.Name)") } catch {
-            $this._catalogueError = "The pack was not removed: $($_.Exception.Message)"
+            $this.CatalogueError = "The pack was not removed: $($_.Exception.Message)"
             $this.OnPropertyChanged("CatalogueError")
             return
         }
@@ -338,10 +365,10 @@ class SettingsViewModel : BaseViewModel {
     # Le crayon : la question du déplacement (sa fenêtre), et un dossier
     # confirmé ferme les Réglages — l'entrée le portera au migrate.
     [void] EditRoot() {
-        $chosen = [BaseViewModel]::OpenFace($this._views, "RootMove", @($this._root))
+        $chosen = [BaseViewModel]::OpenFace($this._views, "RootMove", @($this.Root))
         if (-not $chosen) { return }
         $this._newRoot = "$chosen"
-        $this._root = "$chosen"
+        $this.Root = "$chosen"
         $this.OnPropertyChanged("Root")
         $this.OnPropertyChanged("Done")
     }

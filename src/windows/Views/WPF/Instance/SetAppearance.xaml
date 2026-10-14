@@ -34,15 +34,29 @@
         </TextBlock.Style>
     </TextBlock>
     <TextBlock Margin="0,12,0,0" Text="Icon text:"/>
-    <TextBox Name="TxtIconText" Text="{Binding IconText, UpdateSourceTrigger=PropertyChanged}" Margin="0,6,0,0" HorizontalAlignment="Left"
+    <!-- Les saisies : liens à sens unique — la vue relaie les écritures
+         (voir le .xaml.ps1). -->
+    <TextBox Name="TxtIconText" Text="{Binding IconText, Mode=OneWay}" Margin="0,6,0,0" HorizontalAlignment="Left"
              Background="{DynamicResource AppInputBackgroundBrush}" Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="{DynamicResource AppBorderBrush}" Padding="4"/>
     <TextBlock Text="{Binding IconError}" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource AppDangerBrush}"/>
     </StackPanel>
-    <Image Name="ImgIconPreview" Grid.Column="1" VerticalAlignment="Top" Margin="14,0,0,0"
-           RenderOptions.BitmapScalingMode="HighQuality"/>
+    <Grid Grid.Column="1" VerticalAlignment="Top" Margin="14,0,0,0" Width="64" Height="64">
+        <!-- La tuile, montree en direct : le degrade de la couleur choisie et
+             les lettres dessus ; l'image choisie prend le siege par-dessus
+             (voir le .xaml.ps1). Taille fixe : l'apercu ne saute plus d'une
+             instance a l'autre. -->
+        <!-- La tuile porte la marge de make-icon (2,3 %) : 60 dans la boite
+             de 64 — l'icone (son png a la meme marge) et le dessin
+             s'alignent. -->
+        <Border Name="BrdTile" CornerRadius="13" Width="60" Height="60" HorizontalAlignment="Center" VerticalAlignment="Center" Background="#333333"/>
+        <!-- Les lettres : la recette de make-icon (police de sa liste, encre a
+             74 % de la tuile), posee par le dessin — voir le .xaml.ps1. -->
+        <TextBlock Name="TxtTile" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="34"/>
+        <Image Name="ImgIconPreview" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality"/>
+    </Grid>
     <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2">
     <TextBlock Margin="0,10,0,0" Text="Icon color:"/>
-    <ComboBox Name="LstPairs" ItemsSource="{Binding Pairs}" DisplayMemberPath="Label" SelectedIndex="{Binding PairIndex}" Margin="0,6,0,0"/>
+    <ComboBox Name="LstPairs" ItemsSource="{Binding PairLabels}" SelectedIndex="{Binding PairIndex, Mode=OneWay}" Margin="0,6,0,0"/>
     <TextBlock Margin="0,10,0,0" Text="Icon file:"/>
     <Grid Margin="0,6,0,0">
         <Grid.ColumnDefinitions>
@@ -56,10 +70,10 @@
                 Background="{DynamicResource AppFaceBrush}" Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="{DynamicResource AppBorderBrush}"/>
     </Grid>
     <TextBlock Margin="0,14,0,0" Text="Font:"/>
-    <ComboBox Name="LstFonts" ItemsSource="{Binding Fonts}" DisplayMemberPath="Label" SelectedIndex="{Binding FontIndex}" Margin="0,6,0,0"/>
+    <ComboBox Name="LstFonts" ItemsSource="{Binding FontLabels}" SelectedIndex="{Binding FontIndex, Mode=OneWay}" Margin="0,6,0,0"/>
     <TextBlock Margin="0,4,0,0" Foreground="{DynamicResource AppMutedBrush}" Text="Get more Nerd Fonts at https://www.nerdfonts.com"/>
     <TextBlock Margin="0,14,0,0" Text="Colour scheme:"/>
-    <ComboBox Name="LstSchemes" ItemsSource="{Binding Schemes}" DisplayMemberPath="Label" SelectedIndex="{Binding SchemeIndex}" Margin="0,6,0,0"/>
+    <ComboBox Name="LstSchemes" ItemsSource="{Binding SchemeLabels}" SelectedIndex="{Binding SchemeIndex, Mode=OneWay}" Margin="0,6,0,0"/>
     <TextBlock Margin="0,14,0,0" Text="Preview:"/>
     <Border Name="BrdPreview" Margin="0,6,0,0" Padding="8,6" CornerRadius="3"
             Background="#0C0C0C" BorderBrush="{DynamicResource AppDividerBrush}" BorderThickness="1">

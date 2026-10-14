@@ -27,6 +27,11 @@ class WpfCompactView : BaseViewWpf {
         })
         $this.Add_ContentRendered({ $null = $this.Find("ChkArchive").Focus() })
 
+        # Le lien est à sens unique : la bascule de la case est relayée au
+        # ViewModel.
+        $this.Find("ChkArchive").Add_Checked({ param($source, $e) $self.Vm.SetArchiveFirst([bool]$source.IsChecked) })
+        $this.Find("ChkArchive").Add_Unchecked({ param($source, $e) $self.Vm.SetArchiveFirst([bool]$source.IsChecked) })
+
         $this.Find("BtnGateCancel").Add_Click({ $self.Close() })
 
         $this.FitToContent($null)

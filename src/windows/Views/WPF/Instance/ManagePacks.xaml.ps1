@@ -32,6 +32,33 @@ class WpfManagePacksView : BaseViewWpf {
             if ("$($e.PropertyName)" -eq "Done") { $self.Close() }
         })
 
+        # Les cases se construisent à la main — des chaînes, jamais un
+        # gabarit d'items (muet sur nos objets, mesuré). Le relais ROUTÉ
+        # attrape chaque bascule (le même que l'ancien tableau utilisait
+        # pour les clics) et la porte au ViewModel de la ligne, qui recompte.
+        $toggled = [System.Windows.RoutedEventHandler]{
+            param($source, $e)
+            $box = $e.OriginalSource
+            if ($box -is [System.Windows.Controls.Primitives.ToggleButton] -and $box.Tag -is [PackRowViewModel]) {
+                $box.Tag.SetChecked([bool]$box.IsChecked)
+            }
+        }
+        $this.AddHandler([System.Windows.Controls.Primitives.ToggleButton]::CheckedEvent, $toggled)
+        $this.AddHandler([System.Windows.Controls.Primitives.ToggleButton]::UncheckedEvent, $toggled)
+
+        $panel = $this.Find("PnlPacks")
+        foreach ($row in @($this.Vm.PackRows)) {
+            $box = [System.Windows.Controls.CheckBox]::new()
+            $text = [System.Windows.Controls.TextBlock]::new()
+            $text.Text = "$($row.Label)"
+            $text.TextWrapping = [System.Windows.TextWrapping]::Wrap
+            $box.Content = $text
+            $box.Tag = $row
+            $box.Margin = [System.Windows.Thickness]::new(0, 3, 0, 3)
+            $box.IsChecked = [bool]$row.Checked
+            $null = $panel.Children.Add($box)
+        }
+
         $this.Find("BtnPacksCancel").Add_Click({ $self.Close() })
 
         $this.FitToContent($null)

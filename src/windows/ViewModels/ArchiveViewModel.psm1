@@ -11,19 +11,16 @@ using module ..\Dto\InstanceDto.psm1
 # règle du modèle), et la ligne de l'écrasement se lit de l'index reçu.
 class ArchiveViewModel : BaseViewModel {
     hidden [string]$_name = ""
-    hidden [string]$_lead = ""
-    hidden [bool]$_takenVisible = $false
+    [string]$Lead = ""
+    [bool]$TakenVisible = $false
     [object]$Result = $null
     [System.Windows.Input.ICommand]$ConfirmCommand
 
     ArchiveViewModel([string]$name, [object[]]$rows) {
         $this._name = "$name"
-        $this._lead = "Back up '$name' as '${name}_archive'."
+        $this.Lead = "Back up '$name' as '${name}_archive'."
         $taken = @($rows | Where-Object { $_.IsArchive -and "$($_.Name)" -eq "${name}_archive" })
-        $this._takenVisible = ($taken.Count -gt 0)
-
-        $this.AddProperty("Lead", { return $this._lead }, { param($value) })
-        $this.AddProperty("TakenVisible", { return $this._takenVisible }, { param($value) })
+        $this.TakenVisible = ($taken.Count -gt 0)
 
         $this.ConfirmCommand = $this.NewCommand({ param($vm) $vm.Confirm() })
     }

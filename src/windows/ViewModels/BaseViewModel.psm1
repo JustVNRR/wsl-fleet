@@ -10,11 +10,13 @@
 # événement d'interface se pose à la main — add_/remove_ et une liste de
 # poignées, l'événement se crie soi-même.
 
-# Un ViewModel : sa base. L'état bindable se pose dans les enfants — une
-# propriété = un champ caché + une ScriptProperty posée sur l'instance par
-# AddProperty, qui se dit (mesuré : PowerShell n'a PAS d'accesseurs get/set
-# sur les propriétés de classe, et une propriété nue ne notifie rien) — et
-# chaque changement remonte ici.
+# Un ViewModel : sa base. L'état bindable vit dans les enfants, en VRAIES
+# propriétés de classe : WPF ne lit que le type .NET — une ScriptProperty
+# posée par Add-Member vit côté PowerShell et reste invisible (mesuré : le
+# gui ouvert vide, tout ce qui passait par elle muet). Le VM mute par Set —
+# la propriété se pose PAR SON NOM et le cri suit ; les saisies de l'UI,
+# que WPF n'écrit plus (liens à sens unique), passent par les méthodes Set*
+# de l'enfant, relayées par la vue.
 class BaseViewModel : System.ComponentModel.INotifyPropertyChanged {
     hidden [System.Collections.Generic.List[System.ComponentModel.PropertyChangedEventHandler]]$Handlers
 
@@ -36,27 +38,24 @@ class BaseViewModel : System.ComponentModel.INotifyPropertyChanged {
         }
     }
 
-    # Une propriété bindable : WPF lit une ScriptProperty comme une propriété
-    # (mesuré — le brouillon Gemini montrait des accesseurs get/set qui ne
-    # parsent même pas). Le get et le set s'écrivent au site d'appel, field
-    # caché et OnPropertyChanged compris. Les méthodes de la classe, elles,
-    # touchent le FIELD et réclament — jamais la propriété (elle vit sur la
-    # coquille extérieure, pas sur $this — mesuré).
-    hidden [void] AddProperty([string]$name, [scriptblock]$getter, [scriptblock]$setter) {
-        $this | Add-Member -MemberType ScriptProperty -Name $name -Value $getter -SecondValue $setter
+    # Une mutation d'une propriété bindable : la vraie propriété se pose par
+    # son nom (mesuré : $this.$name écrit la propriété de la classe) et le
+    # cri suit. Gardes et réactions restent au site d'appel — Set ne juge
+    # pas.
+    hidden [void] Set([string]$name, [object]$value) {
+        $this.$name = $value
+        $this.OnPropertyChanged($name)
     }
 
-    # La vue d'un geste, par son nom, où qu'elle vive sous les vues : le
-    # fichier importé (le guet ne trouve que le chargé — mesuré), puis le
-    # type cherché à l'exécution — le ViewModel ne connaît pas le WPF.
-    # Ask, ses arguments, et son retour, rien quand rien n'a été rendu.
-    # Statique : aucun état à tenir, tous les ViewModels s'en servent.
+    # La vue d'un geste, par son nom, où qu'elle vive sous les vues : le type
+    # cherché au guet d'assemblée à l'exécution — le ViewModel ne connaît pas
+    # le WPF. L'IMPORT des fichiers vit chez l'entrée : le premier import
+    # lancé d'ici se mord la queue (mesuré — la vue chaîne BaseViewModel,
+    # ce module même, et GetExportedTypeDefinitions s'appelle cent mille
+    # fois : « Impossible de créer une nouvelle page de garde pour la
+    # pile »). Ask, ses arguments, et son retour, rien quand rien n'a été
+    # rendu. Statique : aucun état à tenir, tous les ViewModels s'en servent.
     static [object] OpenFace([string]$viewsRoot, [string]$gesture, [object[]]$arguments) {
-        try {
-            $file = @(Get-ChildItem -Path $viewsRoot -Recurse -Filter "$gesture.xaml.ps1" -File -ErrorAction SilentlyContinue)[0]
-            if ($file) { $null = Import-Module $file.FullName -ErrorAction SilentlyContinue }
-        } catch { }
-
         $wanted = "Wpf${gesture}View"
         $face = $null
         foreach ($assembly in [AppDomain]::CurrentDomain.GetAssemblies()) {

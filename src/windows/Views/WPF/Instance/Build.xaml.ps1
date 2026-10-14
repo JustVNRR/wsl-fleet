@@ -95,6 +95,23 @@ class WpfBuildView : BaseViewWpf {
         $this.Find("BtnFirstBootDelete").Add_Click({ $self.Trash("Onboardings", "Delete onboarding shell", "onboarding shells") })
         $this.Find("BtnDockerImageDelete").Add_Click({ $self.Trash("DockerImages", "Delete Docker image", "Docker images") })
 
+        # Les saisies : les liens sont à sens unique — WPF lit ; les
+        # écritures passent par ici, relayées aux méthodes du ViewModel qui
+        # gardent, valident et réveillent leurs portes.
+        $this.Find("TxtName").Add_TextChanged({ param($source, $e) $self.Vm.SetName("$($source.Text)") })
+        $this.Find("TxtUser").Add_TextChanged({ param($source, $e) $self.Vm.SetUser("$($source.Text)") })
+        $this.Find("TxtRegistry").Add_TextChanged({ param($source, $e) $self.Vm.SetRegistryRef("$($source.Text)") })
+        $this.Find("CmbRoad").Add_SelectionChanged({ param($source, $e) $self.Vm.SetRoad([int]$source.SelectedIndex) })
+        $this.Find("CmbDockerfile").Add_SelectionChanged({ param($source, $e) $self.Vm.SetDockerfileIndex([int]$source.SelectedIndex) })
+        $this.Find("CmbFirstBoot").Add_SelectionChanged({ param($source, $e) $self.Vm.SetOnboardingIndex([int]$source.SelectedIndex) })
+        $this.Find("CmbDockerImage").Add_SelectionChanged({ param($source, $e) $self.Vm.SetImageIndex([int]$source.SelectedIndex) })
+        $this.Find("ChkSaveImage").Add_Checked({ param($source, $e) $self.Vm.SetSaveImage([bool]$source.IsChecked) })
+        $this.Find("ChkSaveImage").Add_Unchecked({ param($source, $e) $self.Vm.SetSaveImage([bool]$source.IsChecked) })
+        $this.Find("ChkRegisterDocker").Add_Checked({ param($source, $e) $self.Vm.SetRegisterDocker([bool]$source.IsChecked) })
+        $this.Find("ChkRegisterDocker").Add_Unchecked({ param($source, $e) $self.Vm.SetRegisterDocker([bool]$source.IsChecked) })
+        $this.Find("ChkRunFirstBoot").Add_Checked({ param($source, $e) $self.Vm.SetRunFirstBoot([bool]$source.IsChecked) })
+        $this.Find("ChkRunFirstBoot").Add_Unchecked({ param($source, $e) $self.Vm.SetRunFirstBoot([bool]$source.IsChecked) })
+
         $this.Find("BtnAddCancel").Add_Click({ $self.Close() })
 
         $this.FitToContent($null)

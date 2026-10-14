@@ -7,7 +7,7 @@
             <ColumnDefinition Width="*"/>
             <ColumnDefinition Width="Auto"/>
         </Grid.ColumnDefinitions>
-        <TextBox Text="{Binding Root}" IsEnabled="False" Background="{DynamicResource AppInputBackgroundBrush}" Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="{DynamicResource AppBorderBrush}" Padding="4"/>
+        <TextBox Text="{Binding Root, Mode=OneWay}" IsEnabled="False" Background="{DynamicResource AppInputBackgroundBrush}" Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="{DynamicResource AppBorderBrush}" Padding="4"/>
         <Button Name="BtnGuiRootEdit" Grid.Column="1" Content="&#xF044;" FontFamily="{DynamicResource IconFace}" Margin="8,0,0,0" ToolTip="Edit the working folder"/>
     </Grid>
     <TextBlock Text="Appearance" TextWrapping="Wrap" FontWeight="SemiBold" Margin="0,12,0,0"/>
@@ -22,81 +22,28 @@
         </Grid.ColumnDefinitions>
         <TextBlock Text="Font"/>
         <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,6,0,0">
-            <ComboBox Name="LstGuiFonts" ItemsSource="{Binding Fonts}" DisplayMemberPath="Label" SelectedIndex="{Binding FontIndex}"/>
+            <ComboBox Name="LstGuiFonts" ItemsSource="{Binding FontLabels}" SelectedIndex="{Binding FontIndex, Mode=OneWay}"/>
             <Button Name="BtnGuiFontUpload" Content="&#xF093;" FontFamily="{DynamicResource IconFace}" Margin="8,0,0,0" ToolTip="Upload a font file..."/>
         </StackPanel>
-        <ComboBox Name="LstGuiSizes" ItemsSource="{Binding Sizes}" SelectedIndex="{Binding SizeIndex}" Grid.Row="1" Grid.Column="1" Margin="16,6,0,0"/>
+        <ComboBox Name="LstGuiSizes" ItemsSource="{Binding Sizes}" SelectedIndex="{Binding SizeIndex, Mode=OneWay}" Grid.Row="1" Grid.Column="1" Margin="16,6,0,0"/>
     </Grid>
     <TextBlock Margin="0,10,0,0" Text="Theme"/>
     <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
-        <ComboBox Name="LstGuiColours" ItemsSource="{Binding Colours}" DisplayMemberPath="Label" SelectedIndex="{Binding ColourIndex}"/>
-        <Button Name="BtnGuiThemeEdit" Content="&#xF044;" FontFamily="{DynamicResource IconFace}" Margin="8,0,0,0" ToolTip="Open the selected theme in the default editor">
-                        <Button.Style>
-                            <Style TargetType="Button">
-                                <Setter Property="IsEnabled" Value="False"/>
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding CanTheme}" Value="True">
-                                        <Setter Property="IsEnabled" Value="True"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Button.Style>
-                    </Button>
+        <ComboBox Name="LstGuiColours" ItemsSource="{Binding ColourLabels}" SelectedIndex="{Binding ColourIndex, Mode=OneWay}"/>
+        <!-- IsEnabled lie directement : un Style incruste remplacerait le style
+             du theme (chrome Windows : fond blanc, icone noire — mesure). -->
+        <Button Name="BtnGuiThemeEdit" Content="&#xF044;" FontFamily="{DynamicResource IconFace}" Margin="8,0,0,0" IsEnabled="{Binding CanTheme}" ToolTip="Open the selected theme in the default editor"/>
         <Button Name="BtnGuiThemeUpload" Content="&#xF093;" FontFamily="{DynamicResource IconFace}" Margin="8,0,0,0" ToolTip="Upload a theme file..."/>
         <Button Name="BtnGuiThemeDownload" Content="&#xF019;" FontFamily="{DynamicResource IconFace}" Margin="8,0,0,0" ToolTip="Save the selected theme..."/>
-        <Button Name="BtnGuiThemeDelete" Content="&#xF1F8;" FontFamily="{DynamicResource IconFace}" Margin="8,0,0,0" ToolTip="Delete the selected theme">
-                        <Button.Style>
-                            <Style TargetType="Button">
-                                <Setter Property="IsEnabled" Value="False"/>
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding CanTheme}" Value="True">
-                                        <Setter Property="IsEnabled" Value="True"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Button.Style>
-                    </Button>
+        <Button Name="BtnGuiThemeDelete" Content="&#xF1F8;" FontFamily="{DynamicResource IconFace}" Margin="8,0,0,0" IsEnabled="{Binding CanTheme}" ToolTip="Delete the selected theme"/>
     </StackPanel>
     <TextBlock Text="{Binding ThemeError}" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource AppDangerBrush}"/>
     <TextBlock Margin="0,12,0,0" Text="Packs Catalog" FontWeight="SemiBold"/>
     <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
-        <ComboBox Name="LstGuiPacks" ItemsSource="{Binding Packs}" DisplayMemberPath="Label" SelectedIndex="{Binding PackIndex}"/>
-        <Button Name="BtnGuiPackEdit" Content="&#xF044;" FontFamily="{DynamicResource IconFace}" Margin="8,0,0,0" ToolTip="Open the selected pack's folder">
-                        <Button.Style>
-                            <Style TargetType="Button">
-                                <Setter Property="IsEnabled" Value="False"/>
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding CanPack}" Value="True">
-                                        <Setter Property="IsEnabled" Value="True"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Button.Style>
-                    </Button>
-        <Button Name="BtnGuiPackDuplicate" Content="&#xF0C5;" FontFamily="{DynamicResource IconFace}" Margin="8,0,0,0" ToolTip="Duplicate the selected pack under a new name">
-                        <Button.Style>
-                            <Style TargetType="Button">
-                                <Setter Property="IsEnabled" Value="False"/>
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding CanPack}" Value="True">
-                                        <Setter Property="IsEnabled" Value="True"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Button.Style>
-                    </Button>
-        <Button Name="BtnGuiPackDelete" Content="&#xF1F8;" FontFamily="{DynamicResource IconFace}" Margin="8,0,0,0" ToolTip="Delete the selected pack">
-                        <Button.Style>
-                            <Style TargetType="Button">
-                                <Setter Property="IsEnabled" Value="False"/>
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding CanPack}" Value="True">
-                                        <Setter Property="IsEnabled" Value="True"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Button.Style>
-                    </Button>
+        <ComboBox Name="LstGuiPacks" ItemsSource="{Binding PackLabels}" SelectedIndex="{Binding PackIndex, Mode=OneWay}"/>
+        <Button Name="BtnGuiPackEdit" Content="&#xF044;" FontFamily="{DynamicResource IconFace}" Margin="8,0,0,0" IsEnabled="{Binding CanPack}" ToolTip="Open the selected pack's folder"/>
+        <Button Name="BtnGuiPackDuplicate" Content="&#xF0C5;" FontFamily="{DynamicResource IconFace}" Margin="8,0,0,0" IsEnabled="{Binding CanPack}" ToolTip="Duplicate the selected pack under a new name"/>
+        <Button Name="BtnGuiPackDelete" Content="&#xF1F8;" FontFamily="{DynamicResource IconFace}" Margin="8,0,0,0" IsEnabled="{Binding CanPack}" ToolTip="Delete the selected pack"/>
     </StackPanel>
     <TextBlock Text="{Binding CatalogueError}" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource AppDangerBrush}"/>
     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">

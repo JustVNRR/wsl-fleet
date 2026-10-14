@@ -21,24 +21,19 @@ using module ..\Tools\Helpers.psm1
 # Une ligne du tableau : ce qu'elle montre, et si elle travaille. Le petit
 # ruban remplace ses icônes pendant qu'un geste court.
 class InstanceRowViewModel : BaseViewModel {
-    hidden [bool]$_busy = $false
     [string]$Name = ""
     [string]$Size = ""
     [bool]$IsArchive = $false
+    [bool]$IsBusy = $false
 
     InstanceRowViewModel([object]$row) {
         $this.Name = "$($row.Name)"
         $this.Size = Format-Size ([double]$row.Size)
         $this.IsArchive = [bool]$row.IsArchive
-        $this.AddProperty("IsBusy", { return $this._busy }, {
-            param($value)
-            if ($this._busy -ne $value) { $this._busy = [bool]$value; $this.OnPropertyChanged("IsBusy") }
-        })
     }
 
     [void] Spin([bool]$on) {
-        $this._busy = $on
-        $this.OnPropertyChanged("IsBusy")
+        $this.Set("IsBusy", $on)
     }
 }
 
@@ -54,13 +49,15 @@ class MainWindowViewModel : BaseViewModel {
     hidden [string]$_runners = ""
     hidden [string]$_views = ""
 
-    hidden [object[]]$_rows = @()
-    hidden [string]$_root = ""
-    hidden [string]$_status = "Ready."
-    hidden [bool]$_alert = $false
-    hidden [bool]$_busy = $false
-    hidden [string]$_colourSet = ""
-    hidden [string]$_variant = "Dark"
+    # L'état bindable : de VRAIES propriétés — WPF ne lit que celles-là.
+    [object[]]$Rows = @()
+    [string]$Root = ""
+    [string]$Status = "Ready."
+    [bool]$Alert = $false
+    [bool]$Busy = $false
+    [bool]$Free = $true
+    [string]$ColourSet = ""
+    [string]$Variant = "Dark"
 
     # Le guet : l'ouvrier caché (le journal le dit), et la console visible.
     hidden [object]$Worker = $null
@@ -95,42 +92,9 @@ class MainWindowViewModel : BaseViewModel {
 
         try {
             $look = $this._wpf.GetTheme()
-            $this._colourSet = "$($look.ColorTheme)"
-            $this._variant = if ("$($look.Variant)") { "$($look.Variant)" } else { "Dark" }
+            $this.ColourSet = "$($look.ColorTheme)"
+            $this.Variant = if ("$($look.Variant)") { "$($look.Variant)" } else { "Dark" }
         } catch { }
-
-        $this.AddProperty("Rows", { return $this._rows }, {
-            param($value)
-            $this._rows = @($value)
-            $this.OnPropertyChanged("Rows")
-        })
-        $this.AddProperty("Root", { return $this._root }, {
-            param($value)
-            if ($this._root -ne $value) { $this._root = "$value"; $this.OnPropertyChanged("Root") }
-        })
-        $this.AddProperty("Status", { return $this._status }, {
-            param($value)
-            if ($this._status -ne $value) { $this._status = "$value"; $this.OnPropertyChanged("Status") }
-        })
-        $this.AddProperty("Alert", { return $this._alert }, {
-            param($value)
-            if ($this._alert -ne $value) { $this._alert = [bool]$value; $this.OnPropertyChanged("Alert") }
-        })
-        $this.AddProperty("Busy", { return $this._busy }, {
-            param($value)
-            if ($this._busy -ne $value) { $this._busy = [bool]$value; $this.OnPropertyChanged("Busy"); $this.OnPropertyChanged("Free") }
-        })
-        # Le miroir de Busy : WPF n'a pas d'inverseur, les mains liées se
-        # bindent sur Free.
-        $this.AddProperty("Free", { return (-not $this._busy) }, { param($value) })
-        $this.AddProperty("ColourSet", { return $this._colourSet }, {
-            param($value)
-            if ($this._colourSet -ne $value) { $this._colourSet = "$value"; $this.OnPropertyChanged("ColourSet") }
-        })
-        $this.AddProperty("Variant", { return $this._variant }, {
-            param($value)
-            if ($this._variant -ne $value) { $this._variant = "$value"; $this.OnPropertyChanged("Variant") }
-        })
 
         $this.RefreshCommand = $this.NewCommand({ param($vm) $vm.Load() })
         $this.AddCommand = $this.NewCommand({ param($vm) $vm.Add() })
@@ -151,18 +115,18 @@ class MainWindowViewModel : BaseViewModel {
 
     # La relecture : la racine et les lignes.
     [void] Load() {
-        try { $this._root = "$($this._fleet.GetRoot())" } catch { }
+        try { $this.Root = "$($this._fleet.GetRoot())" } catch { }
         try {
             $read = @($this._instance.GetAll())
-            $this._rows = @($read | Where-Object { $null -ne $_ } | Sort-Object -Property Name -Stable |
+            $this.Rows = @($read | Where-Object { $null -ne $_ } | Sort-Object -Property Name -Stable |
                 ForEach-Object { [InstanceRowViewModel]::new($_) })
             $this.OnPropertyChanged("Rows")
             $this.OnPropertyChanged("Root")
-            if ($this._rows.Count -eq 0) {
+            if ($this.Rows.Count -eq 0) {
                 $this.SetStatus("No WSL Stack instances found.", $false)
                 return
             }
-            $this.SetStatus("$($this._rows.Count) row(s) loaded.", $false)
+            $this.SetStatus("$($this.Rows.Count) row(s) loaded.", $false)
         } catch {
             $this.SetStatus("Error reading instances: $($_.Exception.Message)", $true)
         }
@@ -170,17 +134,14 @@ class MainWindowViewModel : BaseViewModel {
 
     # La ligne d'état, deux voix : les nouvelles, et le rouge du refus.
     [void] SetStatus([string]$message, [bool]$alert) {
-        $this._status = $message
-        $this._alert = $alert
-        $this.OnPropertyChanged("Status")
-        $this.OnPropertyChanged("Alert")
+        $this.Set("Status", $message)
+        $this.Set("Alert", $alert)
     }
 
     # La bande et les mains liées, pour tout ce qui dure.
     [void] SetBusy([bool]$busy, [string]$message) {
-        $this._busy = $busy
-        $this.OnPropertyChanged("Busy")
-        $this.OnPropertyChanged("Free")
+        $this.Set("Busy", $busy)
+        $this.Set("Free", (-not $busy))
         if ($message) { $this.SetStatus($message, $false) }
     }
 
@@ -193,9 +154,9 @@ class MainWindowViewModel : BaseViewModel {
     # services re-pointent avant que la liste ne se relise.
     [void] ReRoot() {
         try {
-            $root = "$($this._fleet.GetRoot())"
-            $this._fleet.ReRoot($root)
-            $this._instance.ReRoot($root)
+            $target = "$($this._fleet.GetRoot())"
+            $this._fleet.ReRoot($target)
+            $this._instance.ReRoot($target)
         } catch { }
     }
 
@@ -204,16 +165,17 @@ class MainWindowViewModel : BaseViewModel {
     # L'autre version du thème : le choix est gardé, et la vue se rhabille
     # sur le cri (Appearance) — c'est elle qui sait porter une face.
     [void] ToggleTheme() {
-        $variant = if ($this._variant -eq "Light") { "Dark" } else { "Light" }
-        try { $this._wpf.SetVariant($variant) } catch {
-            $this.SetStatus("Could not keep the $variant version: $($_.Exception.Message)", $true)
+        # $other : une locale ne peut pas porter le nom d'une propriété
+        # réelle (mesuré au parse).
+        $other = if ($this.Variant -eq "Light") { "Dark" } else { "Light" }
+        try { $this._wpf.SetVariant($other) } catch {
+            $this.SetStatus("Could not keep the $other version: $($_.Exception.Message)", $true)
             return
         }
-        $this._variant = $variant
-        $this.OnPropertyChanged("Variant")
+        $this.Set("Variant", $other)
         $this.OnPropertyChanged("Appearance")
-        $worn = if ($variant -eq "Light") { "light" } else { "dark" }
-        $setName = if ($this._colourSet) { $this._colourSet } else { "default" }
+        $worn = if ($other -eq "Light") { "light" } else { "dark" }
+        $setName = if ($this.ColourSet) { $this.ColourSet } else { "default" }
         $this.SetStatus("The window wears '$setName', $worn version.", $false)
     }
 
@@ -271,8 +233,8 @@ class MainWindowViewModel : BaseViewModel {
     # --- les six longs : le dialogue, puis l'ouvrier caché --------------------
 
     [void] Archive([string]$name) {
-        $rows = @($this._instance.GetAll())
-        $dto = $this.ShowFace("Archive", @($name, $rows))
+        $all = @($this._instance.GetAll())
+        $dto = $this.ShowFace("Archive", @($name, $all))
         if (-not $dto) { return }
         $this.StartLong("Archive", $name, "$($dto.Format)", "Archiving '$name' as '${name}_archive'...")
     }
@@ -322,7 +284,7 @@ class MainWindowViewModel : BaseViewModel {
         $this.SpinRow($name, $true)
         $this.SetBusy($true, $message)
 
-        if (-not (Test-ProcessArguments @($verb, $name, $arg1, $this._assets, $this._root))) {
+        if (-not (Test-ProcessArguments @($verb, $name, $arg1, $this._assets, $this.Root))) {
             $this.SpinRow($name, $false)
             $this.SetBusy($false, "")
             $this.SetStatus("The job was not launched: a value carries a double quote or a trailing backslash.", $true)
@@ -332,7 +294,7 @@ class MainWindowViewModel : BaseViewModel {
         try {
             $this.Worker = Start-Process pwsh -PassThru -WindowStyle Hidden -ArgumentList @(
                 "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", "`"$workerPath`"",
-                "`"$name`"", "`"$arg1`"", "`"`"", "`"$($this._assets)`"", "`"$($this._root)`"")
+                "`"$name`"", "`"$arg1`"", "`"`"", "`"$($this._assets)`"", "`"$($this.Root)`"")
             $this.WorkerVerb = $verb
             $this.WorkerName = $name
             $this.Ticks = 0
@@ -348,14 +310,14 @@ class MainWindowViewModel : BaseViewModel {
     # build).
     hidden [void] LaunchVisible([string]$verb, [string]$name, [string]$arg1, [string]$arg2) {
         $workerPath = Join-Path $this._runners "$($verb)Runner.ps1"
-        if (-not (Test-ProcessArguments @($verb, $name, $arg1, $arg2, $this._assets, $this._root))) {
+        if (-not (Test-ProcessArguments @($verb, $name, $arg1, $arg2, $this._assets, $this.Root))) {
             $this.SetStatus("The job was not launched: a value carries a double quote or a trailing backslash.", $true)
             return
         }
         try {
             $this.Console = Start-Process pwsh -PassThru -ArgumentList @(
                 "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "`"$workerPath`"",
-                "`"$name`"", "`"$arg1`"", "`"$arg2`"", "`"$($this._assets)`"", "`"$($this._root)`"")
+                "`"$name`"", "`"$arg1`"", "`"$arg2`"", "`"$($this._assets)`"", "`"$($this.Root)`"")
         } catch {
             $this.SetBusy($false, "")
             $this.SetStatus("Could not open the console: $($_.Exception.Message)", $true)
@@ -375,7 +337,9 @@ class MainWindowViewModel : BaseViewModel {
             }
 
             $ending = ""
-            $alert = $false
+            # $alarm : une locale ne peut pas porter le nom d'une propriété
+            # réelle (mesuré au parse).
+            $alarm = $false
             $keepLog = $false
             $log = Join-Path $env:TEMP "wsl-stack-gui-job.log"
             try {
@@ -385,23 +349,23 @@ class MainWindowViewModel : BaseViewModel {
                 $bad = @($trail | Where-Object { $_ -like "*RESULT FAIL *" } | Select-Object -Last 1)
                 if ($bad.Count -gt 0) {
                     $ending = "Failed to $($this.WorkerVerb.ToLower()) '$($this.WorkerName)': " + ($bad[0] -replace "^.*?RESULT FAIL ", "")
-                    $alert = $true
+                    $alarm = $true
                 } elseif ($ok.Count -gt 0) {
                     $ending = ($ok[0] -replace "^.*?RESULT OK ", "")
                 } else {
                     $ending = "The $($this.WorkerVerb.ToLower()) of '$($this.WorkerName)' ended (exit $($this.Worker.ExitCode)) with no result in the trail ($log)."
-                    $alert = $true
+                    $alarm = $true
                     $keepLog = $true
                 }
             } catch {
                 $ending = "The watcher failed: $($_.Exception.Message)"
-                $alert = $true
+                $alarm = $true
             } finally {
                 $this.SpinRow($this.WorkerName, $false)
                 $this.Worker = $null
                 $this.SetBusy($false, "")
                 $this.Load()
-                if ($ending) { $this.SetStatus($ending, $alert) }
+                if ($ending) { $this.SetStatus($ending, $alarm) }
                 if (-not $keepLog) { Remove-Item -LiteralPath $log -ErrorAction SilentlyContinue }
             }
             return
@@ -421,7 +385,7 @@ class MainWindowViewModel : BaseViewModel {
     # ruban. Cosmétique, et gardé — la chose ne doit jamais en dépendre.
     hidden [void] SpinRow([string]$name, [bool]$on) {
         try {
-            foreach ($row in $this._rows) {
+            foreach ($row in $this.Rows) {
                 if ("$($row.Name)" -eq "$name") { $row.Spin($on) }
             }
         } catch { }
@@ -470,8 +434,8 @@ class MainWindowViewModel : BaseViewModel {
             $this.SetStatus("Settings : $($picked.FontFamily)/$($picked.ColorTheme) - $($_.Exception.Message)", $true)
             return
         }
-        if ($picked.ColorTheme) { $this._colourSet = "$($picked.ColorTheme)" }
-        $this._variant = "$($picked.Variant)"
+        if ($picked.ColorTheme) { $this.ColourSet = "$($picked.ColorTheme)" }
+        $this.Variant = "$($picked.Variant)"
         $this.OnPropertyChanged("ColourSet")
         $this.OnPropertyChanged("Variant")
         $this.OnPropertyChanged("Appearance")
@@ -483,7 +447,7 @@ class MainWindowViewModel : BaseViewModel {
             return
         }
 
-        $setName = if ($this._colourSet) { $this._colourSet } else { "default" }
+        $setName = if ($this.ColourSet) { $this.ColourSet } else { "default" }
         $this.SetStatus("Window face: '$($picked.FontFamily)' at $($picked.FontSize) pt, theme '$setName'. Popups follow on their next open.", $false)
     }
 

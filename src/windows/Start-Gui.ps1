@@ -71,10 +71,18 @@ $baseView::SetContext($look, $Assets)
 $vm = [MainWindowViewModel]::new($instances, $fleet, $wpfService, $catalogue, $Assets, $Runners, $WpfViews)
 $vm.Load()
 
-# 5. La fenêtre s'ouvre et vit — le geste rend quand elle se ferme. Sa
-# classe se résout au guet, comme la vue de base : importée après les
-# Add-Type, son nom n'existe pas ici.
-$null = Import-Module (Join-Path $PSScriptRoot "Views\WPF\MainWindow\Main.xaml.ps1")
+# 5. Les vues s'importent TOUTES ici, à la racine du script — la fenêtre
+# comprise. Mesuré : l'import de PREMIÈRE fois d'une vue, lancé depuis la
+# porte des gestes (BaseViewModel, que chaque vue chaîne en `using module`),
+# se mord la queue — GetExportedTypeDefinitions s'appelle cent mille fois,
+# « Impossible de créer une nouvelle page de garde pour la pile ». À la
+# racine, sain. La porte ensuite ne fait que chercher le type au guet,
+# comme la vue de base : son nom n'existe pas ici.
+Get-ChildItem -Path $WpfViews -Recurse -Filter "*.xaml.ps1" -File | ForEach-Object {
+    try { $null = Import-Module $_.FullName } catch {
+        Write-Host "[WARN] The view '$($_.Name)' did not load: $($_.Exception.Message)" -ForegroundColor DarkYellow
+    }
+}
 $mainView = $null
 foreach ($assembly in [AppDomain]::CurrentDomain.GetAssemblies()) {
     try { $mainView = @($assembly.GetTypes() | Where-Object { $_.Name -eq "WpfMainView" })[0] } catch { }

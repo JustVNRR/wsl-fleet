@@ -10,28 +10,30 @@ using module ..\Dto\InstanceDto.psm1
 # et la même case « archiver d'abord » que la corbeille.
 class CompactViewModel : BaseViewModel {
     hidden [string]$_name = ""
-    hidden [string]$_lead = ""
-    hidden [bool]$_archiveFirst = $false
+    [string]$Lead = ""
+    [bool]$ArchiveFirst = $false
     [object]$Result = $null
     [System.Windows.Input.ICommand]$ConfirmCommand
 
     CompactViewModel([string]$name) {
         $this._name = "$name"
-        $this._lead = "Compacting '$name'."
-
-        $this.AddProperty("Lead", { return $this._lead }, { param($value) })
-        $this.AddProperty("ArchiveFirst", { return $this._archiveFirst }, {
-            param($value)
-            if ($this._archiveFirst -ne [bool]$value) { $this._archiveFirst = [bool]$value; $this.OnPropertyChanged("ArchiveFirst") }
-        })
+        $this.Lead = "Compacting '$name'."
 
         $this.ConfirmCommand = $this.NewCommand({ param($vm) $vm.Confirm() })
+    }
+
+    # Le lien XAML est à sens unique : la vue relaie la bascule ici.
+    [void] SetArchiveFirst([bool]$value) {
+        if ($this.ArchiveFirst -ne $value) {
+            $this.ArchiveFirst = $value
+            $this.OnPropertyChanged("ArchiveFirst")
+        }
     }
 
     [void] Confirm() {
         $dto = [CompactDto]::new()
         $dto.InstanceName = $this._name
-        $dto.ArchiveFirst = $this._archiveFirst
+        $dto.ArchiveFirst = $this.ArchiveFirst
         $this.Result = $dto
         $this.OnPropertyChanged("Done")
     }

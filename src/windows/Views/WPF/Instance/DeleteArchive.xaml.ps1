@@ -27,6 +27,10 @@ class WpfDeleteArchiveView : BaseViewWpf {
         })
         $this.Add_ContentRendered({ $null = $this.Find("TxtName").Focus() })
 
+        # Le lien est à sens unique : la saisie est relayée au ViewModel, qui
+        # garde la porte du nom exact (casse comprise).
+        $this.Find("TxtName").Add_TextChanged({ param($source, $e) $self.Vm.SetTyped("$($source.Text)") })
+
         $this.Find("BtnArchiveCancel").Add_Click({ $self.Close() })
 
         $this.FitToContent($null)

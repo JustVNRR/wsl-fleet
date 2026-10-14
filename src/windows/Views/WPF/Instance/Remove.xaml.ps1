@@ -27,6 +27,12 @@ class WpfRemoveView : BaseViewWpf {
         })
         $this.Add_ContentRendered({ $null = $this.Find("ChkArchive").Focus() })
 
+        # Les liens sont à sens unique : saisie et bascule relayées au
+        # ViewModel, qui garde la porte du nom exact.
+        $this.Find("TxtName").Add_TextChanged({ param($source, $e) $self.Vm.SetTyped("$($source.Text)") })
+        $this.Find("ChkArchive").Add_Checked({ param($source, $e) $self.Vm.SetArchiveFirst([bool]$source.IsChecked) })
+        $this.Find("ChkArchive").Add_Unchecked({ param($source, $e) $self.Vm.SetArchiveFirst([bool]$source.IsChecked) })
+
         $this.Find("BtnGateCancel").Add_Click({ $self.Close() })
 
         $this.FitToContent($null)

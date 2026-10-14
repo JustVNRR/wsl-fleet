@@ -27,7 +27,6 @@ class WpfMainView : BaseViewWpf {
         $this.WindowStartupLocation = [System.Windows.WindowStartupLocation]::CenterScreen
         $this.MinHeight = 240
         $this.Load((Join-Path $PSScriptRoot "Main.xaml"))
-        $this.Dress($null, 15)
         # Le socle la connaît : c'est derrière ELLE que les boîtes s'ouvrent —
         # elle s'efface le temps qu'elles vivent, et revient.
         [BaseViewWpf]::Main = $this
@@ -74,6 +73,9 @@ class WpfMainView : BaseViewWpf {
         $frame = [System.Windows.Threading.DispatcherFrame]::new()
         $this.Add_Closed({ $frame.Continue = $false })
 
+        # Le thème porté, PUIS le cadre : le dictionnaire apporte
+        # AppFrameBrush, que Dress cherche (vécu : « Ressource
+        # 'AppFrameBrush' introuvable »).
         $this.Rewear()
 
         # LE BATTEMENT : un minuteur, priorité d'entrée (une priorité de fond

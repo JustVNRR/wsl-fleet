@@ -11,24 +11,25 @@ using module ..\Dto\InstanceDto.psm1
 # rappelle le compte au parent.
 class PackRowViewModel : BaseViewModel {
     hidden [object]$_owner = $null
-    hidden [bool]$_checked = $false
     hidden [string]$_name = ""
-    hidden [string]$_label = ""
+    [string]$Label = ""
+    [bool]$Checked = $false
 
     PackRowViewModel([object]$owner, [string]$name, [string]$label, [bool]$checked) {
         $this._owner = $owner
         $this._name = $name
-        $this._label = $label
-        $this._checked = $checked
-        $this.AddProperty("Label", { return $this._label }, { param($value) })
-        $this.AddProperty("Checked", { return $this._checked }, {
-            param($value)
-            if ($this._checked -ne [bool]$value) {
-                $this._checked = [bool]$value
-                $this.OnPropertyChanged("Checked")
-                $this._owner.Recount()
-            }
-        })
+        $this.Label = $label
+        $this.Checked = $checked
+    }
+
+    # Le lien XAML est à sens unique : la vue relaie la bascule ici — la
+    # garde, le cri, et le compte rappelé au parent.
+    [void] SetChecked([bool]$on) {
+        if ($this.Checked -ne $on) {
+            $this.Checked = $on
+            $this.OnPropertyChanged("Checked")
+            $this._owner.Recount()
+        }
     }
 
     [string] PackName() {
@@ -44,10 +45,10 @@ class PackRowViewModel : BaseViewModel {
 class ManagePacksViewModel : BaseViewModel {
     hidden [object]$_packs = $null
     hidden [string]$_name = ""
-    hidden [object[]]$_packRows = @()
-    hidden [string]$_lead = ""
-    hidden [string]$_willAdd = ""
-    hidden [string]$_willRemove = ""
+    [object[]]$PackRows = @()
+    [string]$Lead = ""
+    [string]$WillAdd = ""
+    [string]$WillRemove = ""
     hidden [bool]$_canApply = $false
     hidden [bool]$_empty = $false
 
@@ -57,7 +58,7 @@ class ManagePacksViewModel : BaseViewModel {
     ManagePacksViewModel([object]$packs, [string]$name) {
         $this._packs = $packs
         $this._name = "$name"
-        $this._lead = "Packs for '$name'"
+        $this.Lead = "Packs for '$name'"
 
         $installed = @($packs.Installed)
         $rows = @()
@@ -74,18 +75,7 @@ class ManagePacksViewModel : BaseViewModel {
         foreach ($row in $rows) {
             $built += [PackRowViewModel]::new($this, "$($row.Name)", "$($row.Label)", [bool]$row.Checked)
         }
-        $this._packRows = @($built)
-
-        $this.AddProperty("Lead", { return $this._lead }, { param($value) })
-        $this.AddProperty("PackRows", { return $this._packRows }, { param($value) })
-        $this.AddProperty("WillAdd", { return $this._willAdd }, {
-            param($value)
-            if ($this._willAdd -ne "$value") { $this._willAdd = "$value"; $this.OnPropertyChanged("WillAdd") }
-        })
-        $this.AddProperty("WillRemove", { return $this._willRemove }, {
-            param($value)
-            if ($this._willRemove -ne "$value") { $this._willRemove = "$value"; $this.OnPropertyChanged("WillRemove") }
-        })
+        $this.PackRows = @($built)
 
         $this.ApplyCommand = $this.NewCommand({ param($vm) $vm.Apply() }, { param($vm) $vm.CanApply() })
         $this.Recount()
@@ -98,11 +88,11 @@ class ManagePacksViewModel : BaseViewModel {
     # L'écart : cochée et pas portée entre, portée et décochée sort.
     [void] Recount() {
         $installed = @($this._packs.Installed)
-        $ticked = @($this._packRows | Where-Object { $_.Checked } | ForEach-Object { $_.PackName() })
+        $ticked = @($this.PackRows | Where-Object { $_.Checked } | ForEach-Object { $_.PackName() })
         $toAdd = @($ticked | Where-Object { $installed -notcontains $_ })
         $toRemove = @($this._packs.Removable | Where-Object { $ticked -notcontains $_ })
-        $this._willAdd = if ($toAdd.Count -gt 0) { "Will install : $($toAdd -join ', ')" } else { "" }
-        $this._willRemove = if ($toRemove.Count -gt 0) { "Will remove  : $($toRemove -join ', ')" } else { "" }
+        $this.WillAdd = if ($toAdd.Count -gt 0) { "Will install : $($toAdd -join ', ')" } else { "" }
+        $this.WillRemove = if ($toRemove.Count -gt 0) { "Will remove  : $($toRemove -join ', ')" } else { "" }
         $this._canApply = ($toAdd.Count -gt 0 -or $toRemove.Count -gt 0)
         $this.OnPropertyChanged("WillAdd")
         $this.OnPropertyChanged("WillRemove")
@@ -116,7 +106,7 @@ class ManagePacksViewModel : BaseViewModel {
     [void] Apply() {
         if (-not $this._canApply) { return }
         $installed = @($this._packs.Installed)
-        $ticked = @($this._packRows | Where-Object { $_.Checked } | ForEach-Object { $_.PackName() })
+        $ticked = @($this.PackRows | Where-Object { $_.Checked } | ForEach-Object { $_.PackName() })
         $dto = [ManagePacksDto]::new()
         $dto.InstanceName = $this._name
         $dto.ToAdd = @($ticked | Where-Object { $installed -notcontains $_ })

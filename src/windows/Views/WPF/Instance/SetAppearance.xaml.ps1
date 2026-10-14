@@ -17,6 +17,8 @@ class WpfSetAppearanceView : BaseViewWpf {
     # sans quoi elle retombe sur APPLY et ferme la fenêtre).
     hidden [bool]$EatEnter = $false
     hidden [object]$Vm = $null
+    # La face du monogramme, resolue une fois.
+    hidden [object]$TileFace = $null
 
     [object] Ask([string]$name, [object]$appearance, [string[]]$fonts, [object[]]$schemes, [object[]]$pairs) {
         $self = $this
@@ -35,7 +37,7 @@ class WpfSetAppearanceView : BaseViewWpf {
             param($source, $e)
             if ("$($e.PropertyName)" -eq "Done") { $self.Close() }
             if ("$($e.PropertyName)" -in @("FontIndex", "SchemeIndex")) { $self.PaintPreview() }
-            if ("$($e.PropertyName)" -eq "ImagePath") { $self.LoadIconFile("$($self.Vm.ImagePath)") }
+            if ("$($e.PropertyName)" -in @("ImagePath", "IconText", "PairIndex")) { $self.PaintIcon() }
         })
 
         $this.Add_ContentRendered({ $null = $this.Find("TxtIconText").Focus() })
@@ -64,9 +66,16 @@ class WpfSetAppearanceView : BaseViewWpf {
             if ($picked -eq $true) { $self.Vm.SetImage($dialog.FileName) }
         })
 
+        # Les saisies : liens à sens unique — WPF lit ; les écritures passent
+        # par ici, relayées au ViewModel.
+        $this.Find("TxtIconText").Add_TextChanged({ param($source, $e) $self.Vm.SetIconText("$($source.Text)") })
+        $this.Find("LstPairs").Add_SelectionChanged({ param($source, $e) $self.Vm.SetPairIndex([int]$source.SelectedIndex) })
+        $this.Find("LstFonts").Add_SelectionChanged({ param($source, $e) $self.Vm.SetFontIndex([int]$source.SelectedIndex) })
+        $this.Find("LstSchemes").Add_SelectionChanged({ param($source, $e) $self.Vm.SetSchemeIndex([int]$source.SelectedIndex) })
+
         $this.Find("BtnLookCancel").Add_Click({ $self.Close() })
 
-        if ("$($this.Vm.ImagePath)") { $this.LoadIconFile("$($this.Vm.ImagePath)") }
+        $this.PaintIcon()
         $this.PaintPreview()
 
         $this.FitToContent($null)
@@ -129,6 +138,73 @@ class WpfSetAppearanceView : BaseViewWpf {
                 $null = $pnlPalette.Children.Add($swatch)
             }
         }
+    }
+
+    # La tuile, montrée en direct : le dégradé de la couleur choisie et les
+    # lettres dessus — des propriétés posées sur des éléments VIVANTS, le
+    # même chemin que l'aperçu du prompt (prouvé) ; l'image choisie prend le
+    # siège par-dessus. Sous filet : un dessin cassé ne casse jamais la
+    # fenêtre.
+    hidden [void] PaintIcon() {
+        try {
+            $tile = $this.Find("BrdTile")
+            $letters = $this.Find("TxtTile")
+            $picture = $this.Find("ImgIconPreview")
+            $path = "$($this.Vm.ImagePath)"
+            if ($path) {
+                $this.LoadIconFile($path)
+                $tile.Visibility = [System.Windows.Visibility]::Collapsed
+                $letters.Visibility = [System.Windows.Visibility]::Collapsed
+                return
+            }
+            $picture.Source = $null
+            $tile.Visibility = [System.Windows.Visibility]::Visible
+            $letters.Visibility = [System.Windows.Visibility]::Visible
+
+            $icon = $this.Vm.PreviewIcon()
+            $top = $this.Brush("$($icon.Top)")
+            if (-not $top) { $top = $this.Brush("#333333") }
+            $bottom = $this.Brush("$($icon.Bottom)")
+            if (-not $bottom) { $bottom = $this.Brush("#333333") }
+            $ink = $this.Brush("$($icon.TextColor)")
+            if (-not $ink) { $ink = $this.Brush("#FFFFFF") }
+            $tile.Background = [System.Windows.Media.LinearGradientBrush]::new($top.Color, $bottom.Color, 90)
+            $letters.Text = "$($icon.Text)"
+            $letters.Foreground = $ink
+            # La recette de make-icon, copiee : sa police (liste, en gras) et
+            # sa taille — le monogramme mesure, son ENCRE mise a l'echelle
+            # pour tenir 74 % de la tuile ; l'apercu et l'icone se ressemblent.
+            try {
+                if (-not $this.TileFace) { $this.TileFace = $this.TileTypeface() }
+                $letters.FontFamily = $this.TileFace.FontFamily
+                $letters.FontWeight = [System.Windows.FontWeights]::Bold
+                $probe = [System.Windows.Media.FormattedText]::new("$($icon.Text)",
+                    [Globalization.CultureInfo]::InvariantCulture, [System.Windows.FlowDirection]::LeftToRight,
+                    $this.TileFace, [double]100, $ink, [double]1)
+                $inkBounds = $probe.BuildGeometry([System.Windows.Point]::new(0, 0)).Bounds
+                if ($inkBounds.Width -gt 0 -and $inkBounds.Height -gt 0) {
+                    $scale = [Math]::Min((60.0 * 0.74) / $inkBounds.Width, (60.0 * 0.74) / $inkBounds.Height)
+                    $letters.FontSize = [double](100 * $scale)
+                }
+            } catch { }
+        } catch { }
+    }
+
+    # La face du monogramme : la liste de make-icon — Cascadia Mono, Cascadia
+    # Code, Consolas, Segoe UI — la premiere installee, en gras ; c'est le
+    # generateur qui l'a choisie pour l'icone, l'apercu prend la meme.
+    hidden [object] TileTypeface() {
+        foreach ($name in @("Cascadia Mono", "Cascadia Code", "Consolas", "Segoe UI")) {
+            try {
+                $installed = @([Windows.Media.Fonts]::SystemFontFamilies | ForEach-Object { "$($_.Source)" })
+                if ($installed -contains $name) {
+                    return [System.Windows.Media.Typeface]::new([System.Windows.Media.FontFamily]::new($name),
+                        [System.Windows.FontStyles]::Normal, [System.Windows.FontWeights]::Bold, [System.Windows.FontStretches]::Normal)
+                }
+            } catch { }
+        }
+        return [System.Windows.Media.Typeface]::new([System.Windows.Media.FontFamily]::new("Segoe UI"),
+            [System.Windows.FontStyles]::Normal, [System.Windows.FontWeights]::Bold, [System.Windows.FontStretches]::Normal)
     }
 
     # L'image choisie : son aperçu se lit du FICHIER (ses octets), avec les

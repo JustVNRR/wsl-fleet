@@ -27,6 +27,9 @@ class WpfRestoreView : BaseViewWpf {
         })
         $this.Add_ContentRendered({ $null = $this.Find("TxtName").Focus(); $this.Find("TxtName").SelectAll() })
 
+        # Le lien est à sens unique : la saisie est relayée au ViewModel.
+        $this.Find("TxtName").Add_TextChanged({ param($source, $e) $self.Vm.SetName("$($source.Text)") })
+
         $this.Find("BtnRestoreCancel").Add_Click({ $self.Close() })
 
         $this.FitToContent($null)

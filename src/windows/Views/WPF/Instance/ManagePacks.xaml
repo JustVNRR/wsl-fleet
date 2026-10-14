@@ -3,15 +3,10 @@
             Margin="18">
     <TextBlock Text="{Binding Lead}" TextWrapping="Wrap" FontWeight="SemiBold"/>
     <ScrollViewer MaxHeight="420" VerticalScrollBarVisibility="Auto" Margin="0,8,0,0">
-        <ItemsControl ItemsSource="{Binding PackRows}">
-            <ItemsControl.ItemTemplate>
-                <DataTemplate>
-                    <CheckBox Margin="0,3,0,3" IsChecked="{Binding Checked}">
-                        <TextBlock TextWrapping="Wrap" Text="{Binding Label}"/>
-                    </CheckBox>
-                </DataTemplate>
-            </ItemsControl.ItemTemplate>
-        </ItemsControl>
+        <!-- Les cases se construisent à la main (voir le .xaml.ps1) : un
+             gabarit d'items reste muet sur nos objets — même mur que les
+             listes, mesuré. -->
+        <StackPanel Name="PnlPacks"/>
     </ScrollViewer>
     <TextBlock Text="{Binding WillAdd}" Margin="0,10,0,0" TextWrapping="Wrap" Foreground="{DynamicResource AppMutedBrush}"/>
     <TextBlock Text="{Binding WillRemove}" Margin="0,6,0,0" TextWrapping="Wrap" Foreground="{DynamicResource AppMutedBrush}"/>

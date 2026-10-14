@@ -3,7 +3,8 @@
             Margin="18">
     <TextBlock Text="{Binding Lead}" TextWrapping="Wrap" FontWeight="SemiBold"/>
     <TextBlock Margin="0,14,0,10" Text="Name of the restored instance:"/>
-    <TextBox Name="TxtName" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" TabIndex="0" Margin="0,6,0,0" Background="{DynamicResource AppInputBackgroundBrush}" Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="{DynamicResource AppBorderBrush}" Padding="4"/>
+    <!-- La saisie : lien à sens unique — la vue relaie (voir le .xaml.ps1). -->
+    <TextBox Name="TxtName" Text="{Binding Name, Mode=OneWay}" TabIndex="0" Margin="0,6,0,0" Background="{DynamicResource AppInputBackgroundBrush}" Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="{DynamicResource AppBorderBrush}" Padding="4"/>
     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
         <Button Name="BtnRestoreCancel" TabIndex="1" Content="Cancel" Margin="0,0,8,0" IsCancel="True"
                 Background="{DynamicResource AppFaceBrush}" Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="{DynamicResource AppBorderBrush}"/>

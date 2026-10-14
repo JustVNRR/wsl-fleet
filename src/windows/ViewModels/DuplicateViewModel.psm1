@@ -65,6 +65,6 @@ class DuplicateViewModel : BaseViewModel {
         $dto.SourceName = $this._source
         $dto.CopyName = $copyName
         $this.Result = $dto
-        $this.OnPropertyChanged("Done")
+        $this.RequestClose()
     }
 }

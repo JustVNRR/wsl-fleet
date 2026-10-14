@@ -40,6 +40,6 @@ class DeleteArchiveViewModel : BaseViewModel {
     [void] Confirm() {
         if (-not $this.CanConfirm()) { return }
         $this.Result = $this._archiveName
-        $this.OnPropertyChanged("Done")
+        $this.RequestClose()
     }
 }

@@ -35,6 +35,6 @@ class CompactViewModel : BaseViewModel {
         $dto.InstanceName = $this._name
         $dto.ArchiveFirst = $this.ArchiveFirst
         $this.Result = $dto
-        $this.OnPropertyChanged("Done")
+        $this.RequestClose()
     }
 }

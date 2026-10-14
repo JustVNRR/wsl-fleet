@@ -11,7 +11,7 @@ using module ..\..\..\ViewModels\BuildViewModel.psm1
 # demande : le chargement, le focus d'ouverture, l'Entrée mangée après un
 # sélecteur (mesuré), les sélecteurs de fichiers (graphisme — le ViewModel
 # reçoit le chemin), la confirmation des corbeilles, la fermeture sur le cri
-# Done — et il rend le Dto du ViewModel.
+# la porte de fermeture — et il rend le Dto du ViewModel.
 class WpfBuildView : BaseViewWpf {
     # L'Entrée mangée après un sélecteur de fichier (mesuré).
     hidden [bool]$EatEnter = $false
@@ -32,11 +32,9 @@ class WpfBuildView : BaseViewWpf {
 
         $this.Add_ContentRendered({ $null = $this.Find("TxtName").Focus() })
 
-        # CREATE a posé son Dto : la fenêtre se ferme là-dessus.
-        $this.Vm.add_PropertyChanged({
-            param($source, $e)
-            if ("$($e.PropertyName)" -eq "Done") { $self.Close() }
-        })
+        # La porte de fermeture — METHODE 1 : le ViewModel dit « j'ai fini »,
+        # la vue ferme.
+        $this.Vm.DemandeFermeture = { $self.Close() }
 
         # L'Entrée mangée après chaque sélecteur : à sa fermeture, l'Entrée
         # retombe sur le bouton par défaut — CREATE a déjà fermé la fenêtre

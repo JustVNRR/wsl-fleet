@@ -370,6 +370,6 @@ class SettingsViewModel : BaseViewModel {
         $this._newRoot = "$chosen"
         $this.Root = "$chosen"
         $this.OnPropertyChanged("Root")
-        $this.OnPropertyChanged("Done")
+        $this.RequestClose()
     }
 }

@@ -11,7 +11,7 @@ using module ..\..\..\ViewModels\SetAppearanceViewModel.psm1
 # en XAML. Ici, ce que WPF demande : le sélecteur d'image (graphisme — le
 # ViewModel reçoit le chemin), l'aperçu qui se repeint (les lignes du prompt,
 # la palette, l'image choisie), l'Entrée mangée après le sélecteur (mesuré),
-# la fermeture sur Done — et le Dto rendu.
+# la porte de fermeture — et le Dto rendu.
 class WpfSetAppearanceView : BaseViewWpf {
     # L'Entrée mangée après la fermeture du sélecteur de fichier (mesuré :
     # sans quoi elle retombe sur APPLY et ferme la fenêtre).
@@ -33,9 +33,12 @@ class WpfSetAppearanceView : BaseViewWpf {
         $this.Dress($null, 15)
         $this.DataContext = $this.Vm
 
+        # La porte de fermeture — METHODE 1 : le ViewModel dit « j'ai fini »,
+        # la vue ferme.
+        $this.Vm.DemandeFermeture = { $self.Close() }
+
         $this.Vm.add_PropertyChanged({
             param($source, $e)
-            if ("$($e.PropertyName)" -eq "Done") { $self.Close() }
             if ("$($e.PropertyName)" -in @("FontIndex", "SchemeIndex")) { $self.PaintPreview() }
             if ("$($e.PropertyName)" -in @("ImagePath", "IconText", "PairIndex")) { $self.PaintIcon() }
         })

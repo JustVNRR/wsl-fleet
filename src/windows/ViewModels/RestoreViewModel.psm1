@@ -46,6 +46,6 @@ class RestoreViewModel : BaseViewModel {
         $dto.ArchiveName = $this._archiveName
         $dto.InstanceName = $wanted
         $this.Result = $dto
-        $this.OnPropertyChanged("Done")
+        $this.RequestClose()
     }
 }

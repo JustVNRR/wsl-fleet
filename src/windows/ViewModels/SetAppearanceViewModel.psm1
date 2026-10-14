@@ -239,6 +239,6 @@ class SetAppearanceViewModel : BaseViewModel {
         $dto.IconImage = $this.ImagePath
 
         $this.Result = $dto
-        $this.OnPropertyChanged("Done")
+        $this.RequestClose()
     }
 }

@@ -4,15 +4,19 @@
 # Ce dont ce fichier nomme, déclaré ici : un module résout ce qu'il a tiré
 # lui-même.
 using module ..\BaseViewWpf.psm1
-using module ..\..\..\Tools\Helpers.psm1
+using module ..\..\..\ViewModels\RootMoveViewModel.psm1
 
-# La question du déplacement de la racine : l'avertissement, le dossier
-# d'arrivée, Cancel et le CONFIRM rouge. Rend le dossier, ou rien. La garde du
-# service est montrée ici : la boîte reste ouverte et dit pourquoi — rien ne
-# part pour un chemin impossible.
+# La question du déplacement de la racine : le DataContext est le
+# RootMoveViewModel — l'avertissement, le dossier et la garde s'y bindent.
+# Ici, ce que WPF demande : le chargement, le focus d'ouverture, le relais de
+# la saisie, la porte de fermeture — et le dossier rendu.
 class WpfRootMoveView : BaseViewWpf {
+    hidden [object]$Vm = $null
+
     [object] Ask([string]$current) {
         $self = $this
+        $this.Vm = [RootMoveViewModel]::new($current)
+
         $this.Title = "WSL Stack"
         $this.SizeToContent = [System.Windows.SizeToContent]::WidthAndHeight
         $this.WindowStartupLocation = [System.Windows.WindowStartupLocation]::CenterScreen
@@ -20,28 +24,20 @@ class WpfRootMoveView : BaseViewWpf {
         $this.Load((Join-Path $PSScriptRoot "RootMove.xaml"))
         $this.WearDefault()
         $this.Dress($null, 15)
+        $this.DataContext = $this.Vm
 
-        $this.Find("TxtLead").Text = "Move the fleet from '$current'"
-        $this.Find("TxtWarning").Text = "Every instance will be archived and unregistered before migration."
-        $txtNewRoot = $this.Find("TxtNewRoot")
-        $txtNewRoot.Text = $current
-        $this.Add_ContentRendered({ $null = $txtNewRoot.Focus(); $txtNewRoot.SelectAll() })
+        # La porte de fermeture — METHODE 1 : le ViewModel dit « j'ai fini »,
+        # la vue ferme.
+        $this.Vm.DemandeFermeture = { $self.Close() }
 
-        $this.Find("BtnRootCancel").Add_Click({ $this.Close() })
-        $this.Find("BtnRootOk").Add_Click({
-            $chosen = "$($txtNewRoot.Text)".Trim().Trim('"').TrimEnd('\')
-            if (-not $chosen -or $chosen -eq "$current".TrimEnd('\')) { return }
-            $problem = Test-FleetTarget $chosen
-            if ($problem) {
-                $this.Find("TxtWarning").Text = $problem
-                return
-            }
-            $this.Result = $chosen
-            $this.Close()
-        })
+        $this.Add_ContentRendered({ $null = $self.Find("TxtNewRoot").Focus(); $self.Find("TxtNewRoot").SelectAll() })
+
+        # Le lien est à sens unique : la saisie est relayée au ViewModel.
+        $this.Find("TxtNewRoot").Add_TextChanged({ param($source, $e) $self.Vm.SetNewRoot("$($source.Text)") })
+        $this.Find("BtnRootCancel").Add_Click({ $self.Close() })
 
         $this.FitToContent($null)
         $null = $this.OpenAs($null)
-        return "$($this.Result)"
+        return $this.Vm.Result
     }
 }

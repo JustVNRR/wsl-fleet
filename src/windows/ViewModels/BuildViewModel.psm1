@@ -9,7 +9,7 @@
 # sa corbeille (les recettes du dépôt ne se suppriment pas : la corbeille ne
 # touche qu'aux téléversées), l'onboarding, et les deux cases. CREATE vérifie,
 # lit la famille de la source choisie, ouvre la fenêtre des packs PAR-DESSUS,
-# puis pose son BuildDto et crie Done — la vue se ferme là-dessus.
+# puis pose son BuildDto et demande la fermeture — la vue se ferme là-dessus.
 #
 # Il a le service en main : il lit ses listes lui-même, téléverse, retire et
 # vérifie le registre — les portes liées de l'ancien monde n'ont plus lieu
@@ -356,7 +356,7 @@ class BuildViewModel : BaseViewModel {
 
     # CREATE : la vérification entière, la famille, la fenêtre des packs
     # PAR-DESSUS (Cancel y revient, le formulaire intact), puis le Dto et le
-    # cri Done.
+    # la demande de fermeture.
     [void] Create() {
         $this.ValidateName()
         if ($this.RunFirstBoot) { $this.ValidateUser() } else { $this._userOk = $true }
@@ -412,6 +412,6 @@ class BuildViewModel : BaseViewModel {
         $dto.KeepImage = $this.SaveImage
         $dto.RegisterDocker = $this.RegisterDocker
         $this.Result = $dto
-        $this.OnPropertyChanged("Done")
+        $this.RequestClose()
     }
 }

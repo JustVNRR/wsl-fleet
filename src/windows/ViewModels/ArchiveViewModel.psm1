@@ -31,6 +31,6 @@ class ArchiveViewModel : BaseViewModel {
         $dto.Format = "tar.gz"
         $dto.Permit = $true
         $this.Result = $dto
-        $this.OnPropertyChanged("Done")
+        $this.RequestClose()
     }
 }

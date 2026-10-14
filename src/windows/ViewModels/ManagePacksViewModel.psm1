@@ -113,6 +113,6 @@ class ManagePacksViewModel : BaseViewModel {
         $dto.ToRemove = @($this._packs.Removable | Where-Object { $ticked -notcontains $_ })
         if ($dto.ToAdd.Count -eq 0 -and $dto.ToRemove.Count -eq 0) { return }
         $this.Result = $dto
-        $this.OnPropertyChanged("Done")
+        $this.RequestClose()
     }
 }

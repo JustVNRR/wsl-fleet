@@ -21,10 +21,9 @@ class WpfCompactView : BaseViewWpf {
         $this.Dress($null, 15)
         $this.DataContext = $this.Vm
 
-        $this.Vm.add_PropertyChanged({
-            param($source, $e)
-            if ("$($e.PropertyName)" -eq "Done") { $self.Close() }
-        })
+        # La porte de fermeture — METHODE 1 : le ViewModel dit « j'ai fini »,
+        # la vue ferme.
+        $this.Vm.DemandeFermeture = { $self.Close() }
         $this.Add_ContentRendered({ $null = $this.Find("ChkArchive").Focus() })
 
         # Le lien est à sens unique : la bascule de la case est relayée au

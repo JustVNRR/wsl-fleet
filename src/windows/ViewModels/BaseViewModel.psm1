@@ -18,6 +18,11 @@
 # que WPF n'écrit plus (liens à sens unique), passent par les méthodes Set*
 # de l'enfant, relayées par la vue.
 class BaseViewModel : System.ComponentModel.INotifyPropertyChanged {
+    # La porte de fermeture — la « méthode 1 » : le ViewModel dit « j'ai
+    # fini », la vue a posé ce qu'elle en fait (fermer). Le VM ne connaît
+    # pas WPF : sa demande voyage par ici.
+    [scriptblock]$DemandeFermeture = $null
+
     hidden [System.Collections.Generic.List[System.ComponentModel.PropertyChangedEventHandler]]$Handlers
 
     BaseViewModel() {
@@ -36,6 +41,11 @@ class BaseViewModel : System.ComponentModel.INotifyPropertyChanged {
         foreach ($handler in $this.Handlers.ToArray()) {
             $handler.Invoke($this, [System.ComponentModel.PropertyChangedEventArgs]::new($name))
         }
+    }
+
+    # « J'ai fini » — la demande de fermeture, si la vue en a posé une.
+    hidden [void] RequestClose() {
+        if ($this.DemandeFermeture) { & $this.DemandeFermeture }
     }
 
     # Une mutation d'une propriété bindable : la vraie propriété se pose par

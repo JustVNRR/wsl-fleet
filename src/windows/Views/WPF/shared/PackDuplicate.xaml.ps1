@@ -4,12 +4,19 @@
 # Ce dont ce fichier nomme, déclaré ici : un module résout ce qu'il a tiré
 # lui-même.
 using module ..\BaseViewWpf.psm1
+using module ..\..\..\ViewModels\PackDuplicateViewModel.psm1
 
-# La petite fenêtre de duplication d'un pack : le nom (source-copy proposé,
-# pris refusé) et la description. Rend le nom et la description, ou rien.
+# La petite fenêtre de duplication d'un pack : le DataContext est le
+# PackDuplicateViewModel — le nom, la description et la ligne rouge s'y
+# bindent. Ici, ce que WPF demande : le chargement, le focus d'ouverture, le
+# relais des saisies, la porte de fermeture — et le nom rendu.
 class WpfPackDuplicateView : BaseViewWpf {
+    hidden [object]$Vm = $null
+
     [object] Ask([string]$source, [string]$description, [string[]]$taken) {
         $self = $this
+        $this.Vm = [PackDuplicateViewModel]::new($source, $description, $taken)
+
         $this.Title = "WSL Stack"
         $this.SizeToContent = [System.Windows.SizeToContent]::WidthAndHeight
         $this.WindowStartupLocation = [System.Windows.WindowStartupLocation]::CenterScreen
@@ -17,34 +24,22 @@ class WpfPackDuplicateView : BaseViewWpf {
         $this.Load((Join-Path $PSScriptRoot "PackDuplicate.xaml"))
         $this.WearDefault()
         $this.Dress($null, 15)
+        $this.DataContext = $this.Vm
 
-        $this.Find("TxtLead").Text = "Duplicate the pack '$source'"
-        $txtDupName = $this.Find("TxtDupName")
-        $txtDupName.Text = "$source-copy"
-        $this.Find("TxtDupDescription").Text = $description
-        $txtDupError = $this.Find("TxtDupError")
-        $this.Add_ContentRendered({ $null = $txtDupName.Focus(); $txtDupName.SelectAll() })
+        # La porte de fermeture — METHODE 1 : le ViewModel dit « j'ai fini »,
+        # la vue ferme.
+        $this.Vm.DemandeFermeture = { $self.Close() }
 
-        $this.Find("BtnDupCancel").Add_Click({ $this.Close() })
-        $this.Find("BtnDupOk").Add_Click({
-            $chosen = "$($txtDupName.Text)".Trim()
-            $problem = ""
-            if ($chosen -notmatch '^[A-Za-z0-9][A-Za-z0-9_.-]*$') {
-                $problem = "Letters, digits, '.', '_' and '-' only, starting with a letter or a digit."
-            } elseif (@($taken | Where-Object { $_ -eq $chosen }).Count -gt 0) {
-                $problem = "A pack named '$chosen' already exists."
-            }
-            if ($problem) {
-                $txtDupError.Text = $problem
-                $txtDupError.Visibility = [System.Windows.Visibility]::Visible
-                return
-            }
-            $this.Result = [PSCustomObject]@{ Name = $chosen; Description = "$($this.Find("TxtDupDescription").Text)".Trim() }
-            $this.Close()
-        })
+        $this.Add_ContentRendered({ $null = $self.Find("TxtDupName").Focus(); $self.Find("TxtDupName").SelectAll() })
+
+        # Les liens sont à sens unique : les saisies sont relayées au
+        # ViewModel.
+        $this.Find("TxtDupName").Add_TextChanged({ param($box, $e) $self.Vm.SetName("$($box.Text)") })
+        $this.Find("TxtDupDescription").Add_TextChanged({ param($box, $e) $self.Vm.SetDescription("$($box.Text)") })
+        $this.Find("BtnDupCancel").Add_Click({ $self.Close() })
 
         $this.FitToContent($null)
         $null = $this.OpenAs($null)
-        return $this.Result
+        return $this.Vm.Result
     }
 }

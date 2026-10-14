@@ -8,7 +8,7 @@ using module ..\..\..\ViewModels\ManagePacksViewModel.psm1
 
 # La checklist, la fenêtre : le DataContext est le ManagePacksViewModel — les
 # cases, les deux lignes du cli et APPLY se bindent en XAML. Ici, le strict
-# nécessaire : le chargement, la fermeture sur Done, et le Dto rendu. Rien à
+# nécessaire : le chargement, la porte de fermeture, et le Dto rendu. Rien à
 # choisir : Ask rend $null sans même ouvrir (une réponse, pas une annulation).
 class WpfManagePacksView : BaseViewWpf {
     hidden [object]$Vm = $null
@@ -27,10 +27,9 @@ class WpfManagePacksView : BaseViewWpf {
         $this.Dress($null, 15)
         $this.DataContext = $this.Vm
 
-        $this.Vm.add_PropertyChanged({
-            param($source, $e)
-            if ("$($e.PropertyName)" -eq "Done") { $self.Close() }
-        })
+        # La porte de fermeture — METHODE 1 : le ViewModel dit « j'ai fini »,
+        # la vue ferme.
+        $this.Vm.DemandeFermeture = { $self.Close() }
 
         # Les cases se construisent à la main — des chaînes, jamais un
         # gabarit d'items (muet sur nos objets, mesuré). Le relais ROUTÉ

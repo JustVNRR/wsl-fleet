@@ -13,7 +13,7 @@ using module ..\..\..\ViewModels\SettingsViewModel.psm1
 # famille se construit en objet, mesuré), les sélecteurs de fichiers et la
 # lecture de la famille d'une police (WPF seul sait la dire), le jugement d'un
 # thème téléversé (WPF seul sait lire un dictionnaire), les portes rouges, la
-# fermeture sur Done — et le contexte des fenêtres rafraîchi en sortant, sur
+# porte de fermeture — et le contexte des fenêtres rafraîchi en sortant, sur
 # le look rendu.
 class WpfSettingsView : BaseViewWpf {
     # L'Entrée mangée après chaque sélecteur de fichier (mesuré).
@@ -35,12 +35,15 @@ class WpfSettingsView : BaseViewWpf {
         $this.Dress($null, 15)
         $this.DataContext = $this.Vm
 
+        # La porte de fermeture — METHODE 1 : le ViewModel dit « j'ai fini »,
+        # la vue ferme.
+        $this.Vm.DemandeFermeture = { $self.Close() }
+
         # La face en direct : le thème s'échange sous la fenêtre, la police
         # suit, la taille se redresse.
         $this.Vm.add_PropertyChanged({
             param($source, $e)
             switch ("$($e.PropertyName)") {
-                "Done" { $self.Close() }
                 "FontIndex" { $self.RepaintFace() }
                 "SizeIndex" { $self.RepaintFace() }
                 "ColourIndex" { $self.RepaintFace() }

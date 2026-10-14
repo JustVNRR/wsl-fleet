@@ -19,18 +19,16 @@ using module ..\Dto\InstanceDto.psm1
 # sont sous Views\<ViewType>\Instance\ :
 #
 #   Views\cli\Instance\shared\SelectInstance.psm1 — class CliSelectInstanceView,
-#       la question du cli — au WPF, les lignes sont déjà à l'écran : le clic
-#       EST la question, rien à demander ; le shell (Open) n'a pas de vue non
-#       plus — il s'ouvre, c'est tout.
+#       la question du cli ; le shell (Open) n'a pas de vue non plus — il
+#       s'ouvre, c'est tout.
 #   Views\cli\Instance\Restart.psm1        — class CliRestartView : BaseViewCli
 #   Views\cli\shared\Error.psm1            — class CliErrorView, la vue
-#   Views\WPF\shared\Error.psm1              d'erreur commune aux contrôleurs
+#       d'erreur commune aux contrôleurs
 #
-# Une vue fait une chose. La question « quelle instance ? » a SA vue au cli
+# Une vue fait une chose. La question « quelle instance ? » a SA vue
 # (SelectInstance), la même pour tous les gestes qui en ont besoin : le
 # contrôleur l'affiche d'abord, puis — le nom en main — lit ce qu'il faut au
-# service et affiche la vue du geste, l'instance déjà là. Au WPF elle n'en a
-# pas : le clic de la ligne a déjà choisi. Les gestes à deux
+# service et affiche la vue du geste, l'instance déjà là. Les gestes à deux
 # questions (les packs : l'instance, PUIS ses packs) suivent le même chemin :
 # SelectInstance, une lecture, puis la vue du geste.
 #
@@ -48,11 +46,9 @@ using module ..\Dto\InstanceDto.psm1
 # fenêtre sa ligne de trail.
 #
 # Les longs gestes — la naissance, retirer, compacter, archiver, restaurer,
-# copier, la corbeille d'archive — ne courent PAS sous la fenêtre : un appel
-# à wsl.exe y prendrait des minutes, le fil bloqué. Leur geste, au WPF,
-# s'arrête donc à la PORTE : il rend le Dto — ou rien, l'abandon — et c'est
-# la fenêtre qui mène le reste (l'ouvrier, un processus à part ; sa bande ;
-# son journal). Le cli, lui, n'a pas de fenêtre : il les court sur place.
+# copier, la corbeille d'archive — se courent ICI, sur place : le cli est le
+# seul monde qui passe par ce contrôleur (le gui a ses ViewModels), et il n'a
+# pas de fenêtre à bloquer.
 class InstanceController : BaseController {
     hidden [InstanceService]$Service
 
@@ -93,37 +89,18 @@ class InstanceController : BaseController {
     # checklist — et lui passe aussi la porte du registre, liée au service :
     # la référence tapée se vérifie pendant la question, avec les mots de la
     # porte, sans que la vue connaisse le service.
-    [object] Build() {
+    [ActionResult] Build() {
         $view = $this.GetView("Build")
-        $doors = $null
         try {
             $sources = $this.Service.GetBuildSources()
             $images = @($this.Service.GetAllSavedImages())
             $packs = @($this.Service.GetBuildPacks())
             $checkRegistry = $this.Service.IsRegistryImageValid
-
-            # La fenêtre, elle, écrit des recettes — elle les téléverse, les
-            # télécharge, les supprime — et refuse un nom déjà pris : les
-            # portes lui arrivent liées au service. Le cli ne demande que ses
-            # listes.
-            if ($this.ViewType -eq "WPF") {
-                $doors = [PSCustomObject]@{
-                    Taken  = @($this.Service.GetAll() | Where-Object { -not $_.IsArchive } | ForEach-Object { $_.Name })
-                    Upload = $this.Service.UploadRecipe
-                    Delete = $this.Service.DeleteRecipe
-                    Export = $this.Service.ExportRecipe
-                }
-            }
         } catch {
             $this.ShowFailure($_.Exception.Message)
             return [ActionResult]::Nok("Build : $($_.Exception.Message)")
         }
-        $dto = if ($null -ne $doors) {
-            $view.Ask($sources, $images, $packs, $checkRegistry, $doors)
-        } else {
-            $view.Ask($sources, $images, $packs, $checkRegistry)
-        }
-        if ($this.ViewType -eq "WPF") { return $dto }
+        $dto = $view.Ask($sources, $images, $packs, $checkRegistry)
         if ($null -eq $dto) { return [ActionResult]::Ok("Build : cancelled") }
 
         # Le docker doit répondre avant la FABRICATION — l'ancienne sondait
@@ -153,20 +130,15 @@ class InstanceController : BaseController {
     [ActionResult] Open([string]$instanceName) {
         $name = $this.SelectInstance($instanceName, @())
         if (-not $name) { return [ActionResult]::Ok("Open : cancelled") }
-        # Le shell n'a pas de vue : il s'ouvre, c'est tout. Le cli garde la
-        # sienne (ses lignes d'écran) ; le WPF n'a rien à peindre.
-        $view = $null
-        if ($this.ViewType -ne "WPF") {
-            $view = $this.GetView("Open")
-            $view.Ask($name)
-        }
+        $view = $this.GetView("Open")
+        $view.Ask($name)
         try {
             $response = $this.Service.Open($name)
         } catch {
             $this.ShowFailure($_.Exception.Message)
             return [ActionResult]::Nok("Open : $name - $($_.Exception.Message)")
         }
-        if ($view) { $view.Show($name, $response) }
+        $view.Show($name, $response)
         return [ActionResult]::Ok("Open : $name")
     }
 
@@ -188,13 +160,12 @@ class InstanceController : BaseController {
     # Les gestes qui lisent l'index pour leur question le lisent une fois :
     # SelectInstance y choisit, la vue du geste y relit ce qu'elle montre (une
     # archive du même nom existe-t-elle).
-    [object] Remove([string]$instanceName) {
+    [ActionResult] Remove([string]$instanceName) {
         $rows = @($this.Service.GetAll())
         $name = $this.SelectInstance($instanceName, $rows)
         if (-not $name) { return [ActionResult]::Ok("Remove : cancelled") }
         $view = $this.GetView("Remove")
         $dto = $view.Ask($name, $rows)
-        if ($this.ViewType -eq "WPF") { return $dto }
         if ($null -eq $dto) { return [ActionResult]::Ok("Remove : cancelled") }
         try {
             $this.Service.Remove($dto)
@@ -206,13 +177,12 @@ class InstanceController : BaseController {
         return [ActionResult]::Ok("Remove : $($dto.InstanceName)")
     }
 
-    [object] Compact([string]$instanceName) {
+    [ActionResult] Compact([string]$instanceName) {
         $rows = @($this.Service.GetAll())
         $name = $this.SelectInstance($instanceName, $rows)
         if (-not $name) { return [ActionResult]::Ok("Compact : cancelled") }
         $view = $this.GetView("Compact")
         $dto = $view.Ask($name, $rows)
-        if ($this.ViewType -eq "WPF") { return $dto }
         if ($null -eq $dto) { return [ActionResult]::Ok("Compact : cancelled") }
         try {
             $response = $this.Service.Compact($dto)
@@ -333,7 +303,7 @@ class InstanceController : BaseController {
         return [ActionResult]::Ok("RemovePack : $($dto.InstanceName)")
     }
 
-    [object] ManagePacks([string]$instanceName) {
+    [ActionResult] ManagePacks([string]$instanceName) {
         $name = $this.SelectInstance($instanceName, @())
         if (-not $name) { return [ActionResult]::Ok("ManagePacks : cancelled") }
         $view = $this.GetView("ManagePacks")
@@ -344,10 +314,6 @@ class InstanceController : BaseController {
             return [ActionResult]::Nok("ManagePacks : $name - $($_.Exception.Message)")
         }
         $dto = $view.Ask($packs, $name)
-        # Au WPF, la porte rend le Dto (ou le vide de l'abandon) : l'ouvrier
-        # fait le reste dans sa console. Sans elle, l'abandon lançait quand
-        # même une console — ouverte et fermée aussitôt (vécu).
-        if ($this.ViewType -eq "WPF") { return $dto }
         if ($null -eq $dto) { return [ActionResult]::Ok("ManagePacks : cancelled") }
         try {
             $response = $this.Service.ManagePacks($dto)
@@ -363,13 +329,12 @@ class InstanceController : BaseController {
     # L'ARCHIVE
     # =========================================================================
 
-    [object] Archive([string]$instanceName) {
+    [ActionResult] Archive([string]$instanceName) {
         $rows = @($this.Service.GetAll())
         $name = $this.SelectInstance($instanceName, $rows)
         if (-not $name) { return [ActionResult]::Ok("Archive : cancelled") }
         $view = $this.GetView("Archive")
         $dto = $view.Ask($name, $rows)
-        if ($this.ViewType -eq "WPF") { return $dto }
         if ($null -eq $dto) { return [ActionResult]::Ok("Archive : cancelled") }
         try {
             $response = $this.Service.Archive($dto)
@@ -384,11 +349,10 @@ class InstanceController : BaseController {
     # L'archive se choisit dans SA vue (la question des archives n'est pas
     # celle des instances) : l'index reçu la porte, une ligne déjà désignée se
     # reprend telle quelle.
-    [object] Restore([string]$archiveName) {
+    [ActionResult] Restore([string]$archiveName) {
         $rows = @($this.Service.GetAll())
         $view = $this.GetView("Restore")
         $dto = $view.Ask($rows, $archiveName)
-        if ($this.ViewType -eq "WPF") { return $dto }
         if ($null -eq $dto) { return [ActionResult]::Ok("Restore : cancelled") }
         try {
             $response = $this.Service.Restore($dto)
@@ -400,10 +364,9 @@ class InstanceController : BaseController {
         return [ActionResult]::Ok("Restore : $($dto.InstanceName)")
     }
 
-    [object] DeleteArchive([string]$archiveName) {
+    [ActionResult] DeleteArchive([string]$archiveName) {
         $view = $this.GetView("DeleteArchive")
         $name = $view.Ask($archiveName)
-        if ($this.ViewType -eq "WPF") { return $name }
         if (-not $name) { return [ActionResult]::Ok("DeleteArchive : cancelled") }
         try {
             $this.Service.DeleteArchive($name)
@@ -415,12 +378,11 @@ class InstanceController : BaseController {
         return [ActionResult]::Ok("DeleteArchive : $name")
     }
 
-    [object] Duplicate([string]$instanceName) {
+    [ActionResult] Duplicate([string]$instanceName) {
         $source = $this.SelectInstance($instanceName, @())
         if (-not $source) { return [ActionResult]::Ok("Duplicate : cancelled") }
         $view = $this.GetView("Duplicate")
         $dto = $view.Ask($source)
-        if ($this.ViewType -eq "WPF") { return $dto }
         if ($null -eq $dto) { return [ActionResult]::Ok("Duplicate : cancelled") }
         try {
             $response = $this.Service.Duplicate($dto)
@@ -436,12 +398,10 @@ class InstanceController : BaseController {
     # LES PAS PARTAGÉS
     # =========================================================================
 
-    # La question partagée : « quelle instance ? » — au cli, sa vue choisit
-    # sur l'index (lu ici quand la main ne l'a pas) ; au WPF, les lignes sont
-    # déjà à l'écran — le clic EST la question : le nom donné se reprend tel
+    # La question partagée : « quelle instance ? » — sa vue choisit sur
+    # l'index (lu ici quand la main ne l'a pas) ; le nom donné se reprend tel
     # quel, et sans nom il n'y a rien à prendre.
     hidden [string] SelectInstance([string]$target, [object[]]$rows) {
-        if ($this.ViewType -eq "WPF") { return $target }
         if (-not $rows) { $rows = @($this.Service.GetAll()) }
         return $this.GetView("SelectInstance").Ask($rows, $target)
     }

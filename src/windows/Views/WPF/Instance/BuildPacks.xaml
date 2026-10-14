@@ -1,0 +1,23 @@
+<Grid xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid.RowDefinitions>
+        <RowDefinition Height="*"/>
+        <RowDefinition Height="Auto"/>
+    </Grid.RowDefinitions>
+    <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="18,18,18,4">
+            <TextBlock Margin="0,4,0,0" Text="Add optional packs"/>
+            <TextBlock Name="TxtPacksForeign" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource AppWarningBrush}" Visibility="Collapsed" Text="The recipe's system cannot be read.&#10;Please make sure your Docker image is compatible with the following packs before ticking them."/>
+            <ScrollViewer MaxHeight="260" Margin="0,6,0,0" VerticalScrollBarVisibility="Auto">
+                <StackPanel Name="Boxes"/>
+            </ScrollViewer>
+            <TextBlock Name="TxtNotes" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource AppMutedBrush}"/>
+        </StackPanel>
+    </ScrollViewer>
+    <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="18,10,18,16">
+        <Button Name="BtnPickCancel" Content="Cancel" Width="80" Height="28" Margin="0,0,8,0" IsCancel="True"
+                Background="{DynamicResource AppFaceBrush}" Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="{DynamicResource AppBorderBrush}"/>
+        <Button Name="BtnPickApply" Content="APPLY" Width="90" Height="28" IsDefault="True"
+                Background="{DynamicResource AppForegroundBrush}" Foreground="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource AppForegroundBrush}"/>
+    </StackPanel>
+</Grid>

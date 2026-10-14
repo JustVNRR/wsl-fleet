@@ -1,0 +1,80 @@
+<Grid xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid.RowDefinitions>
+        <RowDefinition Height="*"/>
+        <RowDefinition Height="Auto"/>
+    </Grid.RowDefinitions>
+    <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="18,18,18,4">
+            <TextBlock Margin="0,10,0,0" Text="Instance name:"/>
+            <TextBox Name="TxtName" Margin="0,6,0,0" Background="{DynamicResource AppInputBackgroundBrush}" Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="{DynamicResource AppBorderBrush}" Padding="4"/>
+            <TextBlock Name="TxtNameError" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource AppDangerBrush}" Visibility="Collapsed"/>
+            <TextBlock Name="LblUser" Margin="0,12,0,0" Text="User name:"/>
+            <TextBox Name="TxtUser" Margin="0,6,0,0" Background="{DynamicResource AppInputBackgroundBrush}" Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="{DynamicResource AppBorderBrush}" Padding="4"/>
+            <TextBlock Name="TxtUserError" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource AppDangerBrush}" Visibility="Collapsed"/>
+            <TextBlock Margin="0,12,0,0" Text="Build from:"/>
+            <ComboBox Name="CmbRoad" Margin="0,6,0,0"/>
+            <StackPanel Name="BoxDockerfile">
+                <TextBlock Margin="0,10,0,0" Text="Dockerfile:"/>
+                <Grid Margin="0,6,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <ComboBox Name="CmbDockerfile" Grid.Column="0"/>
+                    <Button Name="BtnDockerfileUpload" Grid.Column="1" Content="&#xF093;" FontFamily="{DynamicResource IconFace}" Width="34" Margin="8,0,0,0" ToolTip="Upload a Dockerfile..."/>
+                    <Button Name="BtnDockerfileDownload" Grid.Column="2" Content="&#xF019;" FontFamily="{DynamicResource IconFace}" Width="34" Margin="8,0,0,0" ToolTip="Save the selected Dockerfile..."/>
+                    <Button Name="BtnDockerfileDelete" Grid.Column="3" Content="&#xF1F8;" FontFamily="{DynamicResource IconFace}" Width="34" Margin="8,0,0,0" IsEnabled="False" ToolTip="Delete the selected uploaded file"/>
+                </Grid>
+                <CheckBox Name="ChkSaveImage" Margin="0,10,0,0" Content="Save image locally" Foreground="{DynamicResource AppForegroundBrush}"/>
+            </StackPanel>
+            <StackPanel Name="BoxDockerImage" Visibility="Collapsed">
+                <TextBlock Margin="0,10,0,0" Text="Docker image:"/>
+                <Grid Margin="0,6,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <ComboBox Name="CmbDockerImage" Grid.Column="0"/>
+                    <Button Name="BtnDockerImageUpload" Grid.Column="1" Content="&#xF093;" FontFamily="{DynamicResource IconFace}" Width="34" Margin="8,0,0,0" ToolTip="Upload an image (.tar)..."/>
+                    <Button Name="BtnDockerImageDownload" Grid.Column="2" Content="&#xF019;" FontFamily="{DynamicResource IconFace}" Width="34" Margin="8,0,0,0" IsEnabled="False" ToolTip="Save the selected Docker image..."/>
+                    <Button Name="BtnDockerImageDelete" Grid.Column="3" Content="&#xF1F8;" FontFamily="{DynamicResource IconFace}" Width="34" Margin="8,0,0,0" IsEnabled="False" ToolTip="Delete the selected uploaded file"/>
+                </Grid>
+                <TextBlock Name="TxtImageError" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource AppDangerBrush}" Visibility="Collapsed"/>
+            </StackPanel>
+            <StackPanel Name="BoxRegistry" Visibility="Collapsed">
+                <TextBlock Margin="0,10,0,0" Text="Registry image:"/>
+                <TextBox Name="TxtRegistry" Margin="0,6,0,0" Background="{DynamicResource AppInputBackgroundBrush}" Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="{DynamicResource AppBorderBrush}" Padding="4"/>
+                <TextBlock Margin="0,4,0,0" Text="e.g. alpine:latest - pulled by the build when the store does not carry it." Foreground="{DynamicResource AppMutedBrush}"/>
+                <TextBlock Name="TxtRegistryError" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource AppDangerBrush}" Visibility="Collapsed"/>
+            </StackPanel>
+            <CheckBox Name="ChkRegisterDocker" Margin="0,12,0,0" Content="Add to Docker Desktop (it will be restarted)" IsChecked="True" Foreground="{DynamicResource AppForegroundBrush}"/>
+            <CheckBox Name="ChkRunFirstBoot" Margin="0,12,0,0" Content="Run onboarding shell" IsChecked="True" Foreground="{DynamicResource AppForegroundBrush}"/>
+            <StackPanel Name="BoxFirstBoot">
+                <TextBlock Margin="0,10,0,0" Text="Onboarding:"/>
+                <Grid Margin="0,6,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <ComboBox Name="CmbFirstBoot" Grid.Column="0"/>
+                    <Button Name="BtnFirstBootUpload" Grid.Column="1" Content="&#xF093;" FontFamily="{DynamicResource IconFace}" Width="34" Margin="8,0,0,0" ToolTip="Upload onboarding shell..."/>
+                    <Button Name="BtnFirstBootDownload" Grid.Column="2" Content="&#xF019;" FontFamily="{DynamicResource IconFace}" Width="34" Margin="8,0,0,0" ToolTip="Save the selected onboarding shell..."/>
+                    <Button Name="BtnFirstBootDelete" Grid.Column="3" Content="&#xF1F8;" FontFamily="{DynamicResource IconFace}" Width="34" Margin="8,0,0,0" IsEnabled="False" ToolTip="Delete the selected uploaded file"/>
+                </Grid>
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+    <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="18,10,18,16">
+        <Button Name="BtnAddCancel" Content="Cancel" Width="80" Height="28" Margin="0,0,8,0" IsCancel="True"
+                Background="{DynamicResource AppFaceBrush}" Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="{DynamicResource AppBorderBrush}"/>
+        <Button Name="BtnAddCreate" Content="CREATE" Width="90" Height="28" IsDefault="True" IsEnabled="False"
+                Background="{DynamicResource AppForegroundBrush}" Foreground="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource AppForegroundBrush}"/>
+    </StackPanel>
+</Grid>

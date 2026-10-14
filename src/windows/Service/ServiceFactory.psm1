@@ -1,0 +1,62 @@
+using module ..\Model\WslPackCatalog.psm1
+using module ..\Repository\InstanceRepository.psm1
+using module ..\Repository\ArchiveRepository.psm1
+using module ..\Repository\WslRepository.psm1
+using module ..\Repository\TerminalRepository.psm1
+using module ..\Repository\DockerRepository.psm1
+using module ..\Repository\PackCatalogRepository.psm1
+using module ..\Repository\ConfigRepository.psm1
+using module .\InstanceService.psm1
+using module .\FleetService.psm1
+using module .\WpfService.psm1
+using module .\PackCatalogService.psm1
+
+class ServiceFactory {
+    static [InstanceService] CreateInstanceService([string]$root, [string]$assets, [string]$distroTree) {
+        return [InstanceService]::new(
+            [InstanceRepository]::new($root),
+            [ArchiveRepository]::new((Join-Path $root "archives")),
+            [WslRepository]::new($distroTree),
+            [TerminalRepository]::new($assets),
+            [DockerRepository]::new($assets),
+            [PackCatalogRepository]::new((Join-Path $assets "packs")),
+            [ConfigRepository]::new($assets)
+        )
+    }
+
+    # La racine : la flotte la dit — bâtie sur un foyer de passage le temps
+    # de la lire (le fichier de mémoire, le registre : des chemins absolus,
+    # rien à voir avec ce foyer), puis rendue. C'est ici, pas chez l'entrée :
+    # un dépôt joint ses dossiers à la racine et refuse un chemin vide.
+    static [string] ResolveRoot([string]$assets, [string]$distroTree) {
+        $fleet = [ServiceFactory]::CreateFleetService([IO.Path]::GetTempPath(), $assets, $distroTree)
+        return $fleet.GetRoot()
+    }
+
+    # La flotte : les mêmes dépôts, et le service des instances par-dessus —
+    # c'est lui qui archive et désinscrit une par une, SetRoot ne touchant
+    # que ce qui est à la flotte.
+    static [FleetService] CreateFleetService([string]$root, [string]$assets, [string]$distroTree) {
+        $instances = [InstanceRepository]::new($root)
+        $archives = [ArchiveRepository]::new((Join-Path $root "archives"))
+        $wsl = [WslRepository]::new($distroTree)
+        $config = [ConfigRepository]::new($assets)
+        $service = [InstanceService]::new(
+            $instances, $archives, $wsl,
+            [TerminalRepository]::new($assets),
+            [DockerRepository]::new($assets),
+            [PackCatalogRepository]::new((Join-Path $assets "packs")),
+            $config)
+        return [FleetService]::new($config, $wsl, $instances, $archives, $service)
+    }
+
+    # La face de la fenêtre : le fichier du look et le Terminal.
+    static [WpfService] CreateWpfService([string]$assets) {
+        return [WpfService]::new([ConfigRepository]::new($assets), [TerminalRepository]::new($assets))
+    }
+
+    # Le catalogue des packs : le modèle et son dépôt.
+    static [PackCatalogService] CreatePackCatalogService([string]$assets) {
+        return [PackCatalogService]::new([WslPackCatalog]::new(), [PackCatalogRepository]::new((Join-Path $assets "packs")))
+    }
+}

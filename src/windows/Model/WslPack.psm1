@@ -32,8 +32,11 @@ class WslPack {
 
     [string] GetName() { return $this.Name }
     [void] SetName([string]$name) {
-        if ($name -notmatch '^[A-Za-z0-9][A-Za-z0-9_.-]*$') {
-            throw "'$name' is not usable as a pack name (letters, digits, '.', '_' and '-' only)."
+        # Un souligné de tête est permis : c'est la marque du modèle
+        # (_oh_my_pack), qui vit dans le catalogue comme les autres — mesuré
+        # sur sa machine, la règle sans lui refusait le corpus livré.
+        if ($name -notmatch '^_?[A-Za-z0-9][A-Za-z0-9_.-]*$') {
+            throw "'$name' is not usable as a pack name (a letter or digit first, then letters, digits, '.', '_' and '-'; a leading '_' for the template)."
         }
         $this.Name = $name
     }

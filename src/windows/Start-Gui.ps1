@@ -28,7 +28,21 @@ Add-Type -AssemblyName System.Windows.Forms
 # `using` : son import réclame les types du WPF, déjà chargés. Sans -Force :
 # le cache du module porte la MÊME classe pour toutes les vues (deux
 # chargements feraient deux contextes, et les statiques divergeraient).
+# Une classe importée ainsi n'a PAS de nom ici — mesuré sur sa machine :
+# « Impossible de trouver le type [BaseViewWpf] ». On la prend par le guet :
+# la même recherche d'assemblée que la résolution des vues, et l'appel par
+# la variable qui la tient.
 $null = Import-Module (Join-Path $PSScriptRoot "Views\WPF\BaseViewWpf.psm1")
+$baseView = $null
+foreach ($assembly in [AppDomain]::CurrentDomain.GetAssemblies()) {
+    try { $baseView = @($assembly.GetTypes() | Where-Object { $_.Name -eq "BaseViewWpf" })[0] } catch { }
+    if ($baseView) { break }
+}
+if (-not $baseView) {
+    Write-Host ""
+    Write-Host "[ABORT] BaseViewWpf was not found - the src\windows\Views\WPF\ folder is incomplete." -ForegroundColor DarkRed
+    exit 1
+}
 
 # 2. Les dossiers : la racine du dépôt, deux crans au-dessus. Les vues
 # vivent sous Views\ : c'est CE dossier que les contrôleurs prennent pour
@@ -50,7 +64,7 @@ $catalogue = [ServiceFactory]::CreatePackCatalogService($Assets)
 # Le contexte des fenêtres : le look et les dossiers — les polices (VT323,
 # les glyphes), la fenêtre se les résout elle-même.
 $look = $wpfService.GetTheme()
-[BaseViewWpf]::SetContext($look, $Assets)
+$baseView::SetContext($look, $Assets)
 
 # Les contrôleurs — et les portes des gestes, que l'entrée seule peut tenir :
 # elle est le seul endroit qui tient tous les contrôleurs.

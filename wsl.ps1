@@ -1,275 +1,70 @@
-# The classes this file names, pulled in by the file itself: the menu is
-# built from [WslMenu] rows below, and the manager below that.
-using module .\src\windows\WslModel\WslModel.psd1
-using module .\src\windows\WslUI.psm1
+# ==============================================================================
+# THE WAY IN
+# ==============================================================================
+# Une seule porte à la racine, et deux foyers : la fenêtre, la console. Nue,
+# elle pose la question — flèches et Entrée, Échap pour abandonner. Avec un
+# mot, la console le route ; gui et cli gardent leur sens.
+#
+#   .\wsl.ps1                la question
+#   .\wsl.ps1 gui            la fenêtre
+#   .\wsl.ps1 cli            le menu de la console
+#   .\wsl.ps1 archive        une commande, par son mot
+#   .\wsl.ps1 restore wagon_archive   par son nom
+#
+# Rien ne vit ici : l'assemblage et les gestes sont chez eux, sous
+# src\windows\ — Start-Gui.ps1 et Start-Cli.ps1, les deux entrées.
+using module .\src\windows\Views\cli\MenuCli.psm1
 
 [CmdletBinding()]
-param (
+param(
     [Parameter(Position = 0)]
     [string]$Command,
 
-    # Nothing followed means an empty list, never $null: @($null) is a list of
-    # one, and every command run bare would receive that stray argument.
-    [Parameter(ValueFromRemainingArguments = $true)]
-    [object[]]$RemainingArgs = @()
+    # Le nom, quand il est là : les gestes le prennent en premier — sans lui,
+    # la vue du geste demande.
+    [Parameter(Position = 1)]
+    [string]$Name = ""
 )
 
-# ==============================================================================
-# THE WAY IN: one command at the root, the commands themselves in src\windows\WslCommands\
-# ==============================================================================
-# Bare, it asks which way in - the window, or the console's commands - walked
-# with the arrows and taken with Enter, Escape to cancel. With a command, it
-# runs it.
-#
-#   .\wsl.ps1                       the menu
-#   .\wsl.ps1 archive               archive an instance
-#   .\wsl.ps1 archive -Format tar.xz
-#
-# Almost none of the commands behind it takes a name on the command line: they
-# list what exists - this template's instances only, the ones carrying the
-# marker - or, for start and stop, what can still be acted on, and you pick.
-# delete_archive is the exception: called by name, kept out of the menu.
-#
-#
-# The module is imported here, once, for the whole run: its functions are
-# visible to every command launched below (they run in this session), and THE
-# manager is made here too - the engine every command calls, handed over.
-#
-# The list is asked through src\windows\WslUI.psm1: one WslMenuItem per row of the
-# chain below - the word, the line, the gesture - and the trio answers both
-# ways in, the menu and the command line alike.
-# ==============================================================================
+$Windows = Join-Path $PSScriptRoot "src\windows"
+$Console = [ConsoleCli]::new()
 
-$Scripts = Join-Path $PSScriptRoot "src\windows"
-
-# The commands themselves: one file per word, in their own folder - what the
-# menu rows and the command line both end at.
-$CommandFiles = Join-Path $Scripts "WslCommands"
-
-# THE module, imported here: its words and colours - every line below takes
-# one - its functions, and the families behind them. The guard prints
-# uncoloured: the table it would ask is the module that is missing.
-$StackModule = Join-Path $Scripts "WslStack\WslStack.psd1"
-if (-not (Test-Path $StackModule)) {
-    Write-Host ""
-    Write-Host "[ABORT] src\windows\WslStack\WslStack.psd1 is missing - the src\windows\ folder is incomplete."
-    exit 1
-}
-Import-Module $StackModule -Force
-
-# The gesture, one block for every command: the row and the run context arrive
-# as parameters - nothing is read from a scope at call time (measured: a
-# closure that read its variables by name worked on one machine and came up
-# empty on another). The entry below runs it at its own scope, and NOT through
-# a class method: a method collects what it runs and takes the console away
-# from every native underneath - the child loses its terminal and its stdout
-# is thrown away, which is what blinded a build's whiptail (measured).
-$Gesture = {
-    param($Command, $Run)
-    # The command's own file, resolved once by the entry - the window's lives
-    # with the window, every other under the commands' folder. The commands
-    # whose answers came from the console's conversation arrived whole, and
-    # the words that built them are spent - they take their answers and
-    # nothing else.
-    if ($Run.ContainsKey("Answers")) {
-        & $Run.Script -Form $Run.Answers -Manager $Run.Manager
-        return
-    }
-    # The tokens after the command, in words: `-Name` starts a parameter and
-    # the tokens up to the next one are its values - the command's own
-    # parameters then bind by name, the way they read on the command line.
-    # Handed over positionally instead, the token '-Format' was taken for the
-    # VALUE of the next parameter (measured: archive -Format tar.xz died on
-    # the value '-Format'). A parameter with no value is a switch ($true), and
-    # a name the command does not know still lands in its $Ignored, which
-    # refuses it. Anything before the first `-Name` rides positionally, as it
-    # came.
-    $Named = @{}
-    $Loose = @()
-    $Key = $null
-    foreach ($Token in @($Run.Args)) {
-        $Word = "$Token"
-        if ($Word.StartsWith("-") -and $Word.Length -gt 1) {
-            $Key = $Word.Substring(1)
-            $Named[$Key] = @()
-            continue
-        }
-        if ($Key) { $Named[$Key] += ,$Token } else { $Loose += $Token }
-    }
-    foreach ($Name in @($Named.Keys)) {
-        $Values = @($Named[$Name])
-        $Named[$Name] = if ($Values.Count -eq 0) { $true } elseif ($Values.Count -eq 1) { $Values[0] } else { $Values }
-    }
-    & $Run.Script @Named @Loose -Manager $Run.Manager
-}
-
-# The words, one chain: one WslMenuItem per command - the word, the line, the
-# gesture. The order is the one the documentation uses: list, the answer to
-# "what do I have?", then the rest along an instance's life. Each line says
-# what the command does and stops there: a menu is read at a glance. The
-# longest is 40 characters - 61 columns numbered, 58 behind the arrow marker,
-# measured - so an 80-column window shows them whole and the cut never eats a
-# word that mattered. What deserves a sentence is in docs\wsl\commands.md.
-#
-# The window is not in this chain: bare, the way in asks first what kind of
-# way in - the window, or these commands - so the window opens from the first
-# question and never crowds the commands'. The word 'gui' still routes: it has
-# its own seat below, with the window it opens.
-$Main = [WslMenu]::new("WSL Stack").
-    Add("gui", "WSL Fleet GUI", $Gesture).
-    Add("cli", "WSL Fleet CLI",       $Gesture)
-
-$Menu = [WslMenu]::new("WSL Stack - console").
-    Add("list",         "list our instances and the archives",      $Gesture).
-    Add("build",        "build an instance from the image",         $Gesture).
-    Add("restart",      "restart an instance",                      $Gesture).
-    Add("shell",        "open a shell inside an instance",          $Gesture).
-    Add("add_pack",     "install a pack into an instance",          $Gesture).
-    Add("remove_pack",  "uninstall a pack from an instance",        $Gesture).
-    Add("manage_packs", "choose the packs an instance should carry", $Gesture).
-    Add("theme",        "choose the icon, font and colours",        $Gesture).
-    Add("unregister",   "remove an instance",                       $Gesture).
-    Add("archive",      "write an instance to a named archive",     $Gesture).
-    Add("restore",      "rebuild an instance from an archive",      $Gesture).
-    Add("duplicate",    "copy an instance under another name",      $Gesture).
-    Add("shrink",       "reclaim the space an instance has freed",  $Gesture).
-    Add("wslconfig",    "open the Windows-wide WSL settings",       $Gesture).
-    Add("migrate",      "move the fleet to another folder",         $Gesture)
-
-# With a word, the command line routes it; bare, the repository asks its first
-# question - the window, or the console's commands - and it is a question like
-# the ones inside the commands: the same menu, walked with the arrows,
-# cancelled with Escape.
-if ($Command) {
-    # The word names its command, whatever its case. A word the menu does not
-    # carry may still be a command file - delete_archive is one, called by
-    # name and kept out of the menu - and a word neither knows is said here,
-    # with the list it should have come from.
-    $Chosen = $Menu.Dispatch($Command)
-    if (-not $Chosen -and ($Command -eq "gui" -or (Test-Path (Join-Path $CommandFiles "$Command.ps1")))) {
-        $Chosen = [PSCustomObject]@{ Key = $Command; Action = $Gesture }
-    }
-    if (-not $Chosen) {
-        Write-Host ""
-        Write-Host "[ABORT] Invalid command '$Command'. Available commands:" -ForegroundColor (Get-MessageColour error)
-        foreach ($Item in $Menu.Items) {
-            Write-Host "          $($Item.Key)" -ForegroundColor (Get-MessageColour hint)
-        }
+function Test-Entry([string]$Script) {
+    if (-not (Test-Path $Script)) {
+        $Console.Line("", "")
+        $Console.Line("[ABORT] $Script is missing - the src\windows\ folder is incomplete.", "error")
         exit 1
     }
-} else {
+}
 
-    $Chosen = $Main.Prompt()
-    if (-not $Chosen) { Stop-Cancelled -What "run" }
-    if ($Chosen.Key -eq "cli") {
-        # The console's commands, and only those: the window lives in the
-        # question above.
-        $Chosen = $Menu.Prompt()
-        if (-not $Chosen) { Stop-Cancelled -What "run" }
+# Avec un mot : la console route tout — gui ouvre la fenêtre, cli ouvre le
+# menu, le reste part au menu de la console qui le connaît.
+if ($Command) {
+    $Word = "$Command".ToLower()
+    if ($Word -eq "gui") {
+        $Gui = Join-Path $Windows "Start-Gui.ps1"
+        Test-Entry $Gui
+        & $Gui
+        exit $LASTEXITCODE
     }
-}
-
-# The word's file: the window's lives with the window (src\windows\gui), by
-# the way-in menu's own hand - every other command under the commands' folder.
-$Script = if ($Chosen.Key -eq "gui") { Join-Path $Scripts "gui\Gui.ps1" } else { Join-Path $CommandFiles "$($Chosen.Key).ps1" }
-if (-not (Test-Path $Script)) {
-    Write-Host ""
-    Write-Host "[ABORT] $Script is missing - the src\windows\ folder is incomplete." -ForegroundColor (Get-MessageColour error)
-    exit 1
-}
-
-# The engine, made once: every command receives this same manager - the command
-# asks, the manager acts through the model, and nothing else reaches the disk
-# or wsl.exe.
-$Manager = New-InstanceManager
-
-# The console's conversations: one entry per command whose questions live in
-# one - the word to the controller it mounts. The commands with nothing to
-# ask - list, shell, wslconfig, delete_archive - are not in the map and go
-# straight to their file. The answers ride the run context; the words they
-# were built from are spent.
-$Conversations = @{
-    "build"        = "Build"
-    "archive"      = "Archive"
-    "restore"      = "Restore"
-    "duplicate"    = "Duplicate"
-    "unregister"   = "Unregister"
-    "shrink"       = "Shrink"
-    "migrate"      = "Migrate"
-    "restart"      = "Restart"
-    "remove_pack"  = "RemovePack"
-    "add_pack"     = "AddPack"
-    "manage_packs" = "ManagePacks"
-    "theme_font"   = "ThemeFont"
-    "theme_icon"   = "ThemeIcon"
-    "theme_color"  = "ThemeColor"
-    "theme"        = "Theme"
-}
-
-$Answers = $null
-$Controller = $Conversations[$Chosen.Key]
-if ($Controller) {
-    . (Join-Path $CommandFiles "..\cli\Controllers\$Controller.ps1")
-    if ($Chosen.Key -eq "build") {
-        Write-Host ""
-        Write-Host "==> Creating a new instance" -ForegroundColor (Get-MessageColour info)
+    $Cli = Join-Path $Windows "Start-Cli.ps1"
+    Test-Entry $Cli
+    if ($Word -eq "cli") {
+        & $Cli
+    } else {
+        & $Cli $Command $Name
     }
-    $Params = @{ Manager = $Manager; Options = $RemainingArgs }
-    # The build's first question needs the checkout's root: where its recipe
-    # templates live.
-    if ($Chosen.Key -eq "build") { $Params["RepoRoot"] = $PSScriptRoot }
-    $Answers = & "Read-$($Controller)Answers" @Params
-    if ($null -eq $Answers) { exit 1 }
+    exit $LASTEXITCODE
 }
 
-# Whatever followed the command travels in this run context: the gesture
-# rebuilds it into named parameters and loose values (see above), so a command
-# that has options binds them by name, and one handed a name it does not know
-# refuses it. With the commands' folder and the manager above, that is
-# everything the gesture takes its parameters from.
-$Run = @{
-    Script  = $Script
-    Args    = $RemainingArgs
-    Manager = $Manager
-}
-if ($null -ne $Answers) { $Run.Answers = $Answers }
+# Nue : la première question, comme les questions du dedans — le même menu.
+$Menu = [MenuCli]::new("WSL Stack")
+$Menu = $Menu.Add("gui", "WSL Fleet GUI", { })
+$Menu = $Menu.Add("cli", "WSL Fleet CLI", { })
+$Choice = $Menu.Prompt()
+if (-not $Choice) { exit 1 }
 
-& $Chosen.Action $Chosen $Run
-
-# A look written on its own, and the visit over: Terminal is asked to look
-# again once the prompt is back - a reload cannot land while a menu is
-# running, and behind the theme menu its own ending writes the touch (see
-# theme.ps1). The theme command touches for itself: nothing embeds it.
-if (($Chosen.Key -eq "theme_font" -or $Chosen.Key -eq "theme_icon" -or $Chosen.Key -eq "theme_color") -and $LASTEXITCODE -eq 0) {
-    Update-TerminalSettings
-}
-
-# A console build that went through opens the shell its summary promised -
-# the window's runner does the same on its side.
-if ($Chosen.Key -eq "build" -and $LASTEXITCODE -eq 0) {
-    try {
-        $Manager.Refresh()
-        $New = @($Manager.Instances | Where-Object { $_.Name -eq $Answers.Name })[0]
-        if ($New) { $New.OpenShell() }
-    } catch {
-        Write-Host "The shell window could not be opened: $($_.Exception.Message)" -ForegroundColor (Get-MessageColour warning)
-    }
-}
-
-# An archive that asked for the instance's removal removes it here, through
-# unregister - its conversation asked (the pick, the typed name), and only a
-# removal that ran to the end earns the closing line.
-if ($Chosen.Key -eq "archive" -and $LASTEXITCODE -eq 0 -and $Answers.Delete) {
-    Write-Host "Pick '$($Answers.Instance.Name)' in the list below, and type its name to confirm." -ForegroundColor (Get-MessageColour muted)
-    . (Join-Path $CommandFiles "..\cli\Controllers\Unregister.ps1")
-    $Removal = Read-UnregisterAnswers -Manager $Manager -Options @()
-    if ($null -ne $Removal) {
-        & (Join-Path $CommandFiles "unregister.ps1") -Form $Removal -Manager $Manager
-        if ($LASTEXITCODE -eq 0) {
-            Write-Host "The archive is the only copy of '$($Answers.Instance.Name)' left." -ForegroundColor (Get-MessageColour muted)
-        }
-    }
-}
-
-if ($null -eq $LASTEXITCODE) { exit 0 }
+$Script = Join-Path $Windows $(if ($Choice.Key -eq "gui") { "Start-Gui.ps1" } else { "Start-Cli.ps1" })
+Test-Entry $Script
+& $Script
 exit $LASTEXITCODE

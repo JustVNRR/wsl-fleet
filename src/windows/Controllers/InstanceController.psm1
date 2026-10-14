@@ -127,6 +127,17 @@ class InstanceController : BaseController {
         }
         if ($this.ViewType -eq "WPF") { return $dto }
         if ($null -eq $dto) { return [ActionResult]::Ok("Build : cancelled") }
+
+        # Le docker doit répondre avant la FABRICATION — l'ancienne sondait
+        # là : le questionnaire d'abord, puis la sonde, puis la naissance.
+        # Sans elle, la naissance s'écrase en plein docker build (vécu sur sa
+        # machine) au lieu de s'arrêter dit. Le cli s'arrête ici, le refus
+        # peint ; la fenêtre, elle, porte la sonde dans ses portes et offre
+        # de démarrer Docker.
+        if ($this.ViewType -ne "WPF" -and -not ($this.Service.TestDocker())) {
+            $view.Abort(@("Docker is not responding.", "Start Docker Desktop, then try again."))
+            return [ActionResult]::Nok("Build : Docker is not responding.")
+        }
         try {
             $response = $this.Service.Build($dto)
         } catch {

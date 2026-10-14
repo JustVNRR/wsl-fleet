@@ -2,18 +2,18 @@
 # L'ENTRÉE DU GUI — L'ASSEMBLAGE
 # ==============================================================================
 # La racine de la fenêtre : elle fait les services (par la fabrique — jamais
-# un dépôt ici), les contrôleurs, les portes des gestes que l'entrée seule
-# peut tenir, pose le contexte des fenêtres, et ouvre la fenêtre. La vue vit
-# sa vie : le cadre de dispatcher, la sentinelle, la bande et leur nettoyage
-# vivent chez elle, avec son fil.
+# un dépôt ici), le ViewModel — les services en main, il porte l'écran —,
+# pose le contexte des fenêtres, et ouvre la fenêtre. Plus de contrôleurs,
+# plus de portes ici : le CLI garde les siens ; le GUI passe par son
+# ViewModel. La vue vit sa vie : le cadre de dispatcher, le battement, le
+# volet et leur nettoyage vivent chez elle, avec son fil.
 #
 # L'ordre est compté : les `using` d'un script s'importent AVANT la première
-# ligne qui court — la fabrique et les contrôleurs sont du PowerShell pur,
-# ils passent ; la vue de base ÉTEND une fenêtre, elle s'importe APRÈS les
-# Add-Type, et son type se résout à l'exécution.
+# ligne qui court — la fabrique et le ViewModel sont du PowerShell pur (pas
+# une once de WPF), ils passent ; la vue de base ÉTEND une fenêtre, elle
+# s'importe APRÈS les Add-Type, et son type se résout à l'exécution.
 using module .\Service\ServiceFactory.psm1
-using module .\Controllers\InstanceController.psm1
-using module .\Controllers\MainWindowController.psm1
+using module .\ViewModels\MainWindowViewModel.psm1
 
 [CmdletBinding()]
 param()
@@ -44,14 +44,13 @@ if (-not $baseView) {
     exit 1
 }
 
-# 2. Les dossiers : la racine du dépôt, deux crans au-dessus. Les vues
-# vivent sous Views\ : c'est CE dossier que les contrôleurs prennent pour
-# racine.
+# 2. Les dossiers : la racine du dépôt, deux crans au-dessus.
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $Assets = Join-Path $RepoRoot "assets"
 $distroTree = Join-Path $RepoRoot "src\distro"
 if (-not (Test-Path $distroTree)) { $distroTree = "" }
-$ViewsRoot = Join-Path $PSScriptRoot "Views"
+$WpfViews = Join-Path $PSScriptRoot "Views\WPF"
+$Runners = Join-Path $PSScriptRoot "Runners"
 
 # 3. L'assemblage : la fabrique fait tout — la racine comprise, qu'elle
 # demande à la flotte d'un passage. L'entrée ne voit jamais un dépôt.
@@ -66,22 +65,25 @@ $catalogue = [ServiceFactory]::CreatePackCatalogService($Assets)
 $look = $wpfService.GetTheme()
 $baseView::SetContext($look, $Assets)
 
-# Les contrôleurs — et les portes des gestes, que l'entrée seule peut tenir :
-# elle est le seul endroit qui tient tous les contrôleurs.
-$instanceController = [InstanceController]::new($instances, $ViewsRoot, "WPF")
-$mainController = [MainWindowController]::new($wpfService, $catalogue, $fleet, $instances, $Assets, $ViewsRoot, "WPF")
-$gestures = [PSCustomObject]@{
-    Build         = $instanceController.Build
-    Open          = $instanceController.Open
-    Remove        = $instanceController.Remove
-    Compact       = $instanceController.Compact
-    Archive       = $instanceController.Archive
-    Restore       = $instanceController.Restore
-    Duplicate     = $instanceController.Duplicate
-    DeleteArchive = $instanceController.DeleteArchive
-    SetAppearance = $instanceController.SetAppearance
-    ManagePacks   = $instanceController.ManagePacks
-}
+# 4. Le ViewModel — l'écran, ses états, ses commandes. Les services sont à
+# lui ; les dossiers dont il a besoin (les vues des gestes, les ouvriers,
+# les assets) voyagent en clair.
+$vm = [MainWindowViewModel]::new($instances, $fleet, $wpfService, $catalogue, $Assets, $Runners, $WpfViews)
+$vm.Load()
 
-# 4. La fenêtre s'ouvre et vit — le geste rend quand elle se ferme.
-$null = $mainController.Main($gestures)
+# 5. La fenêtre s'ouvre et vit — le geste rend quand elle se ferme. Sa
+# classe se résout au guet, comme la vue de base : importée après les
+# Add-Type, son nom n'existe pas ici.
+$null = Import-Module (Join-Path $PSScriptRoot "Views\WPF\MainWindow\Main.xaml.ps1")
+$mainView = $null
+foreach ($assembly in [AppDomain]::CurrentDomain.GetAssemblies()) {
+    try { $mainView = @($assembly.GetTypes() | Where-Object { $_.Name -eq "WpfMainView" })[0] } catch { }
+    if ($mainView) { break }
+}
+if (-not $mainView) {
+    Write-Host ""
+    Write-Host "[ABORT] WpfMainView was not found - the src\windows\Views\WPF\MainWindow\ folder is incomplete." -ForegroundColor DarkRed
+    exit 1
+}
+$window = $mainView::new()
+$null = $window.Ask($vm)

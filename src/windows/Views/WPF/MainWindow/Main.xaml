@@ -20,21 +20,21 @@
         </Grid.ColumnDefinitions>
         <StackPanel Grid.Column="0">
             <TextBlock Text="WSL Fleet" FontWeight="SemiBold" Foreground="{DynamicResource AppForegroundBrush}"/>
-            <TextBlock Name="TxtRoot" Foreground="{DynamicResource AppMutedBrush}" Margin="0,2,0,0"/>
+            <TextBlock Text="{Binding Root, StringFormat='Root: {0}'}" Foreground="{DynamicResource AppMutedBrush}" Margin="0,2,0,0"/>
         </StackPanel>
-        <Button Name="BtnAdd" Grid.Column="1" Content="&#xF067;" FontFamily="{DynamicResource IconFace}"
+        <Button Name="BtnAdd" Command="{Binding AddCommand}" Grid.Column="1" Content="&#xF067;" FontFamily="{DynamicResource IconFace}"
                 Margin="0,0,8,0" VerticalAlignment="Top"
                 Background="{DynamicResource AppFaceBrush}" Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="{DynamicResource AppBorderBrush}"
                 ToolTip="Add"/>
-        <Button Name="BtnRefresh" Grid.Column="2" Content="&#xF021;" FontFamily="{DynamicResource IconFace}"
+        <Button Name="BtnRefresh" Command="{Binding RefreshCommand}" IsEnabled="{Binding Free}" Grid.Column="2" Content="&#xF021;" FontFamily="{DynamicResource IconFace}"
                 VerticalAlignment="Top"
                 Background="{DynamicResource AppFaceBrush}" Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="{DynamicResource AppBorderBrush}"
                 ToolTip="Refresh"/>
-        <Button Name="BtnSettings" Grid.Column="3" Content="&#xF013;" FontFamily="{DynamicResource IconFace}"
+        <Button Name="BtnSettings" Command="{Binding SettingsCommand}" Grid.Column="3" Content="&#xF013;" FontFamily="{DynamicResource IconFace}"
                 Margin="8,0,0,0" VerticalAlignment="Top"
                 Background="{DynamicResource AppFaceBrush}" Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="{DynamicResource AppBorderBrush}"
                 ToolTip="Settings"/>
-        <Button Name="BtnTheme" Grid.Column="4" Content="&#xF185;" FontFamily="{DynamicResource IconFace}"
+        <Button Name="BtnTheme" Command="{Binding ThemeCommand}" Grid.Column="4" Content="&#xF185;" FontFamily="{DynamicResource IconFace}"
                 Margin="8,0,0,0" VerticalAlignment="Top"
                 Background="{DynamicResource AppFaceBrush}" Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="{DynamicResource AppBorderBrush}"
                 ToolTip="Switch to light"/>
@@ -45,7 +45,7 @@
     </Grid>
 
     <!-- The instances -->
-    <ListView Name="LstInstances" Grid.Row="1" Background="{DynamicResource AppSurfaceBrush}" BorderBrush="{DynamicResource AppDividerBrush}" Foreground="{DynamicResource AppForegroundBrush}"
+    <ListView Name="LstInstances" ItemsSource="{Binding Rows}" IsEnabled="{Binding Free}" Grid.Row="1" Background="{DynamicResource AppSurfaceBrush}" BorderBrush="{DynamicResource AppDividerBrush}" Foreground="{DynamicResource AppForegroundBrush}"
               AlternationCount="2" KeyboardNavigation.TabNavigation="Continue"
               ScrollViewer.HorizontalScrollBarVisibility="Disabled">
         <ListView.View>
@@ -68,55 +68,66 @@
                                          (measured, cell template beside a local key).
                                          The line's own IsArchive decides which set
                                          stands (the style's trigger). -->
-                                    <Button Name="BtnRowRestore" Content="&#xF2EA;" FontFamily="{DynamicResource IconFace}"
+                                    <Button Name="BtnRowRestore" Command="{Binding DataContext.RestoreCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding Name}" Content="&#xF2EA;" FontFamily="{DynamicResource IconFace}"
                                             Margin="0,0,4,0" Background="Transparent"
                                             Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="Transparent"
                                             Style="{DynamicResource ArchivedRowButton}"
                                             ToolTip="Restore"/>
-                                    <Button Name="BtnRowDeleteArchive" Content="&#xF1F8;" FontFamily="{DynamicResource IconFace}"
+                                    <Button Name="BtnRowDeleteArchive" Command="{Binding DataContext.DeleteArchiveCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding Name}" Content="&#xF1F8;" FontFamily="{DynamicResource IconFace}"
                                             Margin="0,0,4,0" Background="Transparent"
                                             Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="Transparent"
                                             Style="{DynamicResource ArchivedRowButton}"
                                             ToolTip="Delete"/>
-                                    <Button Name="BtnRowOpen" Content="&#xF120;" FontFamily="{DynamicResource IconFace}"
+                                    <Button Name="BtnRowOpen" Command="{Binding DataContext.OpenCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding Name}" Content="&#xF120;" FontFamily="{DynamicResource IconFace}"
                                             Margin="0,0,4,0" Background="Transparent"
                                             Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="Transparent"
                                             Style="{DynamicResource LiveRowButton}"
                                             ToolTip="Shell"/>
-                                    <Button Name="BtnRowEdit" Content="&#xF304;" FontFamily="{DynamicResource IconFace}"
+                                    <Button Name="BtnRowEdit" Command="{Binding DataContext.EditCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding Name}" Content="&#xF304;" FontFamily="{DynamicResource IconFace}"
                                             Margin="0,0,4,0" Background="Transparent"
                                             Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="Transparent"
                                             Style="{DynamicResource LiveRowButton}"
                                             ToolTip="Edit"/>
-                                    <Button Name="BtnRowAppearance" Content="&#xF53F;" FontFamily="{DynamicResource IconFace}"
+                                    <Button Name="BtnRowAppearance" Command="{Binding DataContext.AppearanceCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding Name}" Content="&#xF53F;" FontFamily="{DynamicResource IconFace}"
                                             Margin="0,0,4,0" Background="Transparent"
                                             Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="Transparent"
                                             Style="{DynamicResource LiveRowButton}"
                                             ToolTip="Appearance"/>
-                                    <Button Name="BtnRowDuplicate" Content="&#xF0C5;" FontFamily="{DynamicResource IconFace}"
+                                    <Button Name="BtnRowDuplicate" Command="{Binding DataContext.DuplicateCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding Name}" Content="&#xF0C5;" FontFamily="{DynamicResource IconFace}"
                                             Margin="0,0,4,0" Background="Transparent"
                                             Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="Transparent"
                                             Style="{DynamicResource LiveRowButton}"
                                             ToolTip="Duplicate"/>
-                                    <Button Name="BtnRowArchive" Content="&#xF187;" FontFamily="{DynamicResource IconFace}"
+                                    <Button Name="BtnRowArchive" Command="{Binding DataContext.ArchiveCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding Name}" Content="&#xF187;" FontFamily="{DynamicResource IconFace}"
                                             Margin="0,0,4,0" Background="Transparent"
                                             Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="Transparent"
                                             Style="{DynamicResource LiveRowButton}"
                                             ToolTip="Archive"/>
-                                    <Button Name="BtnRowCompact" Content="&#xF066;" FontFamily="{DynamicResource IconFace}"
+                                    <Button Name="BtnRowCompact" Command="{Binding DataContext.CompactCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding Name}" Content="&#xF066;" FontFamily="{DynamicResource IconFace}"
                                             Margin="0,0,4,0" Background="Transparent"
                                             Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="Transparent"
                                             Style="{DynamicResource LiveRowButton}"
                                             ToolTip="Compact"/>
-                                    <Button Name="BtnRowRemove" Content="&#xF1F8;" FontFamily="{DynamicResource IconFace}"
+                                    <Button Name="BtnRowRemove" Command="{Binding DataContext.RemoveCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding Name}" Content="&#xF1F8;" FontFamily="{DynamicResource IconFace}"
                                             Background="Transparent"
                                             Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="Transparent"
                                             Style="{DynamicResource LiveRowButton}"
                                             ToolTip="Remove"/>
                                 </StackPanel>
                                 <ProgressBar Name="RowSpinner" IsIndeterminate="True" Height="4" Width="24"
-                                             Visibility="Collapsed" VerticalAlignment="Center" HorizontalAlignment="Center"
-                                             Foreground="{DynamicResource AppForegroundBrush}" Background="{DynamicResource AppInputBackgroundBrush}" BorderThickness="0"/>
+                                             VerticalAlignment="Center" HorizontalAlignment="Center"
+                                             Foreground="{DynamicResource AppForegroundBrush}" Background="{DynamicResource AppInputBackgroundBrush}" BorderThickness="0">
+                                    <ProgressBar.Style>
+                                        <Style TargetType="ProgressBar">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsBusy}" Value="True">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </ProgressBar.Style>
+                                </ProgressBar>
                             </Grid>
                         </DataTemplate>
                     </GridViewColumn.CellTemplate>
@@ -126,15 +137,36 @@
     </ListView>
 
     <!-- The progress bar (hidden until something runs) -->
-    <ProgressBar Name="PrgWork" Grid.Row="2" Height="4" Margin="0,10,0,0"
-                 IsIndeterminate="True" Visibility="Collapsed"
-                 Foreground="{DynamicResource AppForegroundBrush}" Background="{DynamicResource AppInputBackgroundBrush}" BorderThickness="0"/>
+    <ProgressBar Grid.Row="2" Height="4" Margin="0,10,0,0"
+                 IsIndeterminate="True"
+                 Foreground="{DynamicResource AppForegroundBrush}" Background="{DynamicResource AppInputBackgroundBrush}" BorderThickness="0">
+        <ProgressBar.Style>
+            <Style TargetType="ProgressBar">
+                <Setter Property="Visibility" Value="Collapsed"/>
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding Busy}" Value="True">
+                        <Setter Property="Visibility" Value="Visible"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+        </ProgressBar.Style>
+    </ProgressBar>
 
     <!-- Status line: a read-only box, not a label - same look, but the
          text can be selected and copied (TextBlock never offers that). -->
-    <TextBlock Name="TxtStatus" Grid.Row="3" Margin="0,8,0,0"
-           Foreground="{DynamicResource AppNewsBrush}" Text="Ready."
+    <TextBlock Grid.Row="3" Margin="0,8,0,0" Text="{Binding Status}"
            TextTrimming="CharacterEllipsis"
            MaxWidth="400"
-           ToolTip="{Binding RelativeSource={RelativeSource Self}, Path=Text}"/>
+           ToolTip="{Binding RelativeSource={RelativeSource Self}, Path=Text}">
+        <TextBlock.Style>
+            <Style TargetType="TextBlock">
+                <Setter Property="Foreground" Value="{DynamicResource AppNewsBrush}"/>
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding Alert}" Value="True">
+                        <Setter Property="Foreground" Value="{DynamicResource AppDangerBrush}"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+        </TextBlock.Style>
+    </TextBlock>
 </Grid>

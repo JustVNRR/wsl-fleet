@@ -1,20 +1,17 @@
 # ==============================================================================
-# REMOVE — LA VUE WPF
+# LA DESTRUCTION — LA VUE WPF
 # ==============================================================================
 # Ce dont ce fichier nomme, déclaré ici : un module résout ce qu'il a tiré
 # lui-même.
 using module ..\BaseViewWpf.psm1
-using module ..\..\..\Dto\InstanceDto.psm1
+using module ..\..\..\ViewModels\RemoveViewModel.psm1
 
-# La porte de la destruction, la même fenêtre qu'aujourd'hui : la phrase avec
-# le nom, l'écho de ce qui part, la case « archiver d'abord », et le nom exact
-# retapé — le bouton ne s'éveille que sur lui, casse comprise (le -ceq de la
-# console). Entrée est REMOVE, Échap est Cancel : le XAML les porte. Ask rend
-# le RemoveDto complet ; le rapport, lui, reviendra avec la fenêtre principale
-# (sa ligne d'état).
 class WpfRemoveView : BaseViewWpf {
-    [object] Ask([string]$name, [object[]]$rows) {
+    hidden [object]$Vm = $null
+
+    [object] Ask([string]$name) {
         $self = $this
+        $this.Vm = [RemoveViewModel]::new($name)
         $this.Title = "Remove instance"
         $this.SizeToContent = [System.Windows.SizeToContent]::WidthAndHeight
         $this.WindowStartupLocation = [System.Windows.WindowStartupLocation]::CenterScreen
@@ -22,33 +19,18 @@ class WpfRemoveView : BaseViewWpf {
         $this.Load((Join-Path $PSScriptRoot "Remove.xaml"))
         $this.WearDefault()
         $this.Dress($null, 15)
+        $this.DataContext = $this.Vm
 
-        $this.Find("TxtLead").Text = "The WSL distribution '$name' and ALL its data will be deleted."
-
-        $txtName = $this.Find("TxtName")
-        $btnRemove = $this.Find("BtnGateRemove")
-        $chkArchive = $this.Find("ChkArchive")
-        $null = $chkArchive.Focus()
-
-        $txtName.Add_TextChanged({
-            # -ceq : le nom exact, casse comprise.
-            $btnRemove.IsEnabled = ($txtName.Text -ceq $name)
+        $this.Vm.add_PropertyChanged({
+            param($source, $e)
+            if ("$($e.PropertyName)" -eq "Done") { $self.Close() }
         })
-        $this.Find("BtnGateCancel").Add_Click({ $self.Result = $null; $self.Close() })
-        $btnRemove.Add_Click({
-            $dto = [RemoveDto]::new()
-            $dto.InstanceName = $name
-            $dto.ArchiveFirst = [bool]$chkArchive.IsChecked
-            $self.Result = $dto
-            $self.Close()
-        })
+        $this.Add_ContentRendered({ $null = $this.Find("ChkArchive").Focus() })
+
+        $this.Find("BtnGateCancel").Add_Click({ $self.Close() })
 
         $this.FitToContent($null)
         $null = $this.OpenAs($null)
-        return $this.Result
-    }
-
-    # Le rapport — la ligne d'état de la fenêtre principale le porte.
-    [void] Show([string]$name, [object]$response) {
+        return $this.Vm.Result
     }
 }

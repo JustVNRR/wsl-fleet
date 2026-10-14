@@ -7,14 +7,28 @@
     <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="18,18,18,4">
             <TextBlock Margin="0,10,0,0" Text="Instance name:"/>
-            <TextBox Name="TxtName" Margin="0,6,0,0" Background="{DynamicResource AppInputBackgroundBrush}" Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="{DynamicResource AppBorderBrush}" Padding="4"/>
-            <TextBlock Name="TxtNameError" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource AppDangerBrush}" Visibility="Collapsed"/>
-            <TextBlock Name="LblUser" Margin="0,12,0,0" Text="User name:"/>
-            <TextBox Name="TxtUser" Margin="0,6,0,0" Background="{DynamicResource AppInputBackgroundBrush}" Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="{DynamicResource AppBorderBrush}" Padding="4"/>
-            <TextBlock Name="TxtUserError" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource AppDangerBrush}" Visibility="Collapsed"/>
+            <TextBox Name="TxtName" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" Margin="0,6,0,0" Background="{DynamicResource AppInputBackgroundBrush}" Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="{DynamicResource AppBorderBrush}" Padding="4"/>
+            <TextBlock Text="{Binding NameError}" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource AppDangerBrush}"/>
+            <TextBlock Name="LblUser" Margin="0,12,0,0" Text="User name:" IsEnabled="{Binding RunFirstBoot}"/>
+            <TextBox Name="TxtUser" Text="{Binding User, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding RunFirstBoot}" Margin="0,6,0,0" Background="{DynamicResource AppInputBackgroundBrush}" Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="{DynamicResource AppBorderBrush}" Padding="4"/>
+            <TextBlock Text="{Binding UserError}" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource AppDangerBrush}"/>
             <TextBlock Margin="0,12,0,0" Text="Build from:"/>
-            <ComboBox Name="CmbRoad" Margin="0,6,0,0"/>
+            <ComboBox Name="CmbRoad" SelectedIndex="{Binding RoadIndex}" Margin="0,6,0,0">
+                <ComboBoxItem Content="Dockerfile"/>
+                <ComboBoxItem Content="Docker image"/>
+                <ComboBoxItem Content="Docker registry"/>
+            </ComboBox>
             <StackPanel Name="BoxDockerfile">
+                <StackPanel.Style>
+                    <Style TargetType="StackPanel">
+                        <Setter Property="Visibility" Value="Visible"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding ShowDockerfile}" Value="False">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </StackPanel.Style>
                 <TextBlock Margin="0,10,0,0" Text="Dockerfile:"/>
                 <Grid Margin="0,6,0,0">
                     <Grid.ColumnDefinitions>
@@ -23,14 +37,46 @@
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    <ComboBox Name="CmbDockerfile" Grid.Column="0"/>
+                    <ComboBox Name="CmbDockerfile" ItemsSource="{Binding Dockerfiles}" DisplayMemberPath="Name" SelectedIndex="{Binding DockerfileIndex}" Grid.Column="0"/>
                     <Button Name="BtnDockerfileUpload" Grid.Column="1" Content="&#xF093;" FontFamily="{DynamicResource IconFace}" Margin="8,0,0,0" ToolTip="Upload a Dockerfile..."/>
-                    <Button Name="BtnDockerfileDownload" Grid.Column="2" Content="&#xF019;" FontFamily="{DynamicResource IconFace}" Margin="8,0,0,0" ToolTip="Save the selected Dockerfile..."/>
-                    <Button Name="BtnDockerfileDelete" Grid.Column="3" Content="&#xF1F8;" FontFamily="{DynamicResource IconFace}" Margin="8,0,0,0" IsEnabled="False" ToolTip="Delete the selected uploaded file"/>
+                    <Button Name="BtnDockerfileDownload" Grid.Column="2" Content="&#xF019;" FontFamily="{DynamicResource IconFace}" Margin="8,0,0,0" ToolTip="Save the selected Dockerfile...">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="IsEnabled" Value="False"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding CanDownloadDockerfile}" Value="True">
+                                        <Setter Property="IsEnabled" Value="True"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                    <Button Name="BtnDockerfileDelete" Grid.Column="3" Content="&#xF1F8;" FontFamily="{DynamicResource IconFace}" Margin="8,0,0,0" ToolTip="Delete the selected uploaded file">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="IsEnabled" Value="False"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding CanTrashDockerfile}" Value="True">
+                                        <Setter Property="IsEnabled" Value="True"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
                 </Grid>
-                <CheckBox Name="ChkSaveImage" Margin="0,10,0,0" Content="Save image locally" Foreground="{DynamicResource AppForegroundBrush}"/>
+                <CheckBox Name="ChkSaveImage" IsChecked="{Binding SaveImage}" Margin="0,10,0,0" Content="Save image locally" Foreground="{DynamicResource AppForegroundBrush}"/>
             </StackPanel>
-            <StackPanel Name="BoxDockerImage" Visibility="Collapsed">
+            <StackPanel Name="BoxDockerImage">
+                <StackPanel.Style>
+                    <Style TargetType="StackPanel">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding ShowImage}" Value="True">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </StackPanel.Style>
                 <TextBlock Margin="0,10,0,0" Text="Docker image:"/>
                 <Grid Margin="0,6,0,0">
                     <Grid.ColumnDefinitions>
@@ -39,22 +85,54 @@
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    <ComboBox Name="CmbDockerImage" Grid.Column="0"/>
+                    <ComboBox Name="CmbDockerImage" ItemsSource="{Binding DockerImages}" DisplayMemberPath="Name" SelectedIndex="{Binding ImageIndex}" Grid.Column="0"/>
                     <Button Name="BtnDockerImageUpload" Grid.Column="1" Content="&#xF093;" FontFamily="{DynamicResource IconFace}" Margin="8,0,0,0" ToolTip="Upload an image (.tar)..."/>
-                    <Button Name="BtnDockerImageDownload" Grid.Column="2" Content="&#xF019;" FontFamily="{DynamicResource IconFace}" Margin="8,0,0,0" IsEnabled="False" ToolTip="Save the selected Docker image..."/>
-                    <Button Name="BtnDockerImageDelete" Grid.Column="3" Content="&#xF1F8;" FontFamily="{DynamicResource IconFace}" Margin="8,0,0,0" IsEnabled="False" ToolTip="Delete the selected uploaded file"/>
+                    <Button Name="BtnDockerImageDownload" Grid.Column="2" Content="&#xF019;" FontFamily="{DynamicResource IconFace}" Margin="8,0,0,0" ToolTip="Save the selected Docker image...">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="IsEnabled" Value="False"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding CanDownloadImage}" Value="True">
+                                        <Setter Property="IsEnabled" Value="True"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                    <Button Name="BtnDockerImageDelete" Grid.Column="3" Content="&#xF1F8;" FontFamily="{DynamicResource IconFace}" Margin="8,0,0,0" ToolTip="Delete the selected uploaded file">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="IsEnabled" Value="False"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding CanTrashImage}" Value="True">
+                                        <Setter Property="IsEnabled" Value="True"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
                 </Grid>
-                <TextBlock Name="TxtImageError" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource AppDangerBrush}" Visibility="Collapsed"/>
+                <TextBlock Text="{Binding ImageError}" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource AppDangerBrush}"/>
             </StackPanel>
-            <StackPanel Name="BoxRegistry" Visibility="Collapsed">
+            <StackPanel Name="BoxRegistry">
+                <StackPanel.Style>
+                    <Style TargetType="StackPanel">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding ShowRegistry}" Value="True">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </StackPanel.Style>
                 <TextBlock Margin="0,10,0,0" Text="Registry image:"/>
-                <TextBox Name="TxtRegistry" Margin="0,6,0,0" Background="{DynamicResource AppInputBackgroundBrush}" Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="{DynamicResource AppBorderBrush}" Padding="4"/>
+                <TextBox Name="TxtRegistry" Text="{Binding RegistryRef, UpdateSourceTrigger=PropertyChanged}" Margin="0,6,0,0" Background="{DynamicResource AppInputBackgroundBrush}" Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="{DynamicResource AppBorderBrush}" Padding="4"/>
                 <TextBlock Margin="0,4,0,0" Text="e.g. alpine:latest - pulled by the build when the store does not carry it." Foreground="{DynamicResource AppMutedBrush}"/>
-                <TextBlock Name="TxtRegistryError" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource AppDangerBrush}" Visibility="Collapsed"/>
+                <TextBlock Text="{Binding RegistryError}" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource AppDangerBrush}"/>
             </StackPanel>
-            <CheckBox Name="ChkRegisterDocker" Margin="0,12,0,0" Content="Add to Docker Desktop (it will be restarted)" IsChecked="True" Foreground="{DynamicResource AppForegroundBrush}"/>
-            <CheckBox Name="ChkRunFirstBoot" Margin="0,12,0,0" Content="Run onboarding shell" IsChecked="True" Foreground="{DynamicResource AppForegroundBrush}"/>
-            <StackPanel Name="BoxFirstBoot">
+            <CheckBox Name="ChkRegisterDocker" IsChecked="{Binding RegisterDocker}" Margin="0,12,0,0" Content="Add to Docker Desktop (it will be restarted)" Foreground="{DynamicResource AppForegroundBrush}"/>
+            <CheckBox Name="ChkRunFirstBoot" IsChecked="{Binding RunFirstBoot}" Margin="0,12,0,0" Content="Run onboarding shell" Foreground="{DynamicResource AppForegroundBrush}"/>
+            <StackPanel Name="BoxFirstBoot" IsEnabled="{Binding RunFirstBoot}">
                 <TextBlock Margin="0,10,0,0" Text="Onboarding:"/>
                 <Grid Margin="0,6,0,0">
                     <Grid.ColumnDefinitions>
@@ -63,10 +141,32 @@
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    <ComboBox Name="CmbFirstBoot" Grid.Column="0"/>
+                    <ComboBox Name="CmbFirstBoot" ItemsSource="{Binding Onboardings}" DisplayMemberPath="Name" SelectedIndex="{Binding OnboardingIndex}" Grid.Column="0"/>
                     <Button Name="BtnFirstBootUpload" Grid.Column="1" Content="&#xF093;" FontFamily="{DynamicResource IconFace}" Margin="8,0,0,0" ToolTip="Upload onboarding shell..."/>
-                    <Button Name="BtnFirstBootDownload" Grid.Column="2" Content="&#xF019;" FontFamily="{DynamicResource IconFace}" Margin="8,0,0,0" ToolTip="Save the selected onboarding shell..."/>
-                    <Button Name="BtnFirstBootDelete" Grid.Column="3" Content="&#xF1F8;" FontFamily="{DynamicResource IconFace}" Margin="8,0,0,0" IsEnabled="False" ToolTip="Delete the selected uploaded file"/>
+                    <Button Name="BtnFirstBootDownload" Grid.Column="2" Content="&#xF019;" FontFamily="{DynamicResource IconFace}" Margin="8,0,0,0" ToolTip="Save the selected onboarding shell...">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="IsEnabled" Value="False"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding CanDownloadOnboarding}" Value="True">
+                                        <Setter Property="IsEnabled" Value="True"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                    <Button Name="BtnFirstBootDelete" Grid.Column="3" Content="&#xF1F8;" FontFamily="{DynamicResource IconFace}" Margin="8,0,0,0" ToolTip="Delete the selected uploaded file">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="IsEnabled" Value="False"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding CanTrashOnboarding}" Value="True">
+                                        <Setter Property="IsEnabled" Value="True"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
                 </Grid>
             </StackPanel>
         </StackPanel>
@@ -74,7 +174,7 @@
     <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="18,10,18,16">
         <Button Name="BtnAddCancel" Content="Cancel" Margin="0,0,8,0" IsCancel="True"
                 Background="{DynamicResource AppFaceBrush}" Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="{DynamicResource AppBorderBrush}"/>
-        <Button Name="BtnAddCreate" Content="CREATE" IsDefault="True" IsEnabled="False"
+        <Button Name="BtnAddCreate" Content="CREATE" IsDefault="True" Command="{Binding CreateCommand}"
                 Background="{DynamicResource AppForegroundBrush}" Foreground="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource AppForegroundBrush}"/>
     </StackPanel>
 </Grid>

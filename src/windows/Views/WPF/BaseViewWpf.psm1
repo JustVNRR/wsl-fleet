@@ -46,6 +46,10 @@ class BaseViewWpf : System.Windows.Window {
     # cacher la fenêtre que le retour vient de ramener.
     hidden static [object]$Main = $null
     hidden static [int]$Depth = 0
+    # La boîte du dessus : le propriétaire par défaut d'une boîte ouverte par
+    # un ViewModel — la naissance tient la fenêtre des packs, pas la
+    # principale (sinon la boîte du dessous reste cliquable).
+    hidden static [object]$Top = $null
 
     # Le contexte : le look choisi et le dossier des assets — les POLICES se
     # résolvent ici même : la fenêtre porte son look, l'entrée n'a pas à
@@ -407,14 +411,17 @@ class BaseViewWpf : System.Windows.Window {
     # que Hide/Show lui a pris (mesuré : Échap meurt sans lui).
     [object] OpenAs([object]$owner) {
         $parent = $owner
+        if (-not $parent -and [BaseViewWpf]::Top -and [BaseViewWpf]::Top.IsVisible -and [BaseViewWpf]::Top -ne $this) { $parent = [BaseViewWpf]::Top }
         if (-not $parent -and [BaseViewWpf]::Main -and [BaseViewWpf]::Main -ne $this) { $parent = [BaseViewWpf]::Main }
         if ($parent) { $this.Owner = $parent }
 
         [BaseViewWpf]::Depth = [BaseViewWpf]::Depth + 1
+        [BaseViewWpf]::Top = $this
         try {
             return $this.ShowDialog()
         } finally {
             [BaseViewWpf]::Depth = [BaseViewWpf]::Depth - 1
+            [BaseViewWpf]::Top = [BaseViewWpf]::Main
             # Pas de locale qui porte le nom d'une propriété (statique
             # comprise) : l'affectation nue est refusée au parse (mesuré).
             $appWindow = [BaseViewWpf]::Main

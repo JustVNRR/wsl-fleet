@@ -278,24 +278,21 @@ class MainWindowViewModel : BaseViewModel {
     }
 
     [void] Remove([string]$name) {
-        $rows = @($this._instance.GetAll())
-        $dto = $this.ShowFace("Remove", @($name, $rows))
+        $dto = $this.ShowFace("Remove", @($name))
         if (-not $dto) { return }
         $first = if ([bool]$dto.ArchiveFirst) { "True" } else { "False" }
         $this.StartLong("Remove", $name, $first, "Removing '$name'...")
     }
 
     [void] Compact([string]$name) {
-        $rows = @($this._instance.GetAll())
-        $dto = $this.ShowFace("Compact", @($name, $rows))
+        $dto = $this.ShowFace("Compact", @($name))
         if (-not $dto) { return }
         $first = if ([bool]$dto.ArchiveFirst) { "True" } else { "False" }
         $this.StartLong("Compact", $name, $first, "Compacting '$name'...")
     }
 
     [void] Restore([string]$name) {
-        $rows = @($this._instance.GetAll())
-        $dto = $this.ShowFace("Restore", @($rows, $name))
+        $dto = $this.ShowFace("Restore", @($name))
         if (-not $dto) { return }
         $this.StartLong("Restore", $name, "$($dto.InstanceName)", "Restoring '$name' as '$($dto.InstanceName)'...")
     }
@@ -436,23 +433,7 @@ class MainWindowViewModel : BaseViewModel {
     # puis le Dto en clair dans un fichier — le dessin est trop pour une
     # ligne de commande — et l'ouvrier visible, guetté.
     [void] Add() {
-        try {
-            $sources = $this._instance.GetBuildSources()
-            $images = @($this._instance.GetAllSavedImages())
-            $packs = @($this._instance.GetBuildPacks())
-            $checkRegistry = $this._instance.IsRegistryImageValid
-            $doors = [PSCustomObject]@{
-                Taken  = @($this._instance.GetAll() | Where-Object { -not $_.IsArchive } | ForEach-Object { $_.Name })
-                Upload = $this._instance.UploadRecipe
-                Delete = $this._instance.DeleteRecipe
-                Export = $this._instance.ExportRecipe
-            }
-        } catch {
-            $this.SetStatus("Build : $($_.Exception.Message)", $true)
-            return
-        }
-
-        $dto = $this.ShowFace("Build", @($sources, $images, $packs, $checkRegistry, $doors))
+        $dto = $this.ShowFace("Build", @($this._instance, $this._views))
         if (-not $dto) { return }
 
         $json = Join-Path $env:TEMP "wsl-stack-build.json"
@@ -472,39 +453,13 @@ class MainWindowViewModel : BaseViewModel {
         $this.LaunchVisible("Build", "$($dto.Name)", $json, "")
     }
 
-    # Les Réglages : le dialogue rend ce qui fut choisi. Le look s'applique au
-    # service, et la vue se rhabille sur le cri (Appearance). Un dossier
-    # d'arrivée confirmé : l'ouvrier visible (MigrateRunner) et sa console.
+    # Les Réglages : le dialogue (son ViewModel, les services en main) rend
+    # ce qui fut choisi. Le look s'applique au service, et la vue se rhabille
+    # sur le cri (Appearance). Un dossier d'arrivée confirmé : l'ouvrier
+    # visible (MigrateRunner) et sa console.
     [void] Settings() {
-        try {
-            $theme = $this._wpf.GetTheme()
-            $themes = @($this._wpf.GetColorThemes())
-            $fonts = @($this._wpf.GetFontChoices())
-            $packs = @($this._catalogue.GetAllPacks())
-            $root = $this._fleet.GetRoot()
-            $doors = [PSCustomObject]@{
-                UploadFont    = $this._wpf.UploadFont
-                UploadTheme   = $this._wpf.UploadTheme
-                DeleteTheme   = $this._wpf.DeleteTheme
-                ExportTheme   = $this._wpf.ExportTheme
-                OpenTheme     = $this._wpf.OpenTheme
-                PackOpen      = $this._catalogue.OpenPackFolder
-                PackDuplicate = $this._catalogue.CreatePack
-                PackDelete    = $this._catalogue.DeletePack
-                PackRefresh   = $this._catalogue.GetAllPacks
-            }
-        } catch {
-            $this.SetStatus("Settings : $($_.Exception.Message)", $true)
-            return
-        }
-
-        $picked = $this.ShowFace("Settings", @($theme, $themes, $fonts, $packs, $root, $this._assets, $doors))
+        $picked = $this.ShowFace("Settings", @($this._wpf, $this._catalogue, $this._fleet, $this._assets, $this._views))
         if (-not $picked) { return }
-
-        if ($picked.PSObject.Properties['Status']) {
-            $this.SetStatus("$($picked.Message)", ("$($picked.Status)" -eq "Nok"))
-            return
-        }
 
         try {
             $this._wpf.SetFontFamily($picked.FontFamily)
@@ -534,31 +489,20 @@ class MainWindowViewModel : BaseViewModel {
 
     # --- les dialogues --------------------------------------------------------
 
-    # La vue d'un geste, par son nom : le guet d'assemblée — le ViewModel ne
-    # connaît pas le WPF, la classe se trouve à l'exécution (mesuré : c'est
-    # la même porte que la résolution des vues d'avant). Ask, ses arguments,
-    # et son retour — rien quand rien n'a été rendu.
+    # La vue d'un geste, par son nom — le socle ouvre la porte (le fichier
+    # importé, le type cherché) ; ici, seulement le mot quand rien ne
+    # répond.
     hidden [object] ShowFace([string]$gesture, [object[]]$arguments) {
-        # Le fichier d'abord : le guet ne trouve que ce qui est chargé — le
-        # module de la vue s'importe ici, où qu'elle vive sous Views\WPF.
-        try {
-            $file = @(Get-ChildItem -Path $this._views -Recurse -Filter "$gesture.xaml.ps1" -File -ErrorAction SilentlyContinue)[0]
-            if ($file) { $null = Import-Module $file.FullName -ErrorAction SilentlyContinue }
-        } catch { }
-
-        $wanted = "Wpf${gesture}View"
-        $face = $null
-        foreach ($assembly in [AppDomain]::CurrentDomain.GetAssemblies()) {
-            try { $face = @($assembly.GetTypes() | Where-Object { $_.Name -eq $wanted })[0] } catch { }
-            if ($face) { break }
+        $answered = [BaseViewModel]::OpenFace($this._views, $gesture, $arguments)
+        if ($null -eq $answered) {
+            $wanted = "Wpf${gesture}View"
+            $known = $false
+            foreach ($assembly in [AppDomain]::CurrentDomain.GetAssemblies()) {
+                try { if (@($assembly.GetTypes() | Where-Object { $_.Name -eq $wanted }).Count -gt 0) { $known = $true } } catch { }
+                if ($known) { break }
+            }
+            if (-not $known) { $this.SetStatus("$gesture : the dialog '$wanted' was not found.", $true) }
         }
-        if (-not $face) {
-            $this.SetStatus("$gesture : the dialog '$wanted' was not found.", $true)
-            return $null
-        }
-        $view = $face::new()
-        $invoked = @($view.Ask.Invoke(@($arguments)))
-        if ($invoked.Count -eq 0) { return $null }
-        return $invoked[0]
+        return $answered
     }
 }

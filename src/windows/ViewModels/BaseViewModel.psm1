@@ -46,6 +46,31 @@ class BaseViewModel : System.ComponentModel.INotifyPropertyChanged {
         $this | Add-Member -MemberType ScriptProperty -Name $name -Value $getter -SecondValue $setter
     }
 
+    # La vue d'un geste, par son nom, où qu'elle vive sous les vues : le
+    # fichier importé (le guet ne trouve que le chargé — mesuré), puis le
+    # type cherché à l'exécution — le ViewModel ne connaît pas le WPF.
+    # Ask, ses arguments, et son retour, rien quand rien n'a été rendu.
+    # Statique : aucun état à tenir, tous les ViewModels s'en servent.
+    static [object] OpenFace([string]$viewsRoot, [string]$gesture, [object[]]$arguments) {
+        try {
+            $file = @(Get-ChildItem -Path $viewsRoot -Recurse -Filter "$gesture.xaml.ps1" -File -ErrorAction SilentlyContinue)[0]
+            if ($file) { $null = Import-Module $file.FullName -ErrorAction SilentlyContinue }
+        } catch { }
+
+        $wanted = "Wpf${gesture}View"
+        $face = $null
+        foreach ($assembly in [AppDomain]::CurrentDomain.GetAssemblies()) {
+            try { $face = @($assembly.GetTypes() | Where-Object { $_.Name -eq $wanted })[0] } catch { }
+            if ($face) { break }
+        }
+        if (-not $face) { return $null }
+
+        $view = $face::new()
+        $invoked = @($view.Ask.Invoke(@($arguments)))
+        if ($invoked.Count -eq 0) { return $null }
+        return $invoked[0]
+    }
+
     # Une commande : les blocs reçoivent le ViewModel en paramètre — jamais
     # lus par nom (un bloc lu par nom à distance est nul, mesuré) — et sont
     # emballés pour la même raison. L'ordre : { param($vm) $vm.QuelqueChose() }.

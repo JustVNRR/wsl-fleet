@@ -21,10 +21,18 @@ class WpfSettingsView : BaseViewWpf {
     hidden [object]$Vm = $null
     hidden [string]$AssetsDir = ""
 
-    [object] Ask([object]$wpfService, [object]$catalogueService, [object]$fleetService, [string]$assetsDir, [string]$viewsRoot) {
+    [object] Ask([object]$wpfService, [object]$catalogueService, [object]$fleetService, [string]$assetsDir) {
         $self = $this
         $this.AssetsDir = $assetsDir
-        $this.Vm = [SettingsViewModel]::new($wpfService, $catalogueService, $fleetService, $assetsDir, $viewsRoot)
+        $this.Vm = [SettingsViewModel]::new($wpfService, $catalogueService, $fleetService, $assetsDir)
+
+        # La porte d'ouverture : la vue dit où et comment on trouve une boîte
+        # (son propre dossier), le ViewModel ne dit que « ouvre la boîte X ».
+        $viewsRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+        $this.Vm.Ouverture = {
+            param($gesture, $arguments)
+            return $self.Vm.FindFace($viewsRoot, $gesture, $arguments)
+        }
 
         $this.Title = "Settings"
         $this.SizeToContent = [System.Windows.SizeToContent]::WidthAndHeight
@@ -37,7 +45,7 @@ class WpfSettingsView : BaseViewWpf {
 
         # La porte de fermeture — METHODE 1 : le ViewModel dit « j'ai fini »,
         # la vue ferme.
-        $this.Vm.DemandeFermeture = { $self.Close() }
+        $this.Vm.DemandeFermeture = { param($result) $self.Result = $result; $self.Close() }
 
         # La face en direct : le thème s'échange sous la fenêtre, la police
         # suit, la taille se redresse.

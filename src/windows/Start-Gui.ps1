@@ -66,9 +66,28 @@ $look = $wpfService.GetTheme()
 $baseView::SetContext($look, $Assets)
 
 # 4. Le ViewModel — l'écran, ses états, ses commandes. Les services sont à
-# lui ; les dossiers dont il a besoin (les vues des gestes, les ouvriers,
-# les assets) voyagent en clair.
-$vm = [MainWindowViewModel]::new($instances, $fleet, $wpfService, $catalogue, $Assets, $Runners, $WpfViews)
+# lui ; les dossiers dont il a besoin (les ouvriers, les assets) voyagent en
+# clair.
+$vm = [MainWindowViewModel]::new($instances, $fleet, $wpfService, $catalogue, $Assets, $Runners)
+
+# La porte d'ouverture : l'entrée pose où et comment on trouve une vue — le
+# ViewModel, lui, dit seulement « ouvre la boîte X » (la même mécanique que
+# sa porte de fermeture). Le guet d'assemblée reste ici : le type de base
+# n'a pas de nom hors de son module (mesuré).
+$vm.Ouverture = {
+    param($gesture, $arguments)
+    $answered = $vm.FindFace($WpfViews, $gesture, $arguments)
+    if ($null -eq $answered) {
+        $wanted = "Wpf${gesture}View"
+        $known = $false
+        foreach ($assembly in [AppDomain]::CurrentDomain.GetAssemblies()) {
+            try { if (@($assembly.GetTypes() | Where-Object { $_.Name -eq $wanted }).Count -gt 0) { $known = $true } } catch { }
+            if ($known) { break }
+        }
+        if (-not $known) { $vm.Fail("$gesture : the dialog '$wanted' was not found.") }
+    }
+    return $answered
+}
 $vm.Load()
 
 # 5. Les vues s'importent TOUTES ici, à la racine du script — la fenêtre

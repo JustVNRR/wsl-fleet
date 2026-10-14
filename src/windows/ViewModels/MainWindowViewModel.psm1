@@ -47,7 +47,6 @@ class MainWindowViewModel : BaseViewModel {
     hidden [object]$_catalogue
     hidden [string]$_assets = ""
     hidden [string]$_runners = ""
-    hidden [string]$_views = ""
 
     # L'état bindable : de VRAIES propriétés — WPF ne lit que celles-là.
     [object[]]$Rows = @()
@@ -81,14 +80,13 @@ class MainWindowViewModel : BaseViewModel {
     [System.Windows.Input.ICommand]$DeleteArchiveCommand
 
     MainWindowViewModel([object]$instanceService, [object]$fleetService, [object]$wpfService,
-                        [object]$packCatalog, [string]$assetsDir, [string]$runnersDir, [string]$viewsRoot) {
+                        [object]$packCatalog, [string]$assetsDir, [string]$runnersDir) {
         $this._instance = $instanceService
         $this._fleet = $fleetService
         $this._wpf = $wpfService
         $this._catalogue = $packCatalog
         $this._assets = $assetsDir
         $this._runners = $runnersDir
-        $this._views = $viewsRoot
 
         try {
             $look = $this._wpf.GetTheme()
@@ -397,7 +395,7 @@ class MainWindowViewModel : BaseViewModel {
     # puis le Dto en clair dans un fichier — le dessin est trop pour une
     # ligne de commande — et l'ouvrier visible, guetté.
     [void] Add() {
-        $dto = $this.ShowFace("Build", @($this._instance, $this._views))
+        $dto = $this.ShowFace("Build", @($this._instance))
         if (-not $dto) { return }
 
         $json = Join-Path $env:TEMP "wsl-stack-build.json"
@@ -422,7 +420,7 @@ class MainWindowViewModel : BaseViewModel {
     # sur le cri (Appearance). Un dossier d'arrivée confirmé : l'ouvrier
     # visible (MigrateRunner) et sa console.
     [void] Settings() {
-        $picked = $this.ShowFace("Settings", @($this._wpf, $this._catalogue, $this._fleet, $this._assets, $this._views))
+        $picked = $this.ShowFace("Settings", @($this._wpf, $this._catalogue, $this._fleet, $this._assets))
         if (-not $picked) { return }
 
         try {
@@ -453,20 +451,9 @@ class MainWindowViewModel : BaseViewModel {
 
     # --- les dialogues --------------------------------------------------------
 
-    # La vue d'un geste, par son nom — le socle ouvre la porte (le fichier
-    # importé, le type cherché) ; ici, seulement le mot quand rien ne
-    # répond.
+    # La vue d'un geste, par son nom — la porte d'ouverture, posée par
+    # l'entrée : le ViewModel ne connaît ni le nom des vues ni leur dossier.
     hidden [object] ShowFace([string]$gesture, [object[]]$arguments) {
-        $answered = [BaseViewModel]::OpenFace($this._views, $gesture, $arguments)
-        if ($null -eq $answered) {
-            $wanted = "Wpf${gesture}View"
-            $known = $false
-            foreach ($assembly in [AppDomain]::CurrentDomain.GetAssemblies()) {
-                try { if (@($assembly.GetTypes() | Where-Object { $_.Name -eq $wanted }).Count -gt 0) { $known = $true } } catch { }
-                if ($known) { break }
-            }
-            if (-not $known) { $this.SetStatus("$gesture : the dialog '$wanted' was not found.", $true) }
-        }
-        return $answered
+        return $this.OpenBox($gesture, $arguments)
     }
 }

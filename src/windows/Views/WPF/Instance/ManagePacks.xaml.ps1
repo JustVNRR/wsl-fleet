@@ -29,7 +29,7 @@ class WpfManagePacksView : BaseViewWpf {
 
         # La porte de fermeture — METHODE 1 : le ViewModel dit « j'ai fini »,
         # la vue ferme.
-        $this.Vm.DemandeFermeture = { $self.Close() }
+        $this.Vm.DemandeFermeture = { param($result) $self.Result = $result; $self.Close() }
 
         # Les cases se construisent à la main — des chaînes, jamais un
         # gabarit d'items (muet sur nos objets, mesuré). Le relais ROUTÉ
@@ -62,6 +62,6 @@ class WpfManagePacksView : BaseViewWpf {
 
         $this.FitToContent($null)
         $null = $this.OpenAs($null)
-        return $this.Vm.Result
+        return $this.Result
     }
 }

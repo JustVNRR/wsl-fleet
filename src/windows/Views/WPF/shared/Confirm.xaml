@@ -6,7 +6,7 @@
     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
         <Button Name="BtnConfirmCancel" Content="Cancel" Margin="0,0,8,0" IsCancel="True"
                 Style="{DynamicResource BtnCancel}"/>
-        <Button Name="BtnConfirmOk" Content="CONFIRM" IsDefault="True"
+        <Button Name="BtnConfirmOk" Content="CONFIRM" IsDefault="True" Command="{Binding ConfirmCommand}"
                 Style="{DynamicResource BtnDelete}"/>
     </StackPanel>
 </StackPanel>

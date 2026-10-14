@@ -10,16 +10,24 @@ using module ..\..\..\ViewModels\BuildViewModel.psm1
 # et les commandes se bindent en XAML. Ce fichier ne garde que ce que WPF
 # demande : le chargement, le focus d'ouverture, l'Entrée mangée après un
 # sélecteur (mesuré), les sélecteurs de fichiers (graphisme — le ViewModel
-# reçoit le chemin), la confirmation des corbeilles, la fermeture sur le cri
-# la porte de fermeture — et il rend le Dto du ViewModel.
+# reçoit le chemin), la confirmation des corbeilles, la porte de fermeture —
+# et il rend le Dto du ViewModel.
 class WpfBuildView : BaseViewWpf {
     # L'Entrée mangée après un sélecteur de fichier (mesuré).
     hidden [bool]$EatEnter = $false
     hidden [object]$Vm = $null
 
-    [object] Ask([object]$instanceService, [string]$viewsRoot) {
+    [object] Ask([object]$instanceService) {
         $self = $this
-        $this.Vm = [BuildViewModel]::new($instanceService, $viewsRoot)
+        $this.Vm = [BuildViewModel]::new($instanceService)
+
+        # La porte d'ouverture : la vue dit où et comment on trouve une boîte
+        # (son propre dossier), le ViewModel ne dit que « ouvre la boîte X ».
+        $viewsRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+        $this.Vm.Ouverture = {
+            param($gesture, $arguments)
+            return $self.Vm.FindFace($viewsRoot, $gesture, $arguments)
+        }
 
         $this.Title = "Add instance"
         $this.SizeToContent = [System.Windows.SizeToContent]::WidthAndHeight
@@ -34,7 +42,7 @@ class WpfBuildView : BaseViewWpf {
 
         # La porte de fermeture — METHODE 1 : le ViewModel dit « j'ai fini »,
         # la vue ferme.
-        $this.Vm.DemandeFermeture = { $self.Close() }
+        $this.Vm.DemandeFermeture = { param($result) $self.Result = $result; $self.Close() }
 
         # L'Entrée mangée après chaque sélecteur : à sa fermeture, l'Entrée
         # retombe sur le bouton par défaut — CREATE a déjà fermé la fenêtre
@@ -114,7 +122,7 @@ class WpfBuildView : BaseViewWpf {
 
         $this.FitToContent($null)
         $null = $this.OpenAs($null)
-        return $this.Vm.Result
+        return $this.Result
     }
 
     # Le téléchargement d'une ligne : le nom proposé, le sélecteur, et le

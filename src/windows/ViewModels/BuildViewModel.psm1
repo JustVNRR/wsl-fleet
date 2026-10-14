@@ -20,7 +20,6 @@ using module ..\Dto\InstanceDto.psm1
 
 class BuildViewModel : BaseViewModel {
     hidden [object]$_instance
-    hidden [string]$_views = ""
 
     # L'état bindable : de VRAIES propriétés de classe — WPF ne lit que
     # celles-là. Les verdicts (cachés) nourrissent le droit de CREATE.
@@ -67,9 +66,8 @@ class BuildViewModel : BaseViewModel {
 
     [System.Windows.Input.ICommand]$CreateCommand
 
-    BuildViewModel([object]$instanceService, [string]$viewsRoot) {
+    BuildViewModel([object]$instanceService) {
         $this._instance = $instanceService
-        $this._views = $viewsRoot
 
         try {
             $sources = $this._instance.GetBuildSources()
@@ -390,7 +388,7 @@ class BuildViewModel : BaseViewModel {
         if ($this.RoadIndex -eq 0 -and $this.DockerfileIndex -ge 0) { $family = "$($this.Dockerfiles[$this.DockerfileIndex].Family)" }
         $packs = @()
         try { $packs = @($this._instance.GetBuildPacks()) } catch { }
-        $pickedPacks = [BaseViewModel]::OpenFace($this._views, "BuildPacks", @("$($this.Name)".Trim(), $family, $packs))
+        $pickedPacks = $this.OpenBox("BuildPacks", @("$($this.Name)".Trim(), $family, $packs))
         if ($null -eq $pickedPacks) { return }
 
         $dto = [BuildDto]::new()

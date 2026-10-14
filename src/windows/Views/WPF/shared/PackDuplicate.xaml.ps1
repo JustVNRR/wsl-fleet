@@ -28,7 +28,7 @@ class WpfPackDuplicateView : BaseViewWpf {
 
         # La porte de fermeture — METHODE 1 : le ViewModel dit « j'ai fini »,
         # la vue ferme.
-        $this.Vm.DemandeFermeture = { $self.Close() }
+        $this.Vm.DemandeFermeture = { param($result) $self.Result = $result; $self.Close() }
 
         $this.Add_ContentRendered({ $null = $self.Find("TxtDupName").Focus(); $self.Find("TxtDupName").SelectAll() })
 
@@ -40,6 +40,6 @@ class WpfPackDuplicateView : BaseViewWpf {
 
         $this.FitToContent($null)
         $null = $this.OpenAs($null)
-        return $this.Vm.Result
+        return $this.Result
     }
 }

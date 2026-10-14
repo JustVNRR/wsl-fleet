@@ -35,7 +35,7 @@ class WpfSetAppearanceView : BaseViewWpf {
 
         # La porte de fermeture — METHODE 1 : le ViewModel dit « j'ai fini »,
         # la vue ferme.
-        $this.Vm.DemandeFermeture = { $self.Close() }
+        $this.Vm.DemandeFermeture = { param($result) $self.Result = $result; $self.Close() }
 
         $this.Vm.add_PropertyChanged({
             param($source, $e)
@@ -83,7 +83,7 @@ class WpfSetAppearanceView : BaseViewWpf {
 
         $this.FitToContent($null)
         $null = $this.OpenAs($null)
-        return $this.Vm.Result
+        return $this.Result
     }
 
     # L'aperçu : les lignes du prompt dans la police choisie, peintes des

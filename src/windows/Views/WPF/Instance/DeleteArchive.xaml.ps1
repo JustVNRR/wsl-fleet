@@ -23,7 +23,7 @@ class WpfDeleteArchiveView : BaseViewWpf {
 
         # La porte de fermeture — METHODE 1 : le ViewModel dit « j'ai fini »,
         # la vue ferme.
-        $this.Vm.DemandeFermeture = { $self.Close() }
+        $this.Vm.DemandeFermeture = { param($result) $self.Result = $result; $self.Close() }
         $this.Add_ContentRendered({ $null = $this.Find("TxtName").Focus() })
 
         # Le lien est à sens unique : la saisie est relayée au ViewModel, qui
@@ -34,6 +34,6 @@ class WpfDeleteArchiveView : BaseViewWpf {
 
         $this.FitToContent($null)
         $null = $this.OpenAs($null)
-        return $this.Vm.Result
+        return $this.Result
     }
 }

@@ -23,6 +23,11 @@ class BaseViewModel : System.ComponentModel.INotifyPropertyChanged {
     # pas WPF : sa demande voyage par ici.
     [scriptblock]$DemandeFermeture = $null
 
+    # La porte d'ouverture, du même bois : le ViewModel dit « ouvre la boîte
+    # X », la vue a posé comment et où on la trouve. Le VM ne connaît ni le
+    # nom des vues ni leur dossier.
+    [scriptblock]$Ouverture = $null
+
     hidden [System.Collections.Generic.List[System.ComponentModel.PropertyChangedEventHandler]]$Handlers
 
     BaseViewModel() {
@@ -43,9 +48,29 @@ class BaseViewModel : System.ComponentModel.INotifyPropertyChanged {
         }
     }
 
-    # « J'ai fini » — la demande de fermeture, si la vue en a posé une.
+    # « J'ai fini » — la demande de fermeture, la valeur comprise (le Result) :
+    # la vue la reçoit DE la porte, elle n'a rien à relire après coup. Un
+    # ViewModel sans Result (les Réglages) ferme avec rien.
     hidden [void] RequestClose() {
-        if ($this.DemandeFermeture) { & $this.DemandeFermeture }
+        if ($this.DemandeFermeture) {
+            $value = $null
+            $resultProp = $this.GetType().GetProperty("Result")
+            if ($resultProp) { $value = $resultProp.GetValue($this) }
+            & $this.DemandeFermeture $value
+        }
+    }
+
+    # « Ouvre la boîte X » — la demande d'ouverture, si la vue en a posé une.
+    hidden [object] OpenBox([string]$gesture, [object[]]$arguments) {
+        if ($this.Ouverture) { return & $this.Ouverture $gesture $arguments }
+        return $null
+    }
+
+    # La vue d'un geste — pour la porte d'ouverture que la vue pose. Publique,
+    # par l'INSTANCE : le type de base n'a pas de nom hors de son module
+    # (mesuré), et une closure de vue ne peut pas le nommer.
+    [object] FindFace([string]$viewsRoot, [string]$gesture, [object[]]$arguments) {
+        return [BaseViewModel]::OpenFace($viewsRoot, $gesture, $arguments)
     }
 
     # Une mutation d'une propriété bindable : la vraie propriété se pose par
@@ -58,13 +83,15 @@ class BaseViewModel : System.ComponentModel.INotifyPropertyChanged {
     }
 
     # La vue d'un geste, par son nom, où qu'elle vive sous les vues : le type
-    # cherché au guet d'assemblée à l'exécution — le ViewModel ne connaît pas
-    # le WPF. L'IMPORT des fichiers vit chez l'entrée : le premier import
-    # lancé d'ici se mord la queue (mesuré — la vue chaîne BaseViewModel,
-    # ce module même, et GetExportedTypeDefinitions s'appelle cent mille
-    # fois : « Impossible de créer une nouvelle page de garde pour la
-    # pile »). Ask, ses arguments, et son retour, rien quand rien n'a été
-    # rendu. Statique : aucun état à tenir, tous les ViewModels s'en servent.
+    # cherché au guet d'assemblée à l'exécution. Appelée par les VUES
+    # seulement (les portes d'ouverture qu'elles posent) — un ViewModel ne
+    # nomme ni vue ni dossier. L'IMPORT des fichiers vit chez l'entrée : le
+    # premier import lancé d'ici se mord la queue (mesuré — la vue chaîne
+    # BaseViewModel, ce module même, et GetExportedTypeDefinitions s'appelle
+    # cent mille fois : « Impossible de créer une nouvelle page de garde
+    # pour la pile »). Ask, ses arguments, et son retour, rien quand rien n'a
+    # été rendu. Statique : aucun état à tenir, tous les ViewModels s'en
+    # servent.
     static [object] OpenFace([string]$viewsRoot, [string]$gesture, [object[]]$arguments) {
         $wanted = "Wpf${gesture}View"
         $face = $null

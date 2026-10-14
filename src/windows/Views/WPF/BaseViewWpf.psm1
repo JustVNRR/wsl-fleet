@@ -15,6 +15,8 @@
 # les événements courent, et la portée dynamique les retrouve — la même
 # mécanique que les fenêtres d'aujourd'hui. `$this` n'y est PAS lié : on
 # pose `$self = $this` avant, et les blocs lisent $self.
+using module ..\..\ViewModels\ConfirmViewModel.psm1
+
 class BaseViewWpf : System.Windows.Window {
     # La racine chargée du XAML — c'est elle qui porte les noms.
     hidden [object]$Scope
@@ -371,6 +373,7 @@ class BaseViewWpf : System.Windows.Window {
     # le même cadre.
     [bool] ConfirmAs([object]$owner, [string]$title, [string]$question, [string]$danger) {
         $dialog = [BaseViewWpf]::new()
+        $vm = [ConfirmViewModel]::new($title, $question, $danger)
         $dialog.Title = "WSL Stack"
         $dialog.SizeToContent = [System.Windows.SizeToContent]::WidthAndHeight
         $dialog.WindowStartupLocation = [System.Windows.WindowStartupLocation]::CenterScreen
@@ -378,24 +381,28 @@ class BaseViewWpf : System.Windows.Window {
         $dialog.Load((Join-Path $PSScriptRoot "shared\Confirm.xaml"))
         $dialog.WearDefault()
         $dialog.Dress($null, 15)
-        $dialog.Find("TxtLead").Text = $title
+        $dialog.DataContext = $vm
+
+        # La porte de fermeture — METHODE 1 : le ViewModel dit « j'ai fini »,
+        # et la réponse voyage avec (elle vient DE la porte).
+        $vm.DemandeFermeture = { param($result) $dialog.Result = $result; $dialog.Close() }
+        $dialog.Find("TxtLead").Text = $vm.Title
 
         # La question, un bloc à deux couleurs : le texte, puis — quand il y
         # en a une — la ligne rouge dessous (un Run de plus dans le même
         # TextBlock).
         $txtQuestion = $dialog.Find("TxtQuestion")
         $txtQuestion.Inlines.Clear()
-        $txtQuestion.Inlines.Add([System.Windows.Documents.Run]::new($question))
-        if ($danger) {
+        $txtQuestion.Inlines.Add([System.Windows.Documents.Run]::new($vm.Question))
+        if ("$($vm.Danger)") {
             $txtQuestion.Inlines.Add([System.Windows.Documents.LineBreak]::new())
             $txtQuestion.Inlines.Add([System.Windows.Documents.LineBreak]::new())
-            $dangerRun = [System.Windows.Documents.Run]::new($danger)
+            $dangerRun = [System.Windows.Documents.Run]::new("$($vm.Danger)")
             $dangerRun.Foreground = $dialog.FindResource("AppDangerBrush")
             $txtQuestion.Inlines.Add($dangerRun)
         }
 
         $dialog.Find("BtnConfirmCancel").Add_Click({ $dialog.Close() })
-        $dialog.Find("BtnConfirmOk").Add_Click({ $dialog.Result = $true; $dialog.Close() })
 
         $dialog.FitToContent($owner)
         $null = $dialog.OpenAs($owner)

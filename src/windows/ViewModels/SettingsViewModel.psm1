@@ -39,7 +39,6 @@ class SettingsViewModel : BaseViewModel {
     hidden [object]$_catalogue = $null
     hidden [object]$_fleet = $null
     hidden [string]$_assets = ""
-    hidden [string]$_views = ""
 
     # L'état bindable : de VRAIES propriétés de classe — WPF ne lit que
     # celles-là. Les listes montrent leurs LIBELLÉS, en chaînes (WPF les
@@ -65,12 +64,11 @@ class SettingsViewModel : BaseViewModel {
 
     hidden [string]$_newRoot = ""
 
-    SettingsViewModel([object]$wpfService, [object]$catalogueService, [object]$fleetService, [string]$assetsDir, [string]$viewsRoot) {
+    SettingsViewModel([object]$wpfService, [object]$catalogueService, [object]$fleetService, [string]$assetsDir) {
         $this._wpf = $wpfService
         $this._catalogue = $catalogueService
         $this._fleet = $fleetService
         $this._assets = $assetsDir
-        $this._views = $viewsRoot
 
         try { $theme = $this._wpf.GetTheme() } catch { $theme = $null }
         $this.Variant = if ($theme -and "$($theme.Variant)") { "$($theme.Variant)" } else { "Dark" }
@@ -262,7 +260,7 @@ class SettingsViewModel : BaseViewModel {
 
     [string] ThemePathFor([string]$name) {
         if ($name) { return (Join-Path (Join-Path $this._assets "themes") "$name.xaml") }
-        return (Join-Path $this._views "theme.xaml")
+        return (Join-Path (Join-Path (Split-Path $this._assets -Parent) "src\windows\Views\WPF") "theme.xaml")
     }
 
     [string] ThemeFileFor([string]$name) {
@@ -333,7 +331,7 @@ class SettingsViewModel : BaseViewModel {
         $row = $this.SelectedPack()
         if (-not $row) { return }
         $taken = @($this.Packs | ForEach-Object { "$($_.Name)" })
-        $answer = [BaseViewModel]::OpenFace($this._views, "PackDuplicate", @("$($row.Name)", "$($row.Description)", $taken))
+        $answer = $this.OpenBox("PackDuplicate", @("$($row.Name)", "$($row.Description)", $taken))
         if ($null -eq $answer) { return }
         try {
             $dto = [CreatePackDto]::new()
@@ -365,7 +363,7 @@ class SettingsViewModel : BaseViewModel {
     # Le crayon : la question du déplacement (sa fenêtre), et un dossier
     # confirmé ferme les Réglages — l'entrée le portera au migrate.
     [void] EditRoot() {
-        $chosen = [BaseViewModel]::OpenFace($this._views, "RootMove", @($this.Root))
+        $chosen = $this.OpenBox("RootMove", @($this.Root))
         if (-not $chosen) { return }
         $this._newRoot = "$chosen"
         $this.Root = "$chosen"

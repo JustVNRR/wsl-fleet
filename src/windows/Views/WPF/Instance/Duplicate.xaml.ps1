@@ -17,9 +17,7 @@ class WpfDuplicateView : BaseViewWpf {
     [object] Ask([string]$source) {
         $self = $this
         $this.Title = "Duplicate"
-        $this.Width = 540
-        $this.SizeToContent = [System.Windows.SizeToContent]::Height
-        $this.MaxHeight = 760
+        $this.SizeToContent = [System.Windows.SizeToContent]::WidthAndHeight
         $this.WindowStartupLocation = [System.Windows.WindowStartupLocation]::CenterScreen
         $this.ResizeMode = [System.Windows.ResizeMode]::NoResize
         $this.Load((Join-Path $PSScriptRoot "Duplicate.xaml"))

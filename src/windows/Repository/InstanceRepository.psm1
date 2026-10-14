@@ -18,6 +18,12 @@ class InstanceRepository {
         $this.InstancesRoot = $instancesRoot
     }
 
+    # La racine redite — le migrate l'a déplacée : le dépôt suit, sans être
+    # reconstruit.
+    [void] ReRoot([string]$root) {
+        $this.InstancesRoot = $root
+    }
+
     [string] GetFolder([string]$name) {
         return (Join-Path $this.InstancesRoot $name)
     }

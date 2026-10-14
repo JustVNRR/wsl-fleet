@@ -22,9 +22,7 @@ class WpfRestoreView : BaseViewWpf {
         if (-not $archiveName) { return $null }
 
         $this.Title = "Restore archive"
-        $this.Width = 540
-        $this.SizeToContent = [System.Windows.SizeToContent]::Height
-        $this.MaxHeight = 760
+        $this.SizeToContent = [System.Windows.SizeToContent]::WidthAndHeight
         $this.WindowStartupLocation = [System.Windows.WindowStartupLocation]::CenterScreen
         $this.ResizeMode = [System.Windows.ResizeMode]::NoResize
         $this.Load((Join-Path $PSScriptRoot "Restore.xaml"))

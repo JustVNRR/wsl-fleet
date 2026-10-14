@@ -67,6 +67,7 @@ class MainWindowController : BaseController {
             Root       = $this.Fleet.GetRoot
             Settings   = $this.Settings
             SetVariant = $this.Service.SetVariant
+            ReRoot     = $this.ReRoot
         }
         if ($gestures) {
             foreach ($property in $gestures.PSObject.Properties) { $doors[$property.Name] = $property.Value }
@@ -74,6 +75,17 @@ class MainWindowController : BaseController {
 
         $view.Ask($rows, $root, $theme, [PSCustomObject]$doors)
         return [ActionResult]::Ok("Main : closed")
+    }
+
+    # Le monde en mémoire suit la racine écrite : après un migrate, les
+    # services re-pointent avant que la liste ne se relise — sinon elle lit
+    # l'ancienne pour toujours (vécu : la restauration invisible jusqu'au
+    # redémarrage). La racine est RELUE ici, pas reçue : le voyage l'a
+    # peut-être changée.
+    [void] ReRoot() {
+        $root = $this.Fleet.GetRoot()
+        $this.Fleet.ReRoot($root)
+        $this.Instance.ReRoot($root)
     }
 
     # Le look en cours — lu au service, rien à peindre de plus : les fenêtres

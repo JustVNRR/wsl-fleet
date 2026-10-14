@@ -103,17 +103,15 @@ class InstanceController : BaseController {
             $checkRegistry = $this.Service.IsRegistryImageValid
 
             # La fenêtre, elle, écrit des recettes — elle les téléverse, les
-            # télécharge, les supprime —, refuse un nom déjà pris, et sait si
-            # Docker tourne (la sonde, lue une fois, avant) : les portes lui
-            # arrivent liées au service. Le cli ne demande que ses listes.
+            # télécharge, les supprime — et refuse un nom déjà pris : les
+            # portes lui arrivent liées au service. Le cli ne demande que ses
+            # listes.
             if ($this.ViewType -eq "WPF") {
                 $doors = [PSCustomObject]@{
-                    DockerRunning = $this.Service.TestDocker()
-                    Taken         = @($this.Service.GetAll() | Where-Object { -not $_.IsArchive } | ForEach-Object { $_.Name })
-                    Upload        = $this.Service.UploadRecipe
-                    Delete        = $this.Service.DeleteRecipe
-                    Export        = $this.Service.ExportRecipe
-                    StartDocker   = $this.Service.StartDocker
+                    Taken  = @($this.Service.GetAll() | Where-Object { -not $_.IsArchive } | ForEach-Object { $_.Name })
+                    Upload = $this.Service.UploadRecipe
+                    Delete = $this.Service.DeleteRecipe
+                    Export = $this.Service.ExportRecipe
                 }
             }
         } catch {
@@ -130,11 +128,11 @@ class InstanceController : BaseController {
 
         # Le docker doit répondre avant la FABRICATION — l'ancienne sondait
         # là : le questionnaire d'abord, puis la sonde, puis la naissance.
-        # Sans elle, la naissance s'écrase en plein docker build (vécu sur sa
-        # machine) au lieu de s'arrêter dit. Le cli s'arrête ici, le refus
-        # peint ; la fenêtre, elle, porte la sonde dans ses portes et offre
-        # de démarrer Docker.
-        if ($this.ViewType -ne "WPF" -and -not ($this.Service.TestDocker())) {
+        # Le démarrage est direct : le service ne relance rien s'il tourne
+        # déjà, et son verdict décide — refusé, la naissance s'arrête dite,
+        # le refus peint, au lieu de s'écraser en plein docker build (vécu
+        # sur sa machine).
+        if (-not ($this.Service.StartDocker())) {
             $view.Abort(@("Docker is not responding.", "Start Docker Desktop, then try again."))
             return [ActionResult]::Nok("Build : Docker is not responding.")
         }
@@ -335,7 +333,7 @@ class InstanceController : BaseController {
         return [ActionResult]::Ok("RemovePack : $($dto.InstanceName)")
     }
 
-    [ActionResult] ManagePacks([string]$instanceName) {
+    [object] ManagePacks([string]$instanceName) {
         $name = $this.SelectInstance($instanceName, @())
         if (-not $name) { return [ActionResult]::Ok("ManagePacks : cancelled") }
         $view = $this.GetView("ManagePacks")
@@ -346,6 +344,10 @@ class InstanceController : BaseController {
             return [ActionResult]::Nok("ManagePacks : $name - $($_.Exception.Message)")
         }
         $dto = $view.Ask($packs, $name)
+        # Au WPF, la porte rend le Dto (ou le vide de l'abandon) : l'ouvrier
+        # fait le reste dans sa console. Sans elle, l'abandon lançait quand
+        # même une console — ouverte et fermée aussitôt (vécu).
+        if ($this.ViewType -eq "WPF") { return $dto }
         if ($null -eq $dto) { return [ActionResult]::Ok("ManagePacks : cancelled") }
         try {
             $response = $this.Service.ManagePacks($dto)

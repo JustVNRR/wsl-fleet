@@ -4,6 +4,7 @@
 # Ce dont ce fichier nomme, déclaré ici : un module résout ce qu'il a tiré
 # lui-même.
 using module ..\BaseViewCli.psm1
+using module ..\..\..\Tools\Helpers.psm1
 
 # Le déménagement : une seule question — le dossier d'arrivée, posée avec la
 # racine en main — puis l'entête et le rapport. La boucle du voyage est muette
@@ -18,6 +19,12 @@ class CliMigrateView : BaseViewCli {
         if ($target -eq "$root".TrimEnd('\')) {
             Write-Host ""
             Write-Host "  That is the working folder - nothing to move." -ForegroundColor $this.Colour("warning")
+            return ""
+        }
+        $problem = Test-FleetTarget $target
+        if ($problem) {
+            Write-Host ""
+            Write-Host "  $problem" -ForegroundColor $this.Colour("warning")
             return ""
         }
         return $target

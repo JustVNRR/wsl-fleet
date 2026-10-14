@@ -50,6 +50,14 @@ class InstanceService {
         $this.Map = [InstanceMapper]::new()
     }
 
+    # La racine redite après un migrate : les deux dépôts qui la portent
+    # suivent — sinon la liste lit l'ancienne pour toujours (vécu : la
+    # restauration invisible jusqu'au redémarrage).
+    [void] ReRoot([string]$root) {
+        $this.Instances.ReRoot($root)
+        $this.Archives.ReRoot($root)
+    }
+
     # =========================================================================
     # L'INDEX ET SES LECTURES
     # =========================================================================
@@ -190,14 +198,15 @@ class InstanceService {
         return @($this.FormatSourceRows(@($row)))[0]
     }
 
-    # Docker répond-il — la sonde qui précède la fenêtre de naissance : le
-    # contrôleur la lit une fois, la fenêtre s'ouvre avec la réponse.
+    # Docker répond-il — la sonde que le contrôleur lit avant la naissance.
     [bool] TestDocker() {
         return $this.Docker.TestRunning()
     }
 
-    # Docker Desktop lancé — la fenêtre qui a demandé « le démarrer ? ».
+    # Docker Desktop lancé au besoin — déjà debout, l'appel ne lance rien et
+    # rend vrai ; le contrôleur l'appelle directement avant de fabriquer.
     [bool] StartDocker() {
+        if ($this.Docker.TestRunning()) { return $true }
         return $this.Docker.StartDesktop()
     }
 

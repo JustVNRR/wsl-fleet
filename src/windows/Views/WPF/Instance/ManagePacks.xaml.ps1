@@ -31,9 +31,7 @@ class WpfManagePacksView : BaseViewWpf {
         if ($rows.Count -eq 0) { return $null }
 
         $this.Title = "Packs"
-        $this.Width = 560
-        $this.SizeToContent = [System.Windows.SizeToContent]::Height
-        $this.MaxHeight = 760
+        $this.SizeToContent = [System.Windows.SizeToContent]::WidthAndHeight
         $this.WindowStartupLocation = [System.Windows.WindowStartupLocation]::CenterScreen
         $this.ResizeMode = [System.Windows.ResizeMode]::NoResize
         $this.Load((Join-Path $PSScriptRoot "ManagePacks.xaml"))

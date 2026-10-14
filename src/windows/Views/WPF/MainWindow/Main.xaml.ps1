@@ -33,8 +33,8 @@ class WpfMainView : BaseViewWpf {
     hidden [int]$Ticks = 0
     hidden [string]$JobVerb = ""
     hidden [string]$JobName = ""
-    hidden [object]$BuildChild = $null
-    hidden [object]$BuildWatch = $null
+    hidden [object]$ConsoleChild = $null
+    hidden [object]$ConsoleWatch = $null
 
     [string] Ask([object[]]$rows, [string]$rootPath, [object]$theme, [object]$doors) {
         $self = $this
@@ -46,8 +46,7 @@ class WpfMainView : BaseViewWpf {
         $this.Root = "$rootPath"
 
         $this.Title = "WSL Stack Manager"
-        $this.Width = 700
-        $this.SizeToContent = [System.Windows.SizeToContent]::Height
+        $this.SizeToContent = [System.Windows.SizeToContent]::WidthAndHeight
         $this.WindowStartupLocation = [System.Windows.WindowStartupLocation]::CenterScreen
         $this.MinHeight = 240
         $this.Load((Join-Path $PSScriptRoot "Main.xaml"))
@@ -162,7 +161,7 @@ class WpfMainView : BaseViewWpf {
             # Rien de ce lancement ne reste accroché : un minuteur laissé en
             # marche tiendrait le lancement jusqu'à la fin de l'enfant.
             if ($this.Poller) { $this.Poller.Stop() }
-            if ($this.BuildWatch) { $this.BuildWatch.Stop() }
+            if ($this.ConsoleWatch) { $this.ConsoleWatch.Stop() }
             [BaseViewWpf]::Main = $null
             [BaseViewWpf]::Depth = 0
         }
@@ -188,8 +187,10 @@ class WpfMainView : BaseViewWpf {
     hidden [void] Run([string]$verb, [string]$target) {
         $door = $this.Door($verb)
         if (-not $door) { return }
-        $result = if ($target) { $door.Invoke(@($target))[0] } else { $door.Invoke(@())[0] }
-        if ($null -eq $result) { return }
+        $invoked = if ($target) { @($door.Invoke(@($target))) } else { @($door.Invoke(@())) }
+        if ($invoked.Count -eq 0) { return }
+        $result = $invoked[0]
+        if (-not $result) { return }
         $ok = ("$($result.Status)" -eq "Ok") -and ("$($result.Message)" -notlike "*: cancelled")
         if ($ok) { $this.Reload() }
         $this.SetStatus("$($result.Message)", ("$($result.Status)" -eq "Nok"))
@@ -200,8 +201,10 @@ class WpfMainView : BaseViewWpf {
     hidden [void] Long([string]$verb, [string]$name, [object]$button) {
         $door = $this.Door($verb)
         if (-not $door) { return }
-        $dto = $door.Invoke(@($name))[0]
-        if ($null -eq $dto) { return }
+        $invoked = @($door.Invoke(@($name)))
+        if ($invoked.Count -eq 0) { return }
+        $dto = $invoked[0]
+        if (-not $dto) { return }
 
         $arg1 = ""
         if ($verb -in @("Remove", "Compact")) { $arg1 = if ([bool]$dto.ArchiveFirst) { "True" } else { "False" } }
@@ -229,10 +232,12 @@ class WpfMainView : BaseViewWpf {
     hidden [void] Packs([string]$name) {
         $door = $this.Door("ManagePacks")
         if (-not $door) { return }
-        $dto = $door.Invoke(@($name))[0]
-        if ($null -eq $dto) { return }
+        $invoked = @($door.Invoke(@($name)))
+        if ($invoked.Count -eq 0) { return }
+        $dto = $invoked[0]
+        if (-not $dto) { return }
         $this.LaunchVisible("ManagePacks", "$($dto.InstanceName)", ($dto.ToAdd -join ','), ($dto.ToRemove -join ','))
-        $this.SetStatus("Editing '$name's packs in a window of its own.", $false)
+        $this.SetStatus("Editing '$name's packs in a terminal.", $false)
     }
 
     # La naissance : la porte rend le Dto, le Dto voyage en clair dans un
@@ -242,8 +247,13 @@ class WpfMainView : BaseViewWpf {
     hidden [void] Add() {
         $door = $this.Door("Build")
         if (-not $door) { return }
-        $dto = $door.Invoke(@())[0]
-        if ($null -eq $dto) { return }
+        # La porte peut n'avoir RIEN rendu (le formulaire abandonné) : rien à
+        # indexer — on embrasse, on regarde, on prend ensuite (vécu : le
+        # Cancel de la naissance jurait ici).
+        $invoked = @($door.Invoke(@()))
+        if ($invoked.Count -eq 0) { return }
+        $dto = $invoked[0]
+        if (-not $dto) { return }
 
         $json = Join-Path $env:TEMP "wsl-stack-build.json"
         $payload = [PSCustomObject]@{
@@ -270,8 +280,10 @@ class WpfMainView : BaseViewWpf {
     hidden [void] Settings() {
         $door = $this.Door("Settings")
         if (-not $door) { return }
-        $picked = $door.Invoke(@())[0]
-        if ($null -eq $picked) { return }
+        $invoked = @($door.Invoke(@()))
+        if ($invoked.Count -eq 0) { return }
+        $picked = $invoked[0]
+        if (-not $picked) { return }
 
         # Un refus du contrôleur est un ActionResult — sa phrase est le trail.
         if ($picked.PSObject.Properties['Status']) {
@@ -292,7 +304,7 @@ class WpfMainView : BaseViewWpf {
 
         if ($picked.NewRoot) {
             $this.SetBusy($true, "Moving the fleet to '$($picked.NewRoot)'...")
-            $this.LaunchJob("Migrate", "$($picked.NewRoot)", "")
+            $this.LaunchVisible("Migrate", "$($picked.NewRoot)", "", "")
             return
         }
 
@@ -319,7 +331,9 @@ class WpfMainView : BaseViewWpf {
         $rootDoor = $this.Door("Root")
         if ($rootDoor) {
             try {
-                $this.Root = "$($rootDoor.Invoke(@())[0])"
+                # Emballée : Invoke rend la valeur nue — [0] sur une CHAÎNE en
+                # prend le premier caractère (« d:\wsl » → « d », vécu).
+                $this.Root = "$(@($rootDoor.Invoke(@()))[0])"
                 $this.Find("TxtRoot").Text = "Root: $($this.Root)"
             } catch { }
         }
@@ -413,9 +427,14 @@ class WpfMainView : BaseViewWpf {
             $this.SetStatus("The job was not launched: a value carries a double quote or a trailing backslash.", $true)
             return
         }
-        $null = Start-Process pwsh -ArgumentList @(
+        $this.ConsoleChild = Start-Process pwsh -PassThru -ArgumentList @(
             "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "`"$worker`"",
             "`"$name`"", "`"$arg1`"", "`"$arg2`"", "`"$([BaseViewWpf]::Assets)`"", "`"$($this.Root)`"")
+        $this.ConsoleWatch = [System.Windows.Threading.DispatcherTimer]::new([System.Windows.Threading.DispatcherPriority]::Input)
+        $this.ConsoleWatch.Interval = [TimeSpan]::FromMilliseconds(1000)
+        $this.ConsoleWatch.Tag = $this
+        $this.ConsoleWatch.Add_Tick({ param($s, $e) $s.Tag.ConsoleTick() })
+        $this.ConsoleWatch.Start()
     }
 
     # La naissance, visible elle aussi, mais guettée : sa fin relit la liste —
@@ -426,25 +445,31 @@ class WpfMainView : BaseViewWpf {
             $this.SetStatus("The build was not launched: a value carries a double quote or a trailing backslash.", $true)
             return
         }
-        $this.BuildChild = Start-Process pwsh -PassThru -ArgumentList @(
+        $this.ConsoleChild = Start-Process pwsh -PassThru -ArgumentList @(
             "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "`"$worker`"",
             "`"$name`"", "`"$json`"", "`"`"", "`"$([BaseViewWpf]::Assets)`"", "`"$($this.Root)`"")
 
-        $this.BuildWatch = [System.Windows.Threading.DispatcherTimer]::new([System.Windows.Threading.DispatcherPriority]::Input)
-        $this.BuildWatch.Interval = [TimeSpan]::FromMilliseconds(1000)
-        $this.BuildWatch.Tag = $this
-        $this.BuildWatch.Add_Tick({ param($s, $e) $s.Tag.BuildTick() })
-        $this.BuildWatch.Start()
-        $this.SetBusy($true, "Creating '$name' in a window of its own.")
+        $this.ConsoleWatch = [System.Windows.Threading.DispatcherTimer]::new([System.Windows.Threading.DispatcherPriority]::Input)
+        $this.ConsoleWatch.Interval = [TimeSpan]::FromMilliseconds(1000)
+        $this.ConsoleWatch.Tag = $this
+        $this.ConsoleWatch.Add_Tick({ param($s, $e) $s.Tag.ConsoleTick() })
+        $this.ConsoleWatch.Start()
+        $this.SetBusy($true, "Creating '$name' in terminal.")
     }
 
-    hidden [void] BuildTick() {
-        if ($null -eq $this.BuildChild -or -not $this.BuildChild.HasExited) { return }
-        $this.BuildWatch.Stop()
-        $this.BuildChild = $null
+    # La console visible rendue : la fenêtre relit la flotte — la racine a pu
+    # changer (le migrate), l'instance naître (la build).
+    hidden [void] ConsoleTick() {
+        if ($null -eq $this.ConsoleChild -or -not $this.ConsoleChild.HasExited) { return }
+        $this.ConsoleWatch.Stop()
+        $this.ConsoleChild = $null
         $this.SetBusy($false, "")
+        # Le monde en mémoire suit la racine que la console vient peut-être
+        # d'écrire (le migrate) : les services re-pointent, PUIS la liste.
+        $reroot = $this.Door("ReRoot")
+        if ($reroot) { try { $null = $reroot.Invoke(@()) } catch { } }
         $this.Reload()
-        $this.SetStatus("The build ended - the fleet was reread.", $false)
+        $this.SetStatus("Done - the fleet was reread.", $false)
     }
 
     # La ligne dit qu'elle travaille : ses icônes cèdent la place au petit
@@ -473,35 +498,12 @@ class WpfMainView : BaseViewWpf {
                 })
             }
 
-            # Les deux premières colonnes mesurées à leur contenu (le visage
-            # porté), et la fenêtre suit ses colonnes — le budget est tout ce
-            # que le cadre mange : 58 pixels de marges et de ligne, plus une
-            # respiration pour la colonne Action, qu'un GridView ne mesure
-            # qu'après coup. Le zoom de la taille choisie multiplie le tout.
-            if ($sorted.Count -gt 0) {
-                $typeface = [System.Windows.Media.Typeface]::new($this.FontFamily,
-                    [System.Windows.FontStyles]::Normal, [System.Windows.FontWeights]::Normal, [System.Windows.FontStretches]::Normal)
-                $measures = @(
-                    @{ Column = 0; Header = "Name"; Values = @($list.Items | ForEach-Object { "$($_.Name)" }) },
-                    @{ Column = 1; Header = "Size"; Values = @($list.Items | ForEach-Object { "$($_.Size)" }) }
-                )
-                foreach ($m in $measures) {
-                    $widest = 0.0
-                    foreach ($text in @($m.Header) + @($m.Values)) {
-                        if (-not $text) { continue }
-                        $ft = [System.Windows.Media.FormattedText]::new($text,
-                            [Globalization.CultureInfo]::CurrentCulture, [System.Windows.FlowDirection]::LeftToRight,
-                            $typeface, [double]$this.FontSize, [System.Windows.Media.Brushes]::Black, [double]1)
-                        if ($ft.Width -gt $widest) { $widest = $ft.Width }
-                    }
-                    $list.View.Columns[$m.Column].Width = [Math]::Min(420, [Math]::Max(90, [Math]::Ceiling($widest) + 28))
-                }
-
-                $list.UpdateLayout()
-                $total = 0.0
-                foreach ($column in $list.View.Columns) { $total += $column.ActualWidth }
-                $base = [Math]::Min(1100, [Math]::Max(460, $total + 90))
-                $this.Width = ($base - 58) * $this.Zoom + 58
+            # Une colonne Auto d'une GridView se mesure UNE fois puis se fige :
+            # après une restauration, un retour des Réglages ou une autre,
+            # police, la fenêtre suivait une largeur gelée (vécu). On relance
+            # la mesure à chaque remplissage — les colonnes Auto seules.
+            foreach ($column in $list.View.Columns) {
+                if ([double]::IsNaN($column.Width)) { $column.Width = 0; $column.Width = [double]::NaN }
             }
 
             if ($sorted.Count -eq 0) {

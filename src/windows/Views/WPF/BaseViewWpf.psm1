@@ -19,10 +19,6 @@ class BaseViewWpf : System.Windows.Window {
     # La racine chargée du XAML — c'est elle qui porte les noms.
     hidden [object]$Scope
 
-    # Le zoom posé par Dress (la taille choisie / 15) — la fenêtre principale
-    # en a besoin pour se mesurer : sa largeur suit ses colonnes, zoom compris.
-    hidden [double]$Zoom = 1.0
-
     # Le résultat qu'une fenêtre pose avant de se fermer : une affectation
     # dans un bloc d'événement reste chez le bloc, jamais dans la méthode —
     # les poignées écrivent donc ICI, et Ask lit après ShowDialog.
@@ -233,10 +229,9 @@ class BaseViewWpf : System.Windows.Window {
 
     # Le cadre phosphore : aucune chrome, une fenêtre transparente, le cadre
     # dessiné ici — chaque fenêtre le porte sans XAML pour lui, et se glisse
-    # par le fond. Le zoom de la taille choisie se pose sur le CONTENU (posé
-    # sur la fenêtre, il ne bouge rien — mesuré). C'est ici que vit la
-    # première moitié du volet — la boîte se pose, puis la fenêtre principale
-    # s'enfonce ; le retour vit dans OpenAs.
+    # par le fond. C'est ici que vit la première moitié du volet — la boîte
+    # se pose, puis la fenêtre principale s'enfonce ; le retour vit dans
+    # OpenAs.
     [void] Dress([object]$uiFont, [int]$fontSize) {
         # Sans police donnée, celle du contexte : l'entrée l'a posée — la vue
         # n'a pas à la connaître. Une locale neuve pour la reprendre : une
@@ -248,15 +243,10 @@ class BaseViewWpf : System.Windows.Window {
             $face = [BaseViewWpf]::UiFont
             $size = [BaseViewWpf]::UiSize
         }
-        if ($face) {
-            $scale = $size / 15.0
-            $this.Zoom = $scale
-            $this.FontFamily = $face
-            $this.FontSize = 15
-            $content = $this.Content
-            if ($content -is [System.Windows.Controls.Border]) { $content = $content.Child }
-            if ($content) { $content.LayoutTransform = [System.Windows.Media.ScaleTransform]::new($scale, $scale) }
-        }
+        # La taille s'affiche à sa valeur — le texte comme les icônes : rien
+        # ne se zoome, la fenêtre suit son contenu (SizeToContent).
+        if ($face) { $this.FontFamily = $face }
+        if ($size -gt 0) { $this.FontSize = $size }
 
         if ($this.Tag -ne 'framed') {
             $this.Tag = 'framed'
@@ -347,24 +337,12 @@ class BaseViewWpf : System.Windows.Window {
         }
     }
 
-    # La taille de la fenêtre sur son contenu, bornée à l'écran : le contenu
-    # mesuré à l'infini — PositiveInfinity, pas Infinity : le petit nom
-    # n'existe pas et rend $null en silence, la mesure tourne alors à 0x0
-    # (mesuré) —, la largeur ajustée au besoin, la hauteur laissée au
-    # contenu. -ScreenOf : l'écran de la fenêtre par-dessus ; sans lui, la
-    # primaire.
+    # La fenêtre suit son contenu (SizeToContent) — ici, seule la borne à
+    # l'écran reste : la hauteur plafonnée à l'écran où elle vit.
+    # -ScreenOf : l'écran de la fenêtre par-dessus ; sans lui, rien.
     [void] FitToContent([object]$screenOf) {
-        $content = $this.Content
-        if (-not $content) { return }
-        $content.Measure([System.Windows.Size]::new([double]::PositiveInfinity, [double]::PositiveInfinity))
-        $needed = [Math]::Ceiling($content.DesiredSize.Width) + 2
-
         $area = if ($screenOf) { $this.GetScreenWorkingArea($screenOf) } else { $null }
-        $cap = if ($area) { [Math]::Min(1100, $area.Width - 80) } else { 1100 }
         if ($area) { $this.MaxHeight = [Math]::Floor($area.Height) }
-
-        $fitted = [Math]::Min($needed, $cap)
-        $this.Width = [Math]::Max($this.Width, $fitted)
     }
 
     # L'écran où vit la fenêtre donnée, dans SES unités — une fenêtre n'a pas
@@ -390,9 +368,7 @@ class BaseViewWpf : System.Windows.Window {
     [bool] ConfirmAs([object]$owner, [string]$title, [string]$question, [string]$danger) {
         $dialog = [BaseViewWpf]::new()
         $dialog.Title = "WSL Stack"
-        $dialog.Width = 440
-        $dialog.SizeToContent = [System.Windows.SizeToContent]::Height
-        $dialog.MaxHeight = 760
+        $dialog.SizeToContent = [System.Windows.SizeToContent]::WidthAndHeight
         $dialog.WindowStartupLocation = [System.Windows.WindowStartupLocation]::CenterScreen
         $dialog.ResizeMode = [System.Windows.ResizeMode]::NoResize
         $dialog.Load((Join-Path $PSScriptRoot "shared\Confirm.xaml"))

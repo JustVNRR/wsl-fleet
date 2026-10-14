@@ -31,9 +31,7 @@ class WpfSetAppearanceView : BaseViewWpf {
     [object] Ask([string]$name, [object]$appearance, [string[]]$fonts, [object[]]$schemes, [object[]]$pairs) {
         $self = $this
         $this.Title = "Appearance"
-        $this.Width = 600
-        $this.SizeToContent = [System.Windows.SizeToContent]::Height
-        $this.MaxHeight = 760
+        $this.SizeToContent = [System.Windows.SizeToContent]::WidthAndHeight
         $this.WindowStartupLocation = [System.Windows.WindowStartupLocation]::CenterScreen
         $this.ResizeMode = [System.Windows.ResizeMode]::NoResize
         $this.Load((Join-Path $PSScriptRoot "SetAppearance.xaml"))

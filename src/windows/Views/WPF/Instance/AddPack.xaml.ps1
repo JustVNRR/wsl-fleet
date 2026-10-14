@@ -17,9 +17,7 @@ class WpfAddPackView : BaseViewWpf {
         if ($Candidates.Count -eq 0) { return $null }
 
         $this.Title = "Add a pack"
-        $this.Width = 560
-        $this.SizeToContent = [System.Windows.SizeToContent]::Height
-        $this.MaxHeight = 760
+        $this.SizeToContent = [System.Windows.SizeToContent]::WidthAndHeight
         $this.WindowStartupLocation = [System.Windows.WindowStartupLocation]::CenterScreen
         $this.ResizeMode = [System.Windows.ResizeMode]::NoResize
         $this.Load((Join-Path $PSScriptRoot "AddPack.xaml"))

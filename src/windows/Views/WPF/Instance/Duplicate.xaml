@@ -8,9 +8,9 @@
     <TextBox Name="TxtName" Margin="0,6,0,0" Background="{DynamicResource AppInputBackgroundBrush}" Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="{DynamicResource AppBorderBrush}" Padding="4"/>
     <TextBlock Name="TxtNameError" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource AppDangerBrush}" Visibility="Collapsed"/>
     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
-        <Button Name="BtnDupCancel" Content="Cancel" Width="80" Height="28" Margin="0,0,8,0" IsCancel="True"
+        <Button Name="BtnDupCancel" Content="Cancel" Margin="0,0,8,0" IsCancel="True"
                 Background="{DynamicResource AppFaceBrush}" Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="{DynamicResource AppBorderBrush}"/>
-        <Button Name="BtnDupGo" Content="DUPLICATE" Width="110" Height="28" IsDefault="True"
+        <Button Name="BtnDupGo" Content="DUPLICATE" IsDefault="True"
                 Background="{DynamicResource AppForegroundBrush}" Foreground="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource AppForegroundBrush}"/>
     </StackPanel>
 </StackPanel>

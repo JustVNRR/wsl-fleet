@@ -6,7 +6,7 @@
     <TextBlock Name="TxtOffered" Margin="0,6,0,0" TextWrapping="Wrap" Foreground="{DynamicResource AppMutedBrush}"/>
     <TextBlock Name="TxtRemovable" Margin="0,6,0,0" TextWrapping="Wrap" Foreground="{DynamicResource AppMutedBrush}"/>
     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
-        <Button Name="BtnPacksClose" Content="CLOSE" Width="90" Height="28" IsDefault="True"
+        <Button Name="BtnPacksClose" Content="CLOSE" IsDefault="True"
                 Background="{DynamicResource AppForegroundBrush}" Foreground="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource AppForegroundBrush}"/>
     </StackPanel>
 </StackPanel>

@@ -7,9 +7,9 @@
     <TextBlock Name="TxtTaken" Margin="0,14,0,0" TextWrapping="Wrap" Foreground="{DynamicResource AppDangerBrush}" Visibility="Collapsed"
                Text="An archive with this name exists: it will be replaced."/>
     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
-        <Button Name="BtnArchiveCancel" Content="Cancel" Width="80" Height="28" Margin="0,0,8,0" IsCancel="True"
+        <Button Name="BtnArchiveCancel" Content="Cancel" Margin="0,0,8,0" IsCancel="True"
                 Background="{DynamicResource AppFaceBrush}" Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="{DynamicResource AppBorderBrush}"/>
-        <Button Name="BtnArchiveGo" Content="ARCHIVE" Width="90" Height="28" IsDefault="True"
+        <Button Name="BtnArchiveGo" Content="ARCHIVE" IsDefault="True"
                 Background="{DynamicResource AppForegroundBrush}" Foreground="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource AppForegroundBrush}"/>
     </StackPanel>
 </StackPanel>

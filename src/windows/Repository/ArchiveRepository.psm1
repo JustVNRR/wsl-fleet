@@ -22,6 +22,13 @@ class ArchiveRepository {
         $this.Files = [InstanceRepository]::new($archivesRoot)
     }
 
+    # La racine redite — la racine de la FLOTTE, comme au constructeur : le
+    # dossier des archives ET le dépôt des fichiers qui vit dedans suivent.
+    [void] ReRoot([string]$root) {
+        $this.ArchivesRoot = Join-Path $root "archives"
+        $this.Files.ReRoot($this.ArchivesRoot)
+    }
+
     [string] GetFolder([string]$archiveName) {
         return (Join-Path $this.ArchivesRoot $archiveName)
     }

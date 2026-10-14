@@ -19,27 +19,27 @@
             <ColumnDefinition Width="Auto"/>
         </Grid.ColumnDefinitions>
         <StackPanel Grid.Column="0">
-            <TextBlock Text="WSL Fleet" FontSize="20" FontWeight="SemiBold" Foreground="{DynamicResource AppForegroundBrush}"/>
-            <TextBlock Name="TxtRoot" FontSize="11" Foreground="{DynamicResource AppMutedBrush}" Margin="0,2,0,0"/>
+            <TextBlock Text="WSL Fleet" FontWeight="SemiBold" Foreground="{DynamicResource AppForegroundBrush}"/>
+            <TextBlock Name="TxtRoot" Foreground="{DynamicResource AppMutedBrush}" Margin="0,2,0,0"/>
         </StackPanel>
-        <Button Name="BtnAdd" Grid.Column="1" Content="&#xF067;" FontFamily="{DynamicResource IconFace}" FontSize="14"
-                Width="28" Height="28" Padding="0" Margin="0,0,8,0" VerticalAlignment="Top"
+        <Button Name="BtnAdd" Grid.Column="1" Content="&#xF067;" FontFamily="{DynamicResource IconFace}"
+                Margin="0,0,8,0" VerticalAlignment="Top"
                 Background="{DynamicResource AppFaceBrush}" Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="{DynamicResource AppBorderBrush}"
                 ToolTip="Add"/>
-        <Button Name="BtnRefresh" Grid.Column="2" Content="&#xF021;" FontFamily="{DynamicResource IconFace}" FontSize="14"
-                Width="28" Height="28" Padding="0" VerticalAlignment="Top"
+        <Button Name="BtnRefresh" Grid.Column="2" Content="&#xF021;" FontFamily="{DynamicResource IconFace}"
+                VerticalAlignment="Top"
                 Background="{DynamicResource AppFaceBrush}" Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="{DynamicResource AppBorderBrush}"
                 ToolTip="Refresh"/>
-        <Button Name="BtnSettings" Grid.Column="3" Content="&#xF013;" FontFamily="{DynamicResource IconFace}" FontSize="14"
-                Width="28" Height="28" Padding="0" Margin="8,0,0,0" VerticalAlignment="Top"
+        <Button Name="BtnSettings" Grid.Column="3" Content="&#xF013;" FontFamily="{DynamicResource IconFace}"
+                Margin="8,0,0,0" VerticalAlignment="Top"
                 Background="{DynamicResource AppFaceBrush}" Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="{DynamicResource AppBorderBrush}"
                 ToolTip="Settings"/>
-        <Button Name="BtnTheme" Grid.Column="4" Content="&#xF185;" FontFamily="{DynamicResource IconFace}" FontSize="14"
-                Width="28" Height="28" Padding="0" Margin="8,0,0,0" VerticalAlignment="Top"
+        <Button Name="BtnTheme" Grid.Column="4" Content="&#xF185;" FontFamily="{DynamicResource IconFace}"
+                Margin="8,0,0,0" VerticalAlignment="Top"
                 Background="{DynamicResource AppFaceBrush}" Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="{DynamicResource AppBorderBrush}"
                 ToolTip="Switch to light"/>
-        <Button Name="BtnQuit" Grid.Column="5" Content="&#xF00D;" FontFamily="{DynamicResource IconFace}" FontSize="14"
-                Width="28" Height="28" Padding="0" Margin="8,0,0,0" VerticalAlignment="Top"
+        <Button Name="BtnQuit" Grid.Column="5" Content="&#xF00D;" FontFamily="{DynamicResource IconFace}"
+                Margin="8,0,0,0" VerticalAlignment="Top"
                 Background="{DynamicResource AppFaceBrush}" Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="{DynamicResource AppBorderBrush}"
                 ToolTip="Close"/>
     </Grid>
@@ -50,12 +50,12 @@
               ScrollViewer.HorizontalScrollBarVisibility="Disabled">
         <ListView.View>
             <GridView>
-                <GridViewColumn Header="Name" Width="200" DisplayMemberBinding="{Binding Name}"/>
-                <GridViewColumn Header="Size" Width="110" DisplayMemberBinding="{Binding Size}"/>
+                <GridViewColumn Header="Name" DisplayMemberBinding="{Binding Name}"/>
+                <GridViewColumn Header="Size" DisplayMemberBinding="{Binding Size}"/>
                 <GridViewColumn Header="Action" Width="Auto">
                     <GridViewColumn.CellTemplate>
                         <DataTemplate>
-                            <Grid Height="22">
+                            <Grid>
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                     <!-- An archived row carries its own two - restore
                                          and the trash; a live row the rest: a shell
@@ -68,48 +68,48 @@
                                          (measured, cell template beside a local key).
                                          The line's own IsArchive decides which set
                                          stands (the style's trigger). -->
-                                    <Button Name="BtnRowRestore" Content="&#xF2EA;" FontFamily="{DynamicResource IconFace}" FontSize="13"
-                                            Width="26" Height="22" Padding="0" Margin="0,0,4,0" Background="Transparent"
+                                    <Button Name="BtnRowRestore" Content="&#xF2EA;" FontFamily="{DynamicResource IconFace}"
+                                            Margin="0,0,4,0" Background="Transparent"
                                             Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="Transparent"
                                             Style="{DynamicResource ArchivedRowButton}"
                                             ToolTip="Restore"/>
-                                    <Button Name="BtnRowDeleteArchive" Content="&#xF1F8;" FontFamily="{DynamicResource IconFace}" FontSize="13"
-                                            Width="26" Height="22" Padding="0" Margin="0,0,4,0" Background="Transparent"
+                                    <Button Name="BtnRowDeleteArchive" Content="&#xF1F8;" FontFamily="{DynamicResource IconFace}"
+                                            Margin="0,0,4,0" Background="Transparent"
                                             Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="Transparent"
                                             Style="{DynamicResource ArchivedRowButton}"
                                             ToolTip="Delete"/>
-                                    <Button Name="BtnRowOpen" Content="&#xF120;" FontFamily="{DynamicResource IconFace}" FontSize="13"
-                                            Width="26" Height="22" Padding="0" Margin="0,0,4,0" Background="Transparent"
+                                    <Button Name="BtnRowOpen" Content="&#xF120;" FontFamily="{DynamicResource IconFace}"
+                                            Margin="0,0,4,0" Background="Transparent"
                                             Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="Transparent"
                                             Style="{DynamicResource LiveRowButton}"
                                             ToolTip="Shell"/>
-                                    <Button Name="BtnRowEdit" Content="&#xF304;" FontFamily="{DynamicResource IconFace}" FontSize="13"
-                                            Width="26" Height="22" Padding="0" Margin="0,0,4,0" Background="Transparent"
+                                    <Button Name="BtnRowEdit" Content="&#xF304;" FontFamily="{DynamicResource IconFace}"
+                                            Margin="0,0,4,0" Background="Transparent"
                                             Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="Transparent"
                                             Style="{DynamicResource LiveRowButton}"
                                             ToolTip="Edit"/>
-                                    <Button Name="BtnRowAppearance" Content="&#xF53F;" FontFamily="{DynamicResource IconFace}" FontSize="13"
-                                            Width="26" Height="22" Padding="0" Margin="0,0,4,0" Background="Transparent"
+                                    <Button Name="BtnRowAppearance" Content="&#xF53F;" FontFamily="{DynamicResource IconFace}"
+                                            Margin="0,0,4,0" Background="Transparent"
                                             Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="Transparent"
                                             Style="{DynamicResource LiveRowButton}"
                                             ToolTip="Appearance"/>
-                                    <Button Name="BtnRowDuplicate" Content="&#xF0C5;" FontFamily="{DynamicResource IconFace}" FontSize="13"
-                                            Width="26" Height="22" Padding="0" Margin="0,0,4,0" Background="Transparent"
+                                    <Button Name="BtnRowDuplicate" Content="&#xF0C5;" FontFamily="{DynamicResource IconFace}"
+                                            Margin="0,0,4,0" Background="Transparent"
                                             Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="Transparent"
                                             Style="{DynamicResource LiveRowButton}"
                                             ToolTip="Duplicate"/>
-                                    <Button Name="BtnRowArchive" Content="&#xF187;" FontFamily="{DynamicResource IconFace}" FontSize="13"
-                                            Width="26" Height="22" Padding="0" Margin="0,0,4,0" Background="Transparent"
+                                    <Button Name="BtnRowArchive" Content="&#xF187;" FontFamily="{DynamicResource IconFace}"
+                                            Margin="0,0,4,0" Background="Transparent"
                                             Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="Transparent"
                                             Style="{DynamicResource LiveRowButton}"
                                             ToolTip="Archive"/>
-                                    <Button Name="BtnRowCompact" Content="&#xF066;" FontFamily="{DynamicResource IconFace}" FontSize="13"
-                                            Width="26" Height="22" Padding="0" Margin="0,0,4,0" Background="Transparent"
+                                    <Button Name="BtnRowCompact" Content="&#xF066;" FontFamily="{DynamicResource IconFace}"
+                                            Margin="0,0,4,0" Background="Transparent"
                                             Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="Transparent"
                                             Style="{DynamicResource LiveRowButton}"
                                             ToolTip="Compact"/>
-                                    <Button Name="BtnRowRemove" Content="&#xF1F8;" FontFamily="{DynamicResource IconFace}" FontSize="13"
-                                            Width="26" Height="22" Padding="0" Background="Transparent"
+                                    <Button Name="BtnRowRemove" Content="&#xF1F8;" FontFamily="{DynamicResource IconFace}"
+                                            Background="Transparent"
                                             Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="Transparent"
                                             Style="{DynamicResource LiveRowButton}"
                                             ToolTip="Remove"/>
@@ -132,7 +132,9 @@
 
     <!-- Status line: a read-only box, not a label - same look, but the
          text can be selected and copied (TextBlock never offers that). -->
-    <TextBox Name="TxtStatus" Grid.Row="3" Margin="0,8,0,0" FontSize="11" Foreground="{DynamicResource AppNewsBrush}" Text="Ready."
-             IsReadOnly="True" Background="Transparent" BorderThickness="0" Padding="2,0"
-             SelectionBrush="{DynamicResource AppSelectionBrush}"/>
+    <TextBlock Name="TxtStatus" Grid.Row="3" Margin="0,8,0,0"
+           Foreground="{DynamicResource AppNewsBrush}" Text="Ready."
+           TextTrimming="CharacterEllipsis"
+           MaxWidth="400"
+           ToolTip="{Binding RelativeSource={RelativeSource Self}, Path=Text}"/>
 </Grid>

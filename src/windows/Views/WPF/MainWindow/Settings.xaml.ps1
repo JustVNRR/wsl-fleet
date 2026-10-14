@@ -6,6 +6,7 @@
 using module ..\BaseViewWpf.psm1
 using module ..\..\..\Dto\WpfDto.psm1
 using module ..\..\..\Dto\PackCatalogDto.psm1
+using module ..\..\..\Tools\Helpers.psm1
 
 # La fenêtre Réglages, celle d'aujourd'hui : la racine (montrée ; le crayon
 # ouvre la question du déplacement), la face (police, taille, thème, version
@@ -29,9 +30,7 @@ class WpfSettingsView : BaseViewWpf {
         $self = $this
         $this.Doors = $doors
         $this.Title = "Settings"
-        $this.Width = 560
-        $this.SizeToContent = [System.Windows.SizeToContent]::Height
-        $this.MaxHeight = 760
+        $this.SizeToContent = [System.Windows.SizeToContent]::WidthAndHeight
         $this.WindowStartupLocation = [System.Windows.WindowStartupLocation]::CenterScreen
         $this.ResizeMode = [System.Windows.ResizeMode]::NoResize
         $this.Load((Join-Path $PSScriptRoot "Settings.xaml"))
@@ -95,8 +94,9 @@ class WpfSettingsView : BaseViewWpf {
         }
         $lstColours.SelectedIndex = $setIndex
 
-        $chkLight = $this.Find("ChkLight")
-        $chkLight.IsChecked = ("$($theme.Variant)" -eq "Light")
+        # La case « Light » n'est plus offerte : la variante reste celle du
+        # thème porté — le bouton de la fenêtre principale la change.
+        $variant = "$($theme.Variant)"
 
         # EN DIRECT : le thème s'échange sous la fenêtre, la police suit.
         # Le crayon et la corbeille d'un thème : grisés sur « Default » — pas
@@ -106,20 +106,21 @@ class WpfSettingsView : BaseViewWpf {
         $UpdateVariant = {
             $at = $lstColours.SelectedIndex
             $chosen = if ($at -ge 0) { "$($sets[$at])" } else { "" }
-            $hasLight = $self.ThemeHasLight($assetsDir, $chosen)
-            $chkLight.IsEnabled = $hasLight
-            if (-not $hasLight) { $chkLight.IsChecked = $false }
-            $variant = if ($chkLight.IsChecked) { "Light" } else { "Dark" }
             $self.WearTheme($assetsDir, $chosen, $variant)
             $btnThemeEdit.IsEnabled = [bool]$chosen
             $btnThemeDelete.IsEnabled = [bool]$chosen
         }
         $lstColours.Add_SelectionChanged({ & $UpdateVariant })
-        $chkLight.Add_Click({ & $UpdateVariant })
         $lstFonts.Add_SelectionChanged({
             # Le constructeur, pas une chaîne : une chaîne qui ne se résout
             # pas se convertit en un « rien n'a bougé » que l'œil ne voit pas.
             $self.FontFamily = [Windows.Media.FontFamily]::new("$($lstFonts.SelectedItem)")
+        })
+        $lstSizes.Add_SelectionChanged({
+            # Le visage passé en clair : un visage nul fait retomber Dress sur
+            # le statique, et la taille choisie serait ignorée — la fenêtre
+            # attendait alors la fermeture (vécu).
+            if ($lstSizes.SelectedItem) { $self.Dress($self.FontFamily, [int]$lstSizes.SelectedItem) }
         })
         & $UpdateVariant
 
@@ -350,7 +351,7 @@ class WpfSettingsView : BaseViewWpf {
             FontFamily = "$($names[[Math]::Max(0, $lstFonts.SelectedIndex)])"
             FontSize   = [int]$lstSizes.SelectedItem
             ColorTheme = if ($lstColours.SelectedIndex -ge 0) { "$($sets[$lstColours.SelectedIndex])" } else { "" }
-            Variant    = if ($chkLight.IsChecked) { "Light" } else { "Dark" }
+            Variant    = "$($theme.Variant)"
             NewRoot    = $this.NewRoot
         }
         $look = [WpfThemeDto]::new()
@@ -369,9 +370,7 @@ class WpfSettingsView : BaseViewWpf {
     hidden [string] AskRootMove([string]$current) {
         $move = [BaseViewWpf]::new()
         $move.Title = "WSL Stack"
-        $move.Width = 520
-        $move.SizeToContent = [System.Windows.SizeToContent]::Height
-        $move.MaxHeight = 760
+        $move.SizeToContent = [System.Windows.SizeToContent]::WidthAndHeight
         $move.WindowStartupLocation = [System.Windows.WindowStartupLocation]::CenterScreen
         $move.ResizeMode = [System.Windows.ResizeMode]::NoResize
         $move.Load((Join-Path (Split-Path -Path $PSScriptRoot -Parent) "shared\RootMove.xaml"))
@@ -379,7 +378,7 @@ class WpfSettingsView : BaseViewWpf {
         $move.Dress($null, 15)
 
         $move.Find("TxtLead").Text = "Move the fleet from '$current'"
-        $move.Find("TxtWarning").Text = "Every instance will be archived and unregistered, one by one, and the archives will travel. Instances that run are stopped as they are archived."
+        $move.Find("TxtWarning").Text = "Every instance will be archived and unregistered before migration."
         $txtNewRoot = $move.Find("TxtNewRoot")
         $txtNewRoot.Text = $current
         $move.Add_ContentRendered({ $null = $txtNewRoot.Focus(); $txtNewRoot.SelectAll() })
@@ -388,6 +387,13 @@ class WpfSettingsView : BaseViewWpf {
         $move.Find("BtnRootOk").Add_Click({
             $chosen = "$($txtNewRoot.Text)".Trim().Trim('"').TrimEnd('\')
             if (-not $chosen -or $chosen -eq "$current".TrimEnd('\')) { return }
+            # La garde du service, montrée ici : la boîte reste ouverte et dit
+            # pourquoi — rien ne part pour un chemin impossible.
+            $problem = Test-FleetTarget $chosen
+            if ($problem) {
+                $move.Find("TxtWarning").Text = $problem
+                return
+            }
             $move.Result = $chosen
             $move.Close()
         })
@@ -402,9 +408,7 @@ class WpfSettingsView : BaseViewWpf {
     hidden [object] AskPackDuplicate([string]$source, [string]$description, [string[]]$taken) {
         $dup = [BaseViewWpf]::new()
         $dup.Title = "WSL Stack"
-        $dup.Width = 480
-        $dup.SizeToContent = [System.Windows.SizeToContent]::Height
-        $dup.MaxHeight = 760
+        $dup.SizeToContent = [System.Windows.SizeToContent]::WidthAndHeight
         $dup.WindowStartupLocation = [System.Windows.WindowStartupLocation]::CenterScreen
         $dup.ResizeMode = [System.Windows.ResizeMode]::NoResize
         $dup.Load((Join-Path (Split-Path -Path $PSScriptRoot -Parent) "shared\PackDuplicate.xaml"))

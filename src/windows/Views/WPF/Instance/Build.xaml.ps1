@@ -32,9 +32,7 @@ class WpfBuildView : BaseViewWpf {
         $self = $this
         $this.Doors = $doors
         $this.Title = "Add instance"
-        $this.Width = 560
-        $this.SizeToContent = [System.Windows.SizeToContent]::Height
-        $this.MaxHeight = 760
+        $this.SizeToContent = [System.Windows.SizeToContent]::WidthAndHeight
         $this.WindowStartupLocation = [System.Windows.WindowStartupLocation]::CenterScreen
         $this.ResizeMode = [System.Windows.ResizeMode]::NoResize
         $this.Load((Join-Path $PSScriptRoot "Build.xaml"))
@@ -360,18 +358,6 @@ class WpfBuildView : BaseViewWpf {
             $self.Close()
         })
 
-        # La sonde docker, lue avant : un non, la boîte système le dit — le
-        # formulaire reste ouvert, et « oui » lance l'installeur.
-        if (-not [bool]$doors.DockerRunning) {
-            $answer = [System.Windows.MessageBox]::Show($this,
-                "Docker Desktop is not running.`n`nStart it now? The form stays open and you can keep filling it - the creation itself waits for Docker later on.",
-                "Docker is not running",
-                [System.Windows.MessageBoxButton]::YesNo, [System.Windows.MessageBoxImage]::Warning)
-            if ($answer -eq [System.Windows.MessageBoxResult]::Yes) {
-                try { $null = $doors.StartDocker.Invoke(@()) } catch { }
-            }
-        }
-
         $this.FitToContent($null)
         $null = $this.OpenAs($null)
         return $this.Result
@@ -405,9 +391,7 @@ class WpfBuildView : BaseViewWpf {
     hidden [object] AskPacksForBuild([string]$name, [string]$family, [object[]]$packs) {
         $pick = [BaseViewWpf]::new()
         $pick.Title = "Packs for the build"
-        $pick.Width = 560
-        $pick.SizeToContent = [System.Windows.SizeToContent]::Height
-        $pick.MaxHeight = 760
+        $pick.SizeToContent = [System.Windows.SizeToContent]::WidthAndHeight
         $pick.WindowStartupLocation = [System.Windows.WindowStartupLocation]::CenterScreen
         $pick.ResizeMode = [System.Windows.ResizeMode]::NoResize
         $pick.Load((Join-Path $PSScriptRoot "BuildPacks.xaml"))

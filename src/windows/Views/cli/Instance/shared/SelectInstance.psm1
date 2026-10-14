@@ -25,9 +25,11 @@ class CliSelectInstanceView : BaseViewCli {
         }
 
         $Menu = [MenuCli]::new("Our Instances")
+        # La valeur rangée est le NOM — la ligne entière, recastée par le
+        # [string] du contrôleur, s'affichait « WslIndexDto » (vécu).
         foreach ($row in $All) {
             $null = $Menu.Add([MenuItemCli]::new(
-                ("{0,-30} {1,10}" -f $row.Name, (Format-Size ($row.Size))), $row))
+                ("{0,-30} {1,10}" -f $row.Name, (Format-Size ($row.Size))), $row.Name))
         }
         $Picked = $Menu.Prompt()
 

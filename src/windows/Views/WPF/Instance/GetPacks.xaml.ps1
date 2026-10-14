@@ -11,9 +11,7 @@ class WpfGetPacksView : BaseViewWpf {
     [void] Show([string]$name, [object]$response) {
         $self = $this
         $this.Title = "Packs"
-        $this.Width = 560
-        $this.SizeToContent = [System.Windows.SizeToContent]::Height
-        $this.MaxHeight = 760
+        $this.SizeToContent = [System.Windows.SizeToContent]::WidthAndHeight
         $this.WindowStartupLocation = [System.Windows.WindowStartupLocation]::CenterScreen
         $this.ResizeMode = [System.Windows.ResizeMode]::NoResize
         $this.Load((Join-Path $PSScriptRoot "GetPacks.xaml"))

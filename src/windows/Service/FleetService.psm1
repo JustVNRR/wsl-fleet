@@ -9,6 +9,7 @@ using module ..\Repository\InstanceRepository.psm1
 using module ..\Repository\ArchiveRepository.psm1
 using module .\InstanceService.psm1
 using module ..\Dto\InstanceDto.psm1
+using module ..\Tools\Helpers.psm1
 
 # La racine : elle se dit, et elle se déplace. Trois méthodes, et aucun Dto —
 # un seul champ se passe nu : la racine se rend nue, la destination se donne
@@ -71,10 +72,23 @@ class FleetService {
     # désenregistrent une par une dans Migrate (InstanceService.Remove,
     # l'archivage d'abord) — SetRoot ne fait ici que ce qui est à lui.
     [string] SetRoot([string]$target) {
+        # La garde, ici aussi : SetRoot est une porte à part, et un « effef »
+        # y ferait le même dégât.
+        $problem = Test-FleetTarget $target
+        if ($problem) { throw $problem }
         $this.Instances.EnsureFolder($target)
         $this.Archives.MoveTo($target)
         $this.Config.SaveRoot($target)
         return $target
+    }
+
+    # La racine redite : la flotte ET le service des instances qu'elle tient
+    # suivent — l'entrée re-root ce qu'elle a bâti de son côté avec la même
+    # racine.
+    [void] ReRoot([string]$root) {
+        $this.Instances.ReRoot($root)
+        $this.Archives.ReRoot($root)
+        $this.InstanceService.ReRoot($root)
     }
 
     # La flotte de chez nous, sous la racine : les inscrites dont le dossier
@@ -103,6 +117,12 @@ class FleetService {
     # suivante reprend avec le reste. Le registre n'est jamais touché
     # autrement que par ces désinscriptions. Rend les noms emportés.
     [MigrateResponseDto] Migrate([string]$target) {
+        # La destination d'ABORD — le premier désenregistrement attend. Vécu :
+        # un « effef » relatif avait tout archivé, tout désinscrit et tout
+        # déplacé pour mourir au dernier contrôle ; ici, un refus ne coûte
+        # rien.
+        $problem = Test-FleetTarget $target
+        if ($problem) { throw $problem }
         $response = [MigrateResponseDto]::new()
         $moved = @()
         foreach ($name in @($this.GetFleet())) {

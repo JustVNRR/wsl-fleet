@@ -157,42 +157,6 @@ class InstanceController : BaseController {
         return [ActionResult]::Ok("Restart : $name")
     }
 
-    # Les gestes qui lisent l'index pour leur question le lisent une fois :
-    # SelectInstance y choisit, la vue du geste y relit ce qu'elle montre (une
-    # archive du même nom existe-t-elle).
-    [ActionResult] Remove([string]$instanceName) {
-        $rows = @($this.Service.GetAll())
-        $name = $this.SelectInstance($instanceName, $rows)
-        if (-not $name) { return [ActionResult]::Ok("Remove : cancelled") }
-        $view = $this.GetView("Remove")
-        $dto = $view.Ask($name, $rows)
-        if ($null -eq $dto) { return [ActionResult]::Ok("Remove : cancelled") }
-        try {
-            $this.Service.Remove($dto)
-        } catch {
-            $this.ShowFailure($_.Exception.Message)
-            return [ActionResult]::Nok("Remove : $($dto.InstanceName) - $($_.Exception.Message)")
-        }
-        $view.Show($dto.InstanceName, $null)
-        return [ActionResult]::Ok("Remove : $($dto.InstanceName)")
-    }
-
-    [ActionResult] Compact([string]$instanceName) {
-        $rows = @($this.Service.GetAll())
-        $name = $this.SelectInstance($instanceName, $rows)
-        if (-not $name) { return [ActionResult]::Ok("Compact : cancelled") }
-        $view = $this.GetView("Compact")
-        $dto = $view.Ask($name, $rows)
-        if ($null -eq $dto) { return [ActionResult]::Ok("Compact : cancelled") }
-        try {
-            $response = $this.Service.Compact($dto)
-        } catch {
-            $this.ShowFailure($_.Exception.Message)
-            return [ActionResult]::Nok("Compact : $($dto.InstanceName) - $($_.Exception.Message)")
-        }
-        $view.Show($dto.InstanceName, $response)
-        return [ActionResult]::Ok("Compact : $($dto.InstanceName)")
-    }
 
     # =========================================================================
     # LE LOOK
@@ -335,59 +299,6 @@ class InstanceController : BaseController {
     # L'ARCHIVE
     # =========================================================================
 
-    # L'archive se choisit dans SA vue (la question des archives n'est pas
-    # celle des instances) : l'index reçu la porte, une ligne déjà désignée se
-    # reprend telle quelle.
-    [ActionResult] Restore([string]$archiveName) {
-        $rows = @($this.Service.GetAll())
-        $view = $this.GetView("Restore")
-        # Rien à restaurer, et rien de nommé : le refus est un refus, pas une
-        # annulation - il sort en faute, comme celui de la liste vide.
-        if (-not $archiveName -and @($rows | Where-Object { $_.IsArchive }).Count -eq 0) {
-            $view.ShowNoArchives()
-            return [ActionResult]::Nok("Restore : there are no archives")
-        }
-        $dto = $view.Ask($rows, $archiveName)
-        if ($null -eq $dto) { return [ActionResult]::Ok("Restore : cancelled") }
-        try {
-            $response = $this.Service.Restore($dto)
-        } catch {
-            $this.ShowFailure($_.Exception.Message)
-            return [ActionResult]::Nok("Restore : $($dto.InstanceName) - $($_.Exception.Message)")
-        }
-        $view.Show($dto.ArchiveName, $response)
-        return [ActionResult]::Ok("Restore : $($dto.InstanceName)")
-    }
-
-    [ActionResult] DeleteArchive([string]$archiveName) {
-        $view = $this.GetView("DeleteArchive")
-        $name = $view.Ask($archiveName)
-        if (-not $name) { return [ActionResult]::Ok("DeleteArchive : cancelled") }
-        try {
-            $this.Service.DeleteArchive($name)
-        } catch {
-            $this.ShowFailure($_.Exception.Message)
-            return [ActionResult]::Nok("DeleteArchive : $name - $($_.Exception.Message)")
-        }
-        $view.Show($name, $null)
-        return [ActionResult]::Ok("DeleteArchive : $name")
-    }
-
-    [ActionResult] Duplicate([string]$instanceName) {
-        $source = $this.SelectInstance($instanceName, @())
-        if (-not $source) { return [ActionResult]::Ok("Duplicate : cancelled") }
-        $view = $this.GetView("Duplicate")
-        $dto = $view.Ask($source)
-        if ($null -eq $dto) { return [ActionResult]::Ok("Duplicate : cancelled") }
-        try {
-            $response = $this.Service.Duplicate($dto)
-        } catch {
-            $this.ShowFailure($_.Exception.Message)
-            return [ActionResult]::Nok("Duplicate : $($dto.SourceName) - $($_.Exception.Message)")
-        }
-        $view.Show($dto.SourceName, $response)
-        return [ActionResult]::Ok("Duplicate : $($dto.CopyName)")
-    }
 
     # =========================================================================
     # LES PAS PARTAGÉS

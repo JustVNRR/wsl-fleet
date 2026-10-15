@@ -33,25 +33,39 @@ foreach ($name in @("InstanceController", "FleetController")) {
 }
 
 # 1. Every gesture block calls a method its controller carries.
-$gestures = [regex]::Matches($startCli, '"([a-z_]+)"\s*=\s*\{\s*param\(([^)]*)\)\s*\$(Instance|Fleet|Archive)\.([A-Za-z]+)\(')
-if ($gestures.Count -eq 0) { Fail "no gesture block found in Start-Cli.ps1 - this check read nothing" }
 $seen = @{}
+# Les gestes migrés : leur presenter porte la méthode, par convention de nom.
+$migrated = [regex]::Matches($startCli, '"([a-z_]+)"\s*=\s*\{\s*param\([^)]*\)\s*\$Presenters\.([A-Za-z]+)\.([A-Za-z]+)\(')
+foreach ($m in $migrated) {
+    $word = $m.Groups[1].Value
+    $presenter = $m.Groups[2].Value
+    $method = $m.Groups[3].Value
+    $seen[$word] = $true
+    $sources = @(
+        (Join-Path $Windows "Presenters\Instance\$($presenter)Presenter.psm1"),
+        (Join-Path $Windows "Presenters\Fleet\$($presenter)Presenter.psm1")
+    )
+    $carried = $false
+    foreach ($source in $sources) {
+        if ((Test-Path $source) -and ((Get-Content $source -Raw) -match "\[ActionResult\]\s+$method\(")) { $carried = $true; break }
+    }
+    if (-not $carried) { Fail "gesture '$word' calls $($presenter)Presenter.$method - no such method" }
+}
+
+# Les gestes pas encore migrés : le contrôleur d'abord.
+$gestures = [regex]::Matches($startCli, '"([a-z_]+)"\s*=\s*\{\s*param\([^)]*\)\s*\$(Instance|Fleet)\.([A-Za-z]+)\(')
 foreach ($m in $gestures) {
     $word = $m.Groups[1].Value
-    $owner = $m.Groups[3].Value
-    $method = $m.Groups[4].Value
+    $owner = "$($m.Groups[2].Value)Controller"
+    $method = $m.Groups[3].Value
     $seen[$word] = $true
-    if ($owner -eq "Archive") {
-        # Le premier geste migré : son presenter porte la méthode.
-        $source = Get-Content (Join-Path $Windows "Presenters\Instance\ArchivePresenter.psm1") -Raw
-        if ($source -notmatch "\[ActionResult\]\s+$method\(") {
-            Fail "gesture '$word' calls ArchivePresenter.$method - no such method"
-        }
-    } elseif ($controllers["$($owner)Controller"] -notmatch "\[ActionResult\]\s+$method\(") {
-        Fail "gesture '$word' calls $($owner)Controller.$method - no such method"
+    if ($controllers[$owner] -notmatch "\[ActionResult\]\s+$method\(") {
+        Fail "gesture '$word' calls $owner.$method - no such method"
     }
 }
-Write-Host "$($gestures.Count) gesture(s) read."
+$total = $migrated.Count + $gestures.Count
+if ($total -eq 0) { Fail "no gesture block found in Start-Cli.ps1 - this check read nothing" }
+Write-Host "$total gesture(s) read ($($migrated.Count) migrated)."
 
 # 2. Every GetView("X") of the two controllers lands on a file.
 $viewFolders = @(

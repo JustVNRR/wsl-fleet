@@ -21,6 +21,11 @@ using module .\Service\ServiceFactory.psm1
 using module .\Controllers\InstanceController.psm1
 using module .\Controllers\FleetController.psm1
 using module .\Presenters\Instance\ArchivePresenter.psm1
+using module .\Presenters\Instance\RemovePresenter.psm1
+using module .\Presenters\Instance\DeleteArchivePresenter.psm1
+using module .\Presenters\Instance\CompactPresenter.psm1
+using module .\Presenters\Instance\RestorePresenter.psm1
+using module .\Presenters\Instance\DuplicatePresenter.psm1
 using module .\Views\cli\MenuCli.psm1
 
 [CmdletBinding()]
@@ -53,8 +58,15 @@ $instanceController = [InstanceController]::new($instanceService, $ViewsRoot, "c
 $fleetController = [FleetController]::new($fleetService, $ViewsRoot, "cli")
 
 # Les presenters migrés : un par vue, construits ici — objets légers, la vue
-# naît au premier geste.
-$archivePresenter = [ArchivePresenter]::new($instanceService, $ViewsRoot, "cli")
+# naît au premier geste. Les gestes pas encore migrés gardent le contrôleur.
+$presenters = @{
+    Archive       = [ArchivePresenter]::new($instanceService, $ViewsRoot, "cli")
+    Remove        = [RemovePresenter]::new($instanceService, $ViewsRoot, "cli")
+    DeleteArchive = [DeleteArchivePresenter]::new($instanceService, $ViewsRoot, "cli")
+    Compact       = [CompactPresenter]::new($instanceService, $ViewsRoot, "cli")
+    Restore       = [RestorePresenter]::new($instanceService, $ViewsRoot, "cli")
+    Duplicate     = [DuplicatePresenter]::new($instanceService, $ViewsRoot, "cli")
+}
 
 # Le geste, un bloc par commande : le contrôleur et le nom arrivent en
 # paramètres, le bloc rend l'ActionResult du geste.
@@ -67,17 +79,17 @@ $gestures = [ordered]@{
     "remove_pack"    = { param($Instance, $Fleet, $Name) $Instance.RemovePack($Name) }
     "manage_packs"   = { param($Instance, $Fleet, $Name) $Instance.ManagePacks($Name) }
     "theme"          = { param($Instance, $Fleet, $Name) $Instance.SetAppearance($Name) }
-    "unregister"     = { param($Instance, $Fleet, $Name) $Instance.Remove($Name) }
-    "archive"        = { param($Instance, $Fleet, $Name, $Archive) $Archive.Run($Name) }
-    "restore"        = { param($Instance, $Fleet, $Name) $Instance.Restore($Name) }
-    "duplicate"      = { param($Instance, $Fleet, $Name) $Instance.Duplicate($Name) }
-    "shrink"         = { param($Instance, $Fleet, $Name) $Instance.Compact($Name) }
+    "unregister"     = { param($Instance, $Fleet, $Name, $Presenters) $Presenters.Remove.Run($Name) }
+    "archive"        = { param($Instance, $Fleet, $Name, $Presenters) $Presenters.Archive.Run($Name) }
+    "restore"        = { param($Instance, $Fleet, $Name, $Presenters) $Presenters.Restore.Run($Name) }
+    "duplicate"      = { param($Instance, $Fleet, $Name, $Presenters) $Presenters.Duplicate.Run($Name) }
+    "shrink"         = { param($Instance, $Fleet, $Name, $Presenters) $Presenters.Compact.Run($Name) }
     "wslconfig"      = { param($Instance, $Fleet, $Name) $Fleet.WslConfig() }
     "migrate"        = { param($Instance, $Fleet, $Name) $Fleet.Migrate($Name) }
 
     # La corbeille d'une archive se dit par son nom : pas dans le menu, son
     # mot la route.
-    "delete_archive" = { param($Instance, $Fleet, $Name) $Instance.DeleteArchive($Name) }
+    "delete_archive" = { param($Instance, $Fleet, $Name, $Presenters) $Presenters.DeleteArchive.Run($Name) }
 }
 
 # Le menu : un rang par commande — le mot, la ligne, le bloc. L'ordre est
@@ -127,7 +139,7 @@ if ($Command) {
 # Le geste court — à ce cran, pas dans une méthode — et son ActionResult dit
 # le code de sortie : Nok échoue, Ok passe, l'abandon compris (rien n'a
 # échoué).
-$result = & $item.Action $instanceController $fleetController "$Name" $archivePresenter
+$result = & $item.Action $instanceController $fleetController "$Name" $presenters
 if ($null -eq $result) { exit 1 }
 if ("$($result.Status)" -eq "Nok") { exit 1 }
 exit 0

@@ -17,34 +17,31 @@ class CliRestoreView : BaseViewCli {
         Write-Host "            - Create one with  .\wsl.ps1 archive" -ForegroundColor $this.Colour("hint")
     }
 
-    # Les questions du geste : l'archive (l'index reçu, ses lignes d'archives
-    # d'abord — une ligne déjà désignée se reprend telle quelle), puis le nom
-    # de l'instance rebâtie. Rien ne se pré-vérifie — un nom pris, un dossier
-    # en travers : c'est le service qui refuse, et la vue d'erreur qui le dit.
-    # Docker Desktop ne se demande plus : l'instance y entre comme l'archive
-    # le dit.
-    [object] Ask([object[]]$rows, [string]$target) {
-        $archiveName = $target
-        if (-not $archiveName) {
-            $Archives = @($rows | Where-Object { $_.IsArchive })
-            $Chosen = $this.AskList("Archives (most recent first):", $Archives, {
-                param($Entry)
-                "{0}  -  {1}" -f $Entry.Name, (Format-Size $Entry.Size)
-            }, "")
-            if (-not $Chosen) { $this.StopCancelled("created") }
-            $archiveName = $Chosen.Name
-        }
+    # La vue ne décide plus : le presenter a constaté le vide et l'abandon,
+    # et c'est lui qui lit ce que le nom tapé veut dire — ici, le menu, la
+    # ligne du nom et les questions.
 
+    # L'archive se choisit : l'index reçu, ses lignes d'archives. Rien quand
+    # on sort — le presenter le lit comme un abandon.
+    [object] AskArchive([object[]]$archives) {
+        $Chosen = $this.AskList("Archives (most recent first):", @($archives), {
+            param($Entry)
+            "{0}  -  {1}" -f $Entry.Name, (Format-Size $Entry.Size)
+        }, "")
+        if (-not $Chosen) { return "" }
+        return "$($Chosen.Name)"
+    }
+
+    [void] ShowRestoring([string]$archiveName) {
         Write-Host ""
         Write-Host "Restoring $archiveName as a new instance." -ForegroundColor $this.Colour("info")
-        $Name = [string](Read-Host "Name of the new instance (Enter to cancel)")
-        if ([string]::IsNullOrWhiteSpace($Name)) { $this.StopCancelled("created") }
-        $Name = $Name.Trim()
+    }
 
-        $dto = [RestoreDto]::new()
-        $dto.ArchiveName = $archiveName
-        $dto.InstanceName = $Name
-        return $dto
+    # Le nom de l'instance rebâtie, lu — Read-Host est demandé nu : ce qu'il
+    # écrit lui-même n'atteint jamais un pipe. Un vide annule, c'est le
+    # presenter qui le dit.
+    [string] AskNewName() {
+        return [string](Read-Host "Name of the new instance (Enter to cancel)").Trim()
     }
 
     # Le rapport : la bannière, l'archive d'où elle vient (-Target), et les

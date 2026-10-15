@@ -6,22 +6,21 @@
 using module ..\BaseViewCli.psm1
 
 class CliDeleteArchiveView : BaseViewCli {
-    # La question, s'il en faut une : le nom de l'archive arrive par la ligne
-    # de commande — ce geste n'est offert dans aucun menu, et le nom tapé EST
-    # la confirmation. Sans nom, rien à faire, et la liste dit où les lire :
-    # la vue rend vide, le contrôleur s'arrête là.
-    [string] Ask([string]$target) {
-        if ([string]::IsNullOrWhiteSpace($target)) {
-            Write-Host ""
-            Write-Host "[ABORT] No archive name was given." -ForegroundColor $this.Colour("error")
-            Write-Host "        The archives are listed by  .\wsl.ps1 list" -ForegroundColor $this.Colour("hint")
-            Write-Host "        Then:  .\wsl.ps1 delete_archive <name>" -ForegroundColor $this.Colour("hint")
-            return ""
-        }
+    # La vue ne décide plus : le nom vient de la ligne de commande, le
+    # presenter a constaté son absence ou sa présence — ici, les lignes.
 
+    # Sans nom, rien à faire : le refus, peint ici — le presenter sort en
+    # faute.
+    [void] ShowNoName() {
         Write-Host ""
-        Write-Host "==> Deleting the archive '$target'..." -ForegroundColor $this.Colour("info")
-        return $target
+        Write-Host "[ABORT] No archive name was given." -ForegroundColor $this.Colour("error")
+        Write-Host "        The archives are listed by  .\wsl.ps1 list" -ForegroundColor $this.Colour("hint")
+        Write-Host "        Then:  .\wsl.ps1 delete_archive <name>" -ForegroundColor $this.Colour("hint")
+    }
+
+    [void] ShowDeleting([string]$name) {
+        Write-Host ""
+        Write-Host "==> Deleting the archive '$name'..." -ForegroundColor $this.Colour("info")
     }
 
     # Le rapport : la bannière et l'irréversible. Le poids rendu et le dossier

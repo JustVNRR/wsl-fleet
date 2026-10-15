@@ -130,35 +130,6 @@ class BaseViewCli {
         Write-Host " \!/ ================================================================ \!/" -ForegroundColor $Colours.Ink -BackgroundColor $Colours.Box
     }
 
-    # La porte de toute destruction : la bannière, la phrase qui dit laquelle,
-    # le nom exact retapé. Rend si le nom fut retapé ; ce qu'un non veut dire
-    # reste à l'appelant.
-    [bool] ConfirmDestruction([string]$name, [string]$lead) {
-        [Console]::Beep(1000, 400)
-        Write-Host ""
-        $this.ShowDangerBanner("DANGER: TOTAL DATA LOSS IMMINENT")
-        Write-Host ""
-        Write-Host "  $lead" -ForegroundColor $this.Colour("error")
-        Write-Host ""
-        Write-Host "  Proceeding will PERMANENTLY DESTROY this distribution:" -ForegroundColor $this.Colour("warning")
-        Write-Host "    - Executing: wsl --unregister $name" -ForegroundColor $this.Colour("muted")
-        Write-Host "    - IRREVERSIBLE DELETION of the virtual disk (VHDX)" -ForegroundColor $this.Colour("muted")
-        Write-Host "    - TOTAL LOSS of projects, SSH keys, and all files in /home" -ForegroundColor $this.Colour("muted")
-        Write-Host ""
-        Write-Host "  THIS OPERATION CANNOT BE UNDONE." -ForegroundColor $this.Colour("error")
-        Write-Host ""
-        Write-Host " ----------------------------------------------------------------------" -ForegroundColor $this.Colour("muted")
-        Write-Host " Press ENTER to abort immediately." -ForegroundColor $this.Colour("hint")
-        Write-Host " To confirm DESTRUCTION, type the exact name of the distribution:" -ForegroundColor $this.Colour("hint")
-        $Confirmation = Read-Host " Confirm"
-        Write-Host " ----------------------------------------------------------------------" -ForegroundColor $this.Colour("muted")
-        Write-Host ""
-
-        # -ceq, pas -eq : -eq ignore la casse, et la bannière demande le nom
-        # exact — c'est le nom retapé qui compte, pas un Entrée réflexe.
-        return ($Confirmation -ceq $name)
-    }
-
     # Une réponse tapée, son vide une annulation comme une autre : la question
     # s'écrit ici et Read-Host est demandé nu — ce que Read-Host écrit
     # lui-même n'atteint jamais un pipe.

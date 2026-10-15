@@ -116,6 +116,21 @@ class FleetService {
     # arrête là : ce qui est déjà archivé et désinscrit l'est, et la course
     # suivante reprend avec le reste. Le registre n'est jamais touché
     # autrement que par ces désinscriptions. Rend les noms emportés.
+    # -------------------------------------------------------------------------
+    # Le fichier des réglages Windows
+    # -------------------------------------------------------------------------
+
+    # Le ~/.wslconfig : son gabarit écrit quand il manque — un fichier à
+    # quelqu'un n'est jamais touché — puis ouvert, l'éditeur par défaut, et
+    # son chemin rendu, la naissance comprise.
+    [object] WslConfig() {
+        $path = Join-Path $env:USERPROFILE ".wslconfig"
+        $created = -not (Test-Path $path)
+        $path = $this.Config.EnsureWslConfig()
+        Start-Process -FilePath $path
+        return [PSCustomObject]@{ Path = $path; Created = $created }
+    }
+
     [MigrateResponseDto] Migrate([string]$target) {
         # La destination d'ABORD — le premier désenregistrement attend. Vécu :
         # un « effef » relatif avait tout archivé, tout désinscrit et tout

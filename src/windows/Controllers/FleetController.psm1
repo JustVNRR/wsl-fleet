@@ -53,6 +53,21 @@ class FleetController : BaseController {
         return [ActionResult]::Ok("SetRoot : $root")
     }
 
+    # Le fichier des réglages Windows : l'annonce, l'ouverture au service,
+    # puis le rapport — né de son gabarit quand il manquait, ou son chemin.
+    [ActionResult] WslConfig() {
+        $view = $this.GetView("WslConfig")
+        $view.ShowLead()
+        try {
+            $report = $this.Fleet.WslConfig()
+        } catch {
+            $this.ShowFailure($_.Exception.Message)
+            return [ActionResult]::Nok("WslConfig : $($_.Exception.Message)")
+        }
+        $view.Show($report.Path, $report.Created)
+        return [ActionResult]::Ok("WslConfig : $($report.Path)")
+    }
+
     # Le déménagement : la vue demande où (une cible DONNÉE — le lancement
     # depuis la fenêtre — passe la question), puis peint le rapport qui
     # nomme. Rien à bouger (la vue le sait et l'a dit) : une fin, pas un

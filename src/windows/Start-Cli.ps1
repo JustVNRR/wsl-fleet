@@ -67,6 +67,7 @@ $gestures = [ordered]@{
     "restore"        = { param($Instance, $Fleet, $Name) $Instance.Restore($Name) }
     "duplicate"      = { param($Instance, $Fleet, $Name) $Instance.Duplicate($Name) }
     "shrink"         = { param($Instance, $Fleet, $Name) $Instance.Compact($Name) }
+    "wslconfig"      = { param($Instance, $Fleet, $Name) $Fleet.WslConfig() }
     "migrate"        = { param($Instance, $Fleet, $Name) $Fleet.Migrate($Name) }
 
     # La corbeille d'une archive se dit par son nom : pas dans le menu, son
@@ -92,6 +93,7 @@ $menu = $menu.Add("archive",      "write an instance to a named archive",     $g
 $menu = $menu.Add("restore",      "rebuild an instance from an archive",      $gestures["restore"])
 $menu = $menu.Add("duplicate",    "copy an instance under another name",      $gestures["duplicate"])
 $menu = $menu.Add("shrink",       "reclaim the space an instance has freed",  $gestures["shrink"])
+$menu = $menu.Add("wslconfig",    "open the Windows-wide WSL settings",       $gestures["wslconfig"])
 $menu = $menu.Add("migrate",      "move the fleet to another folder",         $gestures["migrate"])
 
 # Avec un mot, la ligne de commande le route ; sans, le menu le demande —

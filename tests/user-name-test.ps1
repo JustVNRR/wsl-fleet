@@ -6,10 +6,15 @@
 # nothing proposed when what remains cannot be a user name, because a name
 # the build made up would be worse than no proposal.
 #
+# The rule is written in the two homes that propose it - the console's build
+# view and the window's BuildViewModel: the checks drive the window's, and
+# the last one reads both files and asks that the two copies stay the same
+# text, since a drift there would propose two different names to two faces.
+#
 # Usage:  pwsh -NoProfile -File tests\user-name-test.ps1
+using module ..\src\windows\ViewModels\BuildViewModel.psm1
 
 $ErrorActionPreference = "Stop"
-Import-Module (Join-Path $PSScriptRoot "..\src\windows\WslStack\WslStack.psd1") -Force
 
 $Failures = 0
 function Check {
@@ -22,10 +27,12 @@ function Check {
     }
 }
 
+# The proposal of the window's ViewModel: its constructor reads the Windows
+# account name and cleans it, so one build made per case answers the rule.
 function ProposalOf {
     param([string]$WindowsName)
     $env:USERNAME = $WindowsName
-    return (Get-WindowsUserProposal)
+    return ([BuildViewModel]::new($null)).User
 }
 
 Write-Output "--- separators become single dashes ---"
@@ -52,6 +59,22 @@ Check "a name starting with a digit" (ProposalOf "2fast") ""
 Check "only separators" (ProposalOf "...") ""
 Check "an empty name" (ProposalOf "") ""
 Check "an underscore alone" (ProposalOf "_") ""
+
+Write-Output ""
+Write-Output "--- the two homes of the rule say the same thing ---"
+# The cleaning block, as written in each file - trimmed line by line so the
+# indentation differs freely, the words not.
+function CleaningBlock {
+    param([string]$Path)
+    $Text = [IO.File]::ReadAllText((Join-Path $PSScriptRoot $Path))
+    $Match = [regex]::Match($Text, '(?s)\$proposal = "\$env:USERNAME"\.ToLower\(\).*?\$proposal = ""')
+    if (-not $Match.Success) { return "" }
+    return ((@($Match.Value -split "`n") | ForEach-Object { "$_".Trim() }) -join "|")
+}
+$InVm = CleaningBlock "..\src\windows\ViewModels\BuildViewModel.psm1"
+$InView = CleaningBlock "..\src\windows\Views\cli\Instance\Build.psm1"
+Check "the cleaning is found in both homes" (($InVm.Length -gt 0) -and ($InView.Length -gt 0)) $true
+Check "and the two copies are the same text" ($InVm -eq $InView) $true
 
 Write-Output ""
 Write-Output ("failures: " + $Failures)

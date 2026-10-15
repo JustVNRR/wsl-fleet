@@ -1,20 +1,37 @@
-# The window's files, where they live now: every .xaml under scripts/gui must
-# be well-formed XML, every resource reference - in the theme and in the
-# windows - must name a key the theme itself defines (or one the code sets),
-# the colour sets under assets\themes must be well-formed and tell only keys
-# the theme knows, every control a controller looks up by FindName must exist
-# in some window's markup, and the three runners must parse and keep calling
-# the engine's ways - the build form's positional chain pinned at both ends.
-# Before the split this markup lived inside Gui.ps1 and rode along in
-# parse-check; on disk, nothing else in the repository reads it.
+# The window's files, where they live now (src\windows\Views\WPF): every .xaml
+# must be well-formed XML, every resource reference - in the theme and in the
+# windows - must name a key the theme itself defines, every control a view
+# looks up by name must exist in its markup, every {Binding} must land on a
+# real property of the ViewModel its window binds to, the colour sets under
+# assets\themes must be well-formed and tell only keys the theme knows, and
+# the nine runners must parse, keep the one parameter family and the two
+# argument lines the window feeds them.
+#
+# The binding check matters most: WPF reads a type's real .NET properties
+# only - a ScriptProperty laid on by Add-Member is invisible, and a {Binding}
+# to a name that is not there paints nothing, in silence.
 #
 # Usage:  pwsh -NoProfile -File tests\gui-test.ps1
+using module ..\src\windows\ViewModels\BuildViewModel.psm1
+using module ..\src\windows\ViewModels\ArchiveViewModel.psm1
+using module ..\src\windows\ViewModels\CompactViewModel.psm1
+using module ..\src\windows\ViewModels\RemoveViewModel.psm1
+using module ..\src\windows\ViewModels\RestoreViewModel.psm1
+using module ..\src\windows\ViewModels\DuplicateViewModel.psm1
+using module ..\src\windows\ViewModels\DeleteArchiveViewModel.psm1
+using module ..\src\windows\ViewModels\ManagePacksViewModel.psm1
+using module ..\src\windows\ViewModels\SetAppearanceViewModel.psm1
+using module ..\src\windows\ViewModels\SettingsViewModel.psm1
+using module ..\src\windows\ViewModels\MainWindowViewModel.psm1
+using module ..\src\windows\ViewModels\RootMoveViewModel.psm1
+using module ..\src\windows\ViewModels\PackDuplicateViewModel.psm1
+using module ..\src\windows\ViewModels\ConfirmViewModel.psm1
 
 $bad = 0
-$GuiRoot = Join-Path $PSScriptRoot "..\src\windows\gui"
+$WpfRoot = (Get-Item (Join-Path $PSScriptRoot "..\src\windows\Views\WPF")).FullName
 
 # 1. The XAML files: well-formed XML, each one.
-$xamlFiles = @(Get-ChildItem $GuiRoot -Recurse -Filter *.xaml)
+$xamlFiles = @(Get-ChildItem $WpfRoot -Recurse -Filter *.xaml)
 foreach ($f in $xamlFiles) {
     try {
         $null = [xml]([IO.File]::ReadAllText($f.FullName))
@@ -24,11 +41,11 @@ foreach ($f in $xamlFiles) {
         $bad = 1
     }
 }
-Write-Host "$($xamlFiles.Count) .xaml file(s) read from scripts/gui."
+Write-Host "$($xamlFiles.Count) .xaml file(s) read from Views\WPF."
 
 # 2. The theme's own bookkeeping: every reference points at a key it defines.
 $keys = @()
-$themePath = Join-Path $GuiRoot "Theme\theme.xaml"
+$themePath = Join-Path $WpfRoot "theme.xaml"
 if (Test-Path $themePath) {
     $theme = [IO.File]::ReadAllText($themePath)
     $keys = @([regex]::Matches($theme, 'x:Key="([^"]+)"') | ForEach-Object { $_.Groups[1].Value })
@@ -42,8 +59,8 @@ if (Test-Path $themePath) {
     Write-Host "theme: $($keys.Count) key(s), $($refs.Count) reference(s)."
 
     # 2b. And the windows resolve the same way: a key that is neither in the
-    # theme nor set by the code (IconFace, handed to the window by Gui.ps1)
-    # fails SILENTLY - WPF falls back without a word.
+    # theme nor set by the code (IconFace, poured into the window's dictionary
+    # by WearTheme) fails SILENTLY - WPF falls back without a word.
     $codeKeys = @("IconFace")
     $viewRefs = @{}
     foreach ($f in $xamlFiles) {
@@ -53,7 +70,7 @@ if (Test-Path $themePath) {
     }
     $missingView = @($viewRefs.Keys | Where-Object { $_ -notin $keys -and $_ -notin $codeKeys })
     if ($missingView.Count -gt 0) {
-        Write-Host "::error file=$GuiRoot\Views::a window references a key nothing defines"
+        Write-Host "::error file=$WpfRoot::a window references a key nothing defines"
         Write-Host "  missing: $($missingView -join ', ')"
         $bad = 1
     }
@@ -63,79 +80,7 @@ if (Test-Path $themePath) {
     $bad = 1
 }
 
-# 3. The runners: they parse, and the engine call each verb rides on stays
-#    pinned - a rewrite that quietly changes the call is the bug this catches.
-$runners = @(Get-ChildItem (Join-Path $GuiRoot "Runners") -Filter *.ps1)
-foreach ($f in $runners) {
-    $errors = $null
-    [void][System.Management.Automation.Language.Parser]::ParseInput([IO.File]::ReadAllText($f.FullName), [ref]$null, [ref]$errors)
-    if ($errors.Count -gt 0) {
-        Write-Host "::error file=$($f.FullName)::$($errors.Count) parse error(s)"
-        foreach ($e in $errors) { Write-Host ("  line {0}: {1}" -f $e.Extent.StartLineNumber, $e.Message) }
-        $bad = 1
-    }
-}
-
-$pins = @(
-    @{ File = "JobRunner.ps1";   Pattern = 'RestoreFromArchive\(\$ArchiveFirst, \$Name, \$false\)';        What = "RestoreFromArchive(archive, name, the Docker word)" },
-    @{ File = "JobRunner.ps1";   Pattern = 'DeleteArchive\(\$Name\)';                             What = "DeleteArchive(name)" },
-    @{ File = "JobRunner.ps1";   Pattern = 'Archive\(\$inst, \$ArchiveFirst, "tar\.gz", \$true\)'; What = "Archive(inst, name, tar.gz, permit)" },
-    @{ File = "JobRunner.ps1";   Pattern = 'Shrink\(\$inst, \[bool\]::Parse\(\$ArchiveFirst\)\)'; What = "Shrink(inst, the archive word) - the compact" },
-    @{ File = "JobRunner.ps1";   Pattern = 'Duplicate\(\$inst, \$ArchiveFirst, \$false\)';                 What = "Duplicate(inst, name, the Docker word)" },
-    @{ File = "EditRunner.ps1";  Pattern = 'ManagePacks\(\$inst, \$toAdd, \$toRemove\)';      What = "ManagePacks(inst, add, remove)" },
-    @{ File = "BuildRunner.ps1"; Pattern = '& \$BuildScript -Form \$Form -Manager \$mgr'; What = "build.ps1 with the form" },
-    @{ File = "MigrateRunner.ps1"; Pattern = '& \$Entry migrate -Target \$Target'; What = "the migrate command with its target" }
-)
-foreach ($pin in $pins) {
-    $runnerPath = Join-Path $GuiRoot "Runners\$($pin.File)"
-    if (-not (Test-Path $runnerPath) -or ([IO.File]::ReadAllText($runnerPath) -notmatch $pin.Pattern)) {
-        Write-Host "::error file=$runnerPath::no longer calls $($pin.What)"
-        $bad = 1
-    }
-}
-Write-Host "$($runners.Count) runner(s) read, $($pins.Count) call(s) pinned."
-
-# 3b. The build form's answers ride POSITIONALLY from Gui.ps1's ArgumentList
-# into BuildRunner's param line, and a drift between the two is silent - every
-# answer landing one slot off. Both ends are pinned: the param line whole
-# (order included) and the form fields' order in the argument list.
-$paramLine = 'param([string]$Name, [string]$User, [string]$Packs, [string]$Dockerfile, [string]$FirstBoot, [string]$Image, [string]$Registry, [string]$SaveImage, [string]$RegisterDocker, [string]$Module, [string]$BuildScript)'
-$buildRunnerPath = Join-Path $GuiRoot "Runners\BuildRunner.ps1"
-if ([IO.File]::ReadAllText($buildRunnerPath) -notmatch [regex]::Escape($paramLine)) {
-    Write-Host "::error file=$buildRunnerPath::the param line (order included) is not the one Gui.ps1 feeds"
-    $bad = 1
-}
-$guiPath = Join-Path $PSScriptRoot "..\src\windows\gui\Gui.ps1"
-$guiSrc = [IO.File]::ReadAllText($guiPath)
-$at = 0
-$ordered = $true
-foreach ($field in @('$($form.Name)', '$($form.User)', '$($form.Packs', '$($form.Dockerfile)', '$($form.FirstBoot)', '$($form.Image)', '$($form.Registry)', '$($form.SaveImage)', '$($form.RegisterDocker)')) {
-    $i = $guiSrc.IndexOf($field, $at, [StringComparison]::Ordinal)
-    if ($i -lt 0) { $ordered = $false; break }
-    $at = $i
-}
-if (-not $ordered) {
-    Write-Host "::error file=$guiPath::the build form's ArgumentList lost a field or its order"
-    $bad = 1
-}
-Write-Host "the build form's positional chain: pinned."
-
-# 3c. The migrate's answers ride the same road into MigrateRunner: the target
-# first, the module, the entry - and both ends are pinned like the build's.
-$migrateParamLine = 'param([string]$Target, [string]$Module, [string]$Entry)'
-$migrateRunnerPath = Join-Path $GuiRoot "Runners\MigrateRunner.ps1"
-if ([IO.File]::ReadAllText($migrateRunnerPath) -notmatch [regex]::Escape($migrateParamLine)) {
-    Write-Host "::error file=$migrateRunnerPath::the param line (order included) is not the one Gui.ps1 feeds"
-    $bad = 1
-}
-$chain = '"`"$newRoot`"", "`"$ModulePath`"", "`"$Entry`""'
-if ($guiSrc.IndexOf($chain, [StringComparison]::Ordinal) -lt 0) {
-    Write-Host "::error file=$guiPath::the migrate ArgumentList lost a field or its order"
-    $bad = 1
-}
-Write-Host "the migrate chain: pinned."
-
-# 4. The colour sets: well-formed, and every key they tell - the Dark and
+# 3. The colour sets: well-formed, and every key they tell - the Dark and
 #    Light block names excepted - exists in the theme. A misspelled one is
 #    ignored in silence and keeps the default, near impossible to notice
 #    by eye.
@@ -159,24 +104,105 @@ foreach ($f in $setFiles) {
 }
 Write-Host "$($setFiles.Count) colour set(s) read."
 
-# 5. Every control a controller looks up by name must exist in some window's
-#    markup: a typo here is not a red line but a crash at the popup's open,
-#    in the one place no suite can open. The .xaml files are the truth, all
-#    of them together - each FindName must land on a Name= somewhere.
+# 4. Every control a view looks up by name must exist in some window's markup:
+#    a typo here is not a red line but a crash at the popup's open, in the one
+#    place no suite can open. The .xaml files are the truth, all of them
+#    together - each Find("...") must land on a Name= somewhere.
 $allXaml = [string]::Join("`n", @($xamlFiles | ForEach-Object { [IO.File]::ReadAllText($_.FullName) }))
 $names = @()
-foreach ($f in @(Get-ChildItem (Join-Path $PSScriptRoot "..\src\windows") -Recurse -Filter *.ps1)) {
-    foreach ($m in [regex]::Matches([IO.File]::ReadAllText($f.FullName), 'FindName\("([A-Za-z0-9]+)"\)')) {
+foreach ($f in @(Get-ChildItem (Join-Path $WpfRoot -ChildPath ".") -Recurse -Filter *.xaml.ps1) + @(Get-Item (Join-Path $WpfRoot "BaseViewWpf.psm1"))) {
+    foreach ($m in [regex]::Matches([IO.File]::ReadAllText($f.FullName), 'Find\("([A-Za-z0-9]+)"\)')) {
         $names += $m.Groups[1].Value
     }
 }
 $missingNames = @($names | Sort-Object -Unique | Where-Object { $allXaml -notmatch ('Name="' + [regex]::Escape($_) + '"') })
 if ($missingNames.Count -gt 0) {
-    Write-Host "::error file=$GuiRoot::a FindName names a control no window declares"
+    Write-Host "::error file=$WpfRoot::a Find names a control no window declares"
     Write-Host "  missing: $($missingNames -join ', ')"
     $bad = 1
 }
-Write-Host "$($names.Count) FindName call(s) read, $(@($names | Sort-Object -Unique).Count) name(s) found in the markup."
+Write-Host "$($names.Count) Find call(s) read, $(@($names | Sort-Object -Unique).Count) name(s) found in the markup."
 
-Write-Host "gui: $($xamlFiles.Count + $runners.Count + $setFiles.Count) file(s), $bad failure(s)."
+# 5. Every {Binding} lands on a real property of the ViewModel its window
+#    binds to - the wall WPF keeps: a name that is not a real .NET property
+#    of the type paints nothing, silently.
+function BindNames([string]$path) {
+    $text = [IO.File]::ReadAllText($path)
+    $found = @()
+    foreach ($m in [regex]::Matches($text, '\{Binding\s+([A-Za-z_][A-Za-z0-9_.]*)')) {
+        $name = $m.Groups[1].Value
+        if ($name -eq 'RelativeSource') { continue }
+        if ($name.Contains('.')) { continue }
+        if ($found -notcontains $name) { $found += $name }
+    }
+    return @($found)
+}
+$map = @(
+    @{ X = 'Instance/Build.xaml';          T = @([BuildViewModel]) },
+    @{ X = 'Instance/Archive.xaml';        T = @([ArchiveViewModel]) },
+    @{ X = 'Instance/Compact.xaml';        T = @([CompactViewModel]) },
+    @{ X = 'Instance/Remove.xaml';         T = @([RemoveViewModel]) },
+    @{ X = 'Instance/Restore.xaml';        T = @([RestoreViewModel]) },
+    @{ X = 'Instance/Duplicate.xaml';      T = @([DuplicateViewModel]) },
+    @{ X = 'Instance/DeleteArchive.xaml';  T = @([DeleteArchiveViewModel]) },
+    @{ X = 'Instance/ManagePacks.xaml';    T = @([ManagePacksViewModel], [PackRowViewModel]) },
+    @{ X = 'Instance/SetAppearance.xaml';  T = @([SetAppearanceViewModel]) },
+    @{ X = 'MainWindow/Main.xaml';         T = @([MainWindowViewModel], [InstanceRowViewModel]) },
+    @{ X = 'MainWindow/Settings.xaml';     T = @([SettingsViewModel]) },
+    @{ X = 'shared/RootMove.xaml';         T = @([RootMoveViewModel]) },
+    @{ X = 'shared/PackDuplicate.xaml';    T = @([PackDuplicateViewModel]) },
+    @{ X = 'shared/Confirm.xaml';          T = @([ConfirmViewModel]) }
+)
+foreach ($entry in $map) {
+    $path = Join-Path $WpfRoot $entry.X
+    foreach ($name in (BindNames $path)) {
+        $found = $false
+        foreach ($t in $entry.T) {
+            if ($null -ne $t.GetProperty($name)) { $found = $true; break }
+        }
+        if (-not $found) {
+            Write-Host "::error file=$path::{Binding $name} names no real property of $(@($entry.T | ForEach-Object { $_.Name }) -join ' / ')"
+            $bad = 1
+        }
+    }
+}
+Write-Host "$($map.Count) window(s) checked, every binding landed."
+
+# 6. The runners: they parse, they keep the one parameter family, and the two
+#    argument lines the window feeds them stay pinned - a rewrite that
+#    quietly changes the call is the bug this catches.
+$runnersRoot = Join-Path $PSScriptRoot "..\src\windows\Runners"
+$runners = @(Get-ChildItem $runnersRoot -Filter *.ps1)
+$family = 'param\(\s*\[string\]\$Name,[\s\S]*?\[string\]\$Assets,\s*\[string\]\$Root\s*\)'
+foreach ($f in $runners) {
+    $text = [IO.File]::ReadAllText($f.FullName)
+    $errors = $null
+    [void][System.Management.Automation.Language.Parser]::ParseInput($text, [ref]$null, [ref]$errors)
+    if ($errors.Count -gt 0) {
+        Write-Host "::error file=$($f.FullName)::$($errors.Count) parse error(s)"
+        foreach ($e in $errors) { Write-Host ("  line {0}: {1}" -f $e.Extent.StartLineNumber, $e.Message) }
+        $bad = 1
+    }
+    if ($text -notmatch $family) {
+        Write-Host "::error file=$($f.FullName)::the parameter family (Name, Arg1, Arg2, Assets, Root) is not the one the window feeds"
+        $bad = 1
+    }
+}
+$mainVm = [IO.File]::ReadAllText((Join-Path $PSScriptRoot "..\src\windows\ViewModels\MainWindowViewModel.psm1"))
+$pins = @(
+    @{ Pattern = 'Join-Path \$this\._runners "\$\(\$verb\)Runner\.ps1"';                      What = "the runner file named after the verb" },
+    @{ Pattern = '"-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", "`"\$workerPath`"",'; What = "the hidden worker line" },
+    @{ Pattern = '"`"\$name`"", "`"\$arg1`"", "`"`"", "`"\$\(\$this\._assets\)`"", "`"\$\(\$this\.Root\)`""';     What = "the hidden worker's five arguments" },
+    @{ Pattern = '"-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "`"\$workerPath`"",';               What = "the visible console line" },
+    @{ Pattern = '"`"\$name`"", "`"\$arg1`"", "`"\$arg2`"", "`"\$\(\$this\._assets\)`"", "`"\$\(\$this\.Root\)`""'; What = "the visible console's five arguments" }
+)
+foreach ($pin in $pins) {
+    if ($mainVm -notmatch $pin.Pattern) {
+        Write-Host "::error file=MainWindowViewModel.psm1::no longer carries $($pin.What)"
+        $bad = 1
+    }
+}
+Write-Host "$($runners.Count) runner(s) read, $($pins.Count) call(s) pinned."
+
+Write-Host "gui: $($xamlFiles.Count + $setFiles.Count + $runners.Count) file(s), $bad failure(s)."
 exit $bad

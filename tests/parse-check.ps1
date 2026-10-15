@@ -2,49 +2,39 @@
 # itself uses before it runs a file - a parse error left here surfaces the day
 # a command runs.
 #
-# The classes are the one place where a file names another file's types, and
-# the parser settles a type the moment it reads the file naming it: read one by
-# one, every cross-reference comes up unknown. So they are read as one text, in
-# the manifest's order (WslModel.psd1) with the `using` lines dropped for the
-# join - and the rest of the checkout one by one.
+# The classes name other files' types through `using module`, which the parser
+# settles as it reads the file: every file is read as it is, one by one.
+#
+# The window's files name the WPF types, and the parser settles those against
+# what is loaded: the three assemblies below are loaded first, the ones the
+# entry loads before it imports a view. Where they cannot be loaded - a host
+# that is not Windows - the types settle nowhere and the errors naming
+# System.Windows are left out, with a word saying so: the place that parses
+# the views for real is the machine that runs them.
 #
 # Usage:  pwsh -NoProfile -File tests\parse-check.ps1
 
 $bad = 0
+$Root = (Get-Item (Join-Path $PSScriptRoot "..")).FullName
 
-$ClassOrder = @("WslState.psm1", "WslTheme.psm1", "WslRecipe.psm1", "WslPack.psm1", "WslInstance.psm1", "WslPackCatalog.psm1", "WslInstanceManager.psm1")
-$ClassesDir = Join-Path $PSScriptRoot "..\src\windows\WslModel"
-$ClassPaths = @()
-foreach ($ClassLib in $ClassOrder) {
-    $ClassPath = Join-Path $ClassesDir $ClassLib
-    if (Test-Path $ClassPath) { $ClassPaths += (Get-Item $ClassPath).FullName }
+$WpfLoaded = $true
+foreach ($assembly in "PresentationFramework", "PresentationCore", "WindowsBase") {
+    try { Add-Type -AssemblyName $assembly -ErrorAction Stop } catch { $WpfLoaded = $false }
+}
+if (-not $WpfLoaded) {
+    Write-Host "note: WPF is not on this host - the System.Windows types cannot settle, those errors are left out."
 }
 
-# The menus file carries classes of its own, and the suites' fake console
-# derives from one of them: read as one text after the classes - the order the
-# runtime uses - and read nowhere else.
-$ClassPaths += @((Get-Item (Join-Path $PSScriptRoot "..\src\windows\WslUI.psm1")).FullName)
-$ClassPaths += @((Get-Item (Join-Path $PSScriptRoot "fake-console.ps1")).FullName)
-
-$errors = $null
-$ClassText = (@($ClassPaths | ForEach-Object { (Get-Content -Path $_ -Raw) -replace '(?m)^using module .*\r?\n', '' }) -join "`n")
-[void][System.Management.Automation.Language.Parser]::ParseInput($ClassText, [ref]$null, [ref]$errors)
-if ($errors.Count -gt 0) {
-    Write-Host "::error file=src\windows\WslModel::$($errors.Count) parse error(s)"
-    foreach ($e in $errors) { Write-Host ("  line {0}: {1}" -f $e.Extent.StartLineNumber, $e.Message) }
-    $bad = 1
-}
-
-$files = @(Get-ChildItem -Recurse -Include *.ps1, *.psm1, *.psd1 -File |
-    Where-Object { $ClassPaths -notcontains $_.FullName })
+$files = @(Get-ChildItem $Root -Recurse -Include *.ps1, *.psm1, *.psd1 -File |
+    Where-Object { $_.FullName -notmatch '[\\/]\.git[\\/]' })
 foreach ($f in $files) {
     $errors = $null
     [void][System.Management.Automation.Language.Parser]::ParseFile($f.FullName, [ref]$null, [ref]$errors)
-    if ($errors.Count -gt 0) {
-        Write-Host "::error file=$($f.FullName)::$($errors.Count) parse error(s)"
-        foreach ($e in $errors) { Write-Host ("  line {0}: {1}" -f $e.Extent.StartLineNumber, $e.Message) }
+    foreach ($e in @($errors)) {
+        if (-not $WpfLoaded -and "$($e.Message)" -match 'Unable to find type \[(System\.Windows|Windows\.)') { continue }
+        Write-Host "::error file=$($f.FullName)::$($e.Message) (line $($e.Extent.StartLineNumber))"
         $bad = 1
     }
 }
-Write-Host "$($files.Count + $ClassPaths.Count) file(s) read, $bad failure(s)."
+Write-Host "$($files.Count) file(s) read, $bad failure(s)."
 exit $bad

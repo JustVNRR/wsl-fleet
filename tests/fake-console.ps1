@@ -1,5 +1,5 @@
 # The class it derives from, pulled in by the file itself.
-using module ..\src\windows\WslUI.psm1
+using module ..\src\windows\Views\cli\MenuCli.psm1
 
 # The console the tests give the menu: canned keys, canned answers for the
 # numbered prompt, a canned window, a cursor that mimics a scrolling console,
@@ -7,7 +7,7 @@ using module ..\src\windows\WslUI.psm1
 # the tests replace the OBJECT, not functions by name. And it can say there
 # is no keyboard, which is how the numbered prompt is reached without a
 # console.
-class FakeConsole : WslConsole {
+class FakeConsole : ConsoleCli {
     [System.Collections.Queue]$Keys
     [System.Collections.Queue]$Answers
     [string[]]$Prompts = @()

@@ -20,7 +20,7 @@ answers to its word all the same, `.\wsl.ps1 gui`:
 
 ```text
 
-WSL Stack - console
+WSL Fleet CLI
   > list         list our instances and the archives
     build        build an instance from the image
     restart      restart an instance

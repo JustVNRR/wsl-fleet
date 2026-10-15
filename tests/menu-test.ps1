@@ -1,9 +1,10 @@
 # The classes this file names, pulled in by the file itself.
-using module ..\src\windows\WslUI.psm1
+using module ..\src\windows\Views\cli\MenuCli.psm1
+using module ..\src\windows\Views\cli\BaseViewCli.psm1
 
 # Drives the menu classes with a scripted console: the arrow loop runs with no
 # terminal in sight, which is the only way to test it. The console is a
-# WslConsole subclass (fake-console.ps1, next to this file) that answers
+# ConsoleCli subclass (fake-console.ps1, next to this file) that answers
 # canned keys and records the lines - the tests replace the object, not
 # functions by name.
 #
@@ -15,7 +16,6 @@ using module ..\src\windows\WslUI.psm1
 # copy is a copy that drifts, and that is exactly what happened once.
 #
 $ErrorActionPreference = "Stop"
-Import-Module (Join-Path $PSScriptRoot "..\src\windows\WslStack\WslStack.psd1") -Force
 . (Join-Path $PSScriptRoot "fake-console.ps1")
 
 $Failures = 0
@@ -34,7 +34,7 @@ function ItemsOf {
     param([object[]]$Values, [int[]]$Checked = @())
     $Out = @()
     for ($Index = 0; $Index -lt $Values.Count; $Index++) {
-        $Row = [WslMenuItem]::new([string]$Values[$Index], $Values[$Index])
+        $Row = [MenuItemCli]::new([string]$Values[$Index], $Values[$Index])
         if ($Checked -contains $Index) { $Row.Checked = $true }
         $Out += $Row
     }
@@ -44,7 +44,7 @@ function ItemsOf {
 # One list, the rows in, the wonderings set.
 function New-List {
     param([string]$Title, [object[]]$Rows, [bool]$Multi = $false)
-    $List = [WslMenu]::new($Title)
+    $List = [MenuCli]::new($Title)
     foreach ($Row in $Rows) { $null = $List.Add($Row) }
     $List.Multi = $Multi
     return $List
@@ -101,7 +101,7 @@ Check "a custom label           -> hands back the object, not the label" `
         $Console.Keys = [System.Collections.Queue]::new()
         $Console.Keys.Enqueue([ConsoleKey]::DownArrow)
         $Console.Keys.Enqueue([ConsoleKey]::Enter)
-        $Menu = New-List "T" @([WslMenuItem]::new("L-1", 1), [WslMenuItem]::new("L-2", 2)) $false
+        $Menu = New-List "T" @([MenuItemCli]::new("L-1", 1), [MenuItemCli]::new("L-2", 2)) $false
         $Menu.Console = $Console
         ($Menu.Prompt()).Value
     }) "2"
@@ -122,18 +122,18 @@ Write-Output "--- a row is one line, box or no box ---"
 # paints one line off. These checks are the invariant itself: marker, box and
 # label together never exceed the width the terminal gave.
 $Wide = @(("x" * 400 -join ""), ("y" * 400 -join ""))
-$Cut = [WslMenu]::Fit($Wide, 40, 4)
+$Cut = [MenuCli]::Fit($Wide, 40, 4)
 Check "a plain row fits the width          " `
     ((@($Cut | ForEach-Object { 4 + $_.Length }) | Measure-Object -Maximum).Maximum) "39"
-$Cut = [WslMenu]::Fit($Wide, 40, 8)
+$Cut = [MenuCli]::Fit($Wide, 40, 8)
 Check "a row with its box fits it too     " `
     ((@($Cut | ForEach-Object { 8 + $_.Length }) | Measure-Object -Maximum).Maximum) "39"
-$Cut = [WslMenu]::Fit($Wide, 40, 0)
+$Cut = [MenuCli]::Fit($Wide, 40, 0)
 Check "a title or a hint fits it too       " `
     ((@($Cut | ForEach-Object { $_.Length }) | Measure-Object -Maximum).Maximum) "39"
 Check "  ... and the cut shows as one      " ($Cut[0] -like "x*...") "True"
-Check "a short label is left alone         " (@([WslMenu]::Fit(@("court"), 40, 4))[0]) "court"
-Check "a host that says no width cuts none " (@([WslMenu]::Fit(@("x" * 400 -join ""), 0, 4))[0]).Length "400"
+Check "a short label is left alone         " (@([MenuCli]::Fit(@("court"), 40, 4))[0]) "court"
+Check "a host that says no width cuts none " (@([MenuCli]::Fit(@("x" * 400 -join ""), 0, 4))[0]).Length "400"
 
 Write-Output ""
 Write-Output "--- no console (numbered fallback, answers read from standard input) ---"
@@ -211,7 +211,7 @@ Check "Escape                       -> nothing at all" `
 Check "single-select: space does nothing" `
     ((Run-Menu @([ConsoleKey]::Spacebar, [ConsoleKey]::Enter) $PackItems).Value) "gcp"
 Check "the box shows in the row" `
-    (([WslMenu]::FormatRow(1, 0, $PackItems, @($true, $false, $true))).Trim()) "[ ] vision"
+    (([MenuCli]::FormatRow(1, 0, $PackItems, @($true, $false, $true))).Trim()) "[ ] vision"
 
 Write-Output ""
 Write-Output "--- the window: rows are cut, a tall list scrolls ---"
@@ -220,9 +220,9 @@ Write-Output "--- the window: rows are cut, a tall list scrolls ---"
 $Long = "remove_pack  uninstall optional tooling from an instance, dependencies included"
 # @() around each: a one-element list unrolls to its element, and [0] on a
 # string is its first LETTER - the same trap, met again in the test.
-$Cut = @([WslMenu]::Fit(@($Long), 40, 4))[0]
-$Short = @([WslMenu]::Fit(@("short"), 40, 4))[0]
-$NoWidth = @([WslMenu]::Fit(@($Long), 0, 4))[0]
+$Cut = @([MenuCli]::Fit(@($Long), 40, 4))[0]
+$Short = @([MenuCli]::Fit(@("short"), 40, 4))[0]
+$NoWidth = @([MenuCli]::Fit(@($Long), 0, 4))[0]
 Check "cut to the width (39 max)" ($Cut.Length -le 39) $true
 Check "cut: the end becomes ..." ($Cut.EndsWith("...")) $true
 Check "a short label stays whole" $Short "short"
@@ -247,8 +247,13 @@ Write-Output ""
 Write-Output "--- a clean screen between levels ---"
 # One call, and that is the point: the version before remembered each menu's
 # rows and blanked exactly those - a row number is absolute and the console
-# moves, so one scroll drew the next menu over the prompt. Replaced by this.
-Check "clearing the screen is safe without one" (& { Clear-MenuScreen; "survived" }) "survived"
+# moves, so one scroll drew the next menu over the prompt. The device now
+# holds the one call every view makes.
+Check "clearing the screen is safe without one" (& {
+    $Probe = [BaseViewCli]::new()
+    $Probe.ClearScreen()
+    "survived"
+}) "survived"
 
 Write-Output ""
 Write-Output ("failures: " + $Failures)

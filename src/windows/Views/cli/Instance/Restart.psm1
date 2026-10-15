@@ -6,16 +6,26 @@
 using module ..\BaseViewCli.psm1
 
 class CliRestartView : BaseViewCli {
-    # Les questions du geste : le nom arrive déjà choisi (SelectInstance a
-    # demandé) — l'avis du travail non sauvé, puis le oui. La ligne du geste
-    # part à la fin, avant l'attente.
-    [void] Ask([string]$name) {
+    # La vue ne décide plus : le oui se relit au presenter — ici, l'avis, la
+    # porte et la ligne du geste.
+
+    # L'avis du travail non sauvé, avant la question.
+    [void] ShowStoppingWarning([string]$name) {
         Write-Host ""
         Write-Host "  '$name' will be stopped, then started again." -ForegroundColor $this.Colour("warning")
         Write-Host "  Whatever is open in there and not saved is lost; what is already" -ForegroundColor $this.Colour("warning")
         Write-Host "  written on the disk stays exactly as it is." -ForegroundColor $this.Colour("warning")
-        if (-not $this.Confirm("Restart it?", $false)) { $this.StopCancelled("modified") }
+    }
 
+    # La porte : le blank et la question, ensemble. Ce que la réponse veut
+    # dire reste au presenter.
+    [bool] AskRestart() {
+        Write-Host ""
+        return $this.Confirm("Restart it?", $false)
+    }
+
+    # La ligne du geste qui part, avant l'attente.
+    [void] ShowRestarting([string]$name) {
         Write-Host ""
         Write-Host "==> Restarting '$name'..." -ForegroundColor $this.Colour("info")
     }

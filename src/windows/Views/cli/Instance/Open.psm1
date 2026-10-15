@@ -8,7 +8,7 @@ using module ..\BaseViewCli.psm1
 class CliOpenView : BaseViewCli {
     # Pas de question : le nom arrive déjà choisi, et la ligne du geste part
     # avant l'attente.
-    [void] Ask([string]$name) {
+    [void] ShowOpening([string]$name) {
         Write-Host ""
         Write-Host "==> Opening a shell in '$name'..." -ForegroundColor $this.Colour("info")
     }

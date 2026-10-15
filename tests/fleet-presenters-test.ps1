@@ -1,0 +1,411 @@
+# The readings and the fleet of the fifth lot, driven by fake views: list,
+# shell (open), restart, migrate and wslconfig - each presenter runs its whole
+# conversation with no console anywhere, and every decision (the empty
+# machine, the restart's yes, the three migrate refusals, the Dto-less
+# gesture) is the presenter's.
+#
+# The services are the real ones over a world of the suite's own: a stand-in
+# WslRepository recording every move, the root file in a redirected profile,
+# and a stand-in FleetService method for the one gesture whose last call is a
+# native (wslconfig opens the file in an editor) - so the five traversals run
+# anywhere, the sandbox and the runner alike.
+#
+# Usage:  pwsh -NoProfile -File tests\fleet-presenters-test.ps1
+using module ..\src\windows\Presenters\Instance\ListPresenter.psm1
+using module ..\src\windows\Presenters\Instance\OpenPresenter.psm1
+using module ..\src\windows\Presenters\Instance\RestartPresenter.psm1
+using module ..\src\windows\Presenters\Fleet\MigratePresenter.psm1
+using module ..\src\windows\Presenters\Fleet\WslConfigPresenter.psm1
+using module ..\src\windows\Repository\WslRepository.psm1
+using module ..\src\windows\Repository\InstanceRepository.psm1
+using module ..\src\windows\Repository\ArchiveRepository.psm1
+using module ..\src\windows\Repository\TerminalRepository.psm1
+using module ..\src\windows\Repository\DockerRepository.psm1
+using module ..\src\windows\Repository\ConfigRepository.psm1
+using module ..\src\windows\Model\WslInstance.psm1
+using module ..\src\windows\Service\InstanceService.psm1
+using module ..\src\windows\Service\FleetService.psm1
+
+# The instance side of wsl, faked whole: the distros, the folders, who runs,
+# and the moves the gestures make - each recorded.
+class FakeWsl : WslRepository {
+    [System.Collections.Generic.List[string]]$Called
+    [string[]]$Distros = @()
+    [string[]]$Running = @()
+    [hashtable]$Folders = @{}
+    [string]$TerminateRefusal = ""
+
+    FakeWsl() : base([System.IO.Path]::GetTempPath()) {
+        $this.Called = [System.Collections.Generic.List[string]]::new()
+    }
+
+    [WslInstance[]] GetAllDistros() {
+        $found = @()
+        foreach ($name in @($this.Distros)) {
+            $instance = [WslInstance]::new()
+            $instance.SetName($name)
+            $found += $instance
+        }
+        return @($found)
+    }
+
+    [string[]] GetRunningNames() { return @($this.Running) }
+
+    [string] GetFolder([string]$distroName) {
+        if ($this.Folders.ContainsKey($distroName)) { return $this.Folders[$distroName] }
+        return ""
+    }
+
+    [void] Terminate([string]$instanceName) {
+        $this.Called.Add("terminate $instanceName")
+        if ($this.TerminateRefusal) { throw $this.TerminateRefusal }
+    }
+
+    [void] Start([string]$instanceName) { $this.Called.Add("start $instanceName") }
+    [void] Export([string]$instanceName, [string]$tarPath, [string]$format) { $this.Called.Add("export $instanceName") }
+    [void] Unregister([string]$instanceName) { $this.Called.Add("unregister $instanceName") }
+    [void] OpenProfile([string]$instanceName) { $this.Called.Add("open-profile $instanceName") }
+    [void] OpenBareShell([string]$instanceName) { $this.Called.Add("open-bare $instanceName") }
+}
+
+# Le geste dont le dernier pas est un natif - l'éditeur du .wslconfig - porte
+# sa couture ici : la méthode du service se fausse, le reste de la flotte est
+# le vrai.
+class FakeFleet : FleetService {
+    [System.Collections.Generic.List[string]]$Called
+    [string]$Path = "/tmp/fake-wslconfig"
+    [bool]$Created = $true
+    [string]$Refusal = ""
+
+    FakeFleet([ConfigRepository]$config, [WslRepository]$wsl, [InstanceRepository]$instances,
+              [ArchiveRepository]$archives, [InstanceService]$instanceService) : base($config, $wsl, $instances, $archives, $instanceService) {
+        $this.Called = [System.Collections.Generic.List[string]]::new()
+    }
+
+    [object] WslConfig() {
+        $this.Called.Add("wslconfig")
+        if ($this.Refusal) { throw $this.Refusal }
+        return [PSCustomObject]@{ Path = $this.Path; Created = $this.Created }
+    }
+}
+
+# The view fakes: every order recorded, every question answered from a script.
+class FakeListView {
+    [System.Collections.Generic.List[string]]$Orders
+    FakeListView() { $this.Orders = [System.Collections.Generic.List[string]]::new() }
+    [void] Show([object[]]$rows, [object[]]$orphans, [string[]]$running) {
+        $this.Orders.Add("show rows=$($rows.Count) orphans=$($orphans.Count) running=$($running -join ',')")
+    }
+}
+
+class FakeOpenView {
+    [System.Collections.Generic.List[string]]$Orders
+    FakeOpenView() { $this.Orders = [System.Collections.Generic.List[string]]::new() }
+    [void] ShowOpening([string]$name) { $this.Orders.Add("opening $name") }
+    [void] Show([string]$name, [object]$response) { $this.Orders.Add("report $name bare=$response") }
+}
+
+class FakeRestartView {
+    [System.Collections.Generic.List[string]]$Orders
+    [bool]$Yes = $true
+    FakeRestartView() { $this.Orders = [System.Collections.Generic.List[string]]::new() }
+    [void] ShowStoppingWarning([string]$name) { $this.Orders.Add("warning $name") }
+    [bool] AskRestart() { $this.Orders.Add("ask"); return $this.Yes }
+    [void] ShowRestarting([string]$name) { $this.Orders.Add("restarting $name") }
+    [void] ShowCancelled([string]$what) { $this.Orders.Add("cancelled $what") }
+    [void] Show([string]$name, [object]$response) { $this.Orders.Add("report $name") }
+}
+
+class FakeMigrateView {
+    [System.Collections.Generic.List[string]]$Orders
+    [string]$Target = ""
+    FakeMigrateView() { $this.Orders = [System.Collections.Generic.List[string]]::new() }
+    [string] AskTarget([string]$root) {
+        $this.Orders.Add("ask root=$root")
+        return $this.Target
+    }
+    [void] ShowSameFolder() { $this.Orders.Add("same-folder") }
+    [void] ShowTargetProblem([string]$problem) { $this.Orders.Add("problem $problem") }
+    [void] ShowCancelled([string]$what) { $this.Orders.Add("cancelled $what") }
+    [void] ShowLead() { $this.Orders.Add("lead") }
+    [void] Show([string]$target, [object]$moved) { $this.Orders.Add("report $target moved=$(@($moved) -join ',')") }
+}
+
+class FakeWslConfigView {
+    [System.Collections.Generic.List[string]]$Orders
+    FakeWslConfigView() { $this.Orders = [System.Collections.Generic.List[string]]::new() }
+    [void] ShowLead() { $this.Orders.Add("lead") }
+    [void] Show([string]$path, [bool]$created) { $this.Orders.Add("report $path created=$created") }
+}
+
+class FakeErrorView {
+    [System.Collections.Generic.List[string]]$Orders
+    FakeErrorView() { $this.Orders = [System.Collections.Generic.List[string]]::new() }
+    [void] Show([string]$failure) { $this.Orders.Add("error $failure") }
+}
+
+class FakeSelectView {
+    [string]$Answer = ""
+    [bool]$Asked = $false
+    [bool]$Rang = $false
+
+    [void] ShowNoInstances() { $this.Rang = $true }
+    [object] AskOffered([object[]]$offered) {
+        $this.Asked = $true
+        return $this.Answer
+    }
+}
+
+$ErrorActionPreference = "Stop"
+
+$Failures = 0
+function Check {
+    param([string]$Name, $Got, $Expected)
+    if ("$Got" -eq "$Expected") {
+        Write-Output "OK   $Name"
+    } else {
+        Write-Output "FAIL $Name : expected '$Expected', got '$Got'"
+        $script:Failures++
+    }
+}
+
+# The world: the redirected profile with the root file pointing at a root of
+# the suite's, one instance carrying the marker and its disk, and a marked
+# folder nobody claims.
+$World = Join-Path ([System.IO.Path]::GetTempPath()) ("fleet-presenters-" + [Guid]::NewGuid().ToString("N"))
+$env:USERPROFILE = $World
+$env:LOCALAPPDATA = Join-Path $World "LocalAppData"
+$env:APPDATA = Join-Path $World "AppData"
+New-Item -ItemType Directory -Path (Join-Path $env:LOCALAPPDATA "wsl-stack") -Force | Out-Null
+New-Item -ItemType Directory -Path $env:APPDATA -Force | Out-Null
+$Root = Join-Path $World "WSL"
+$Instance = "bench-agent"
+$FakeFolder = Join-Path $Root $Instance
+$LeftBehind = Join-Path $Root "left-behind"
+Set-Content -Path (Join-Path $env:LOCALAPPDATA "wsl-stack\root.txt") -Value $Root -Encoding ascii -NoNewline
+
+function Reset-World {
+    Remove-Item -Recurse -Force $Root -ErrorAction SilentlyContinue
+    New-Item -ItemType Directory -Path $FakeFolder -Force | Out-Null
+    New-Item -ItemType File -Path (Join-Path $FakeFolder ".wsl-stack") -Force | Out-Null
+    Set-Content -Path (Join-Path $FakeFolder "ext4.vhdx") -Value "fake-disk" -NoNewline
+}
+Reset-World
+
+$instances = [InstanceRepository]::new($Root)
+$archives = [ArchiveRepository]::new((Join-Path $Root "archives"))
+$terminal = [TerminalRepository]::new((Join-Path $World "assets"))
+$docker = [DockerRepository]::new($Root)
+$config = [ConfigRepository]::new((Join-Path $World "assets"))
+$fake = [FakeWsl]::new()
+$fake.Folders[$Instance] = $FakeFolder
+$service = [InstanceService]::new($instances, $archives, $fake, $terminal, $docker, $null, $config)
+$fleet = [FakeFleet]::new($config, $fake, $instances, $archives, $service)
+
+function New-ViewsRoot {
+    return (Join-Path $PSScriptRoot "..\src\windows\Views")
+}
+
+$failureView = [FakeErrorView]::new()
+
+try {
+    # ---- list --------------------------------------------------------------
+
+    $listView = [FakeListView]::new()
+    $presenter = [ListPresenter]::new($service, (New-ViewsRoot), "cli")
+    $presenter.Views = @{ "List" = $listView; "Error" = $failureView }
+
+    # 1. An empty machine: the view is handed the empty table, and the gesture
+    # is a fault.
+    $fake.Distros = @()
+    Remove-Item -Recurse -Force $Root -ErrorAction SilentlyContinue
+    $result = $presenter.Run()
+    Check "an empty machine is a fault" "$($result.Status)/$($result.Message)" "Nok/List : none"
+    Check "  ... after the empty table" ($listView.Orders -join " | ") "show rows=0 orphans=0 running="
+
+    # 2. The instance row, with who runs; and a marked folder nobody claims is
+    # a row of its own.
+    Reset-World
+    $fake.Distros = @($Instance)
+    $fake.Running = @($Instance)
+    $listView.Orders.Clear()
+    $result = $presenter.Run()
+    Check "a row is a row" "$($result.Status)/$($result.Message)" "Ok/List : 1 row(s)"
+    Check "  ... the running name read once for the table" ($listView.Orders -join " | ") "show rows=1 orphans=0 running=$Instance"
+
+    New-Item -ItemType Directory -Path $LeftBehind -Force | Out-Null
+    New-Item -ItemType File -Path (Join-Path $LeftBehind ".wsl-stack") -Force | Out-Null
+    $listView.Orders.Clear()
+    $result = $presenter.Run()
+    Check "an orphan folder is a row, not an abort" "$($result.Status)/$($result.Message)" "Ok/List : 2 row(s)"
+    Check "  ... shown as such" ($listView.Orders -join " | ") "show rows=1 orphans=1 running=$Instance"
+    Remove-Item -Recurse -Force $LeftBehind -ErrorAction SilentlyContinue
+
+    # ---- shell (open) ------------------------------------------------------
+
+    $openView = [FakeOpenView]::new()
+    $selectView = [FakeSelectView]::new()
+    $presenter = [OpenPresenter]::new($service, (New-ViewsRoot), "cli")
+    $presenter.Views = @{ "Open" = $openView; "Error" = $failureView }
+    $presenter.Picker.Views = @{ "SelectInstance" = $selectView }
+
+    # 3. A given name opens straight; no Terminal profile means the bare
+    # shell, and the response says so.
+    $fake.Called.Clear()
+    $openView.Orders.Clear()
+    $result = $presenter.Run($Instance)
+    Check "a given name skips the question" $selectView.Asked $false
+    Check "the shell goes" "$($result.Status)/$($result.Message)" "Ok/Open : $Instance"
+    Check "  ... the line before the wait" ($openView.Orders -join " | ") "opening $Instance | report $Instance bare=False"
+    Check "  ... and the bare shell was the one asked" ($fake.Called -join " | ") "open-bare $Instance"
+
+    # 4. The escape at the question is an abandonment, and an empty machine is
+    # a fault.
+    $selectView.Asked = $false
+    $selectView.Answer = ""
+    $result = $presenter.Run("")
+    Check "the escape abandons" "$($result.Status)/$($result.Message)" "Ok/Open : cancelled"
+
+    $fake.Distros = @()
+    $listView.Orders.Clear()
+    $result = $presenter.Run("")
+    Check "an empty machine is a fault" "$($result.Status)/$($result.Message)" "Nok/Open : no instance"
+    $fake.Distros = @($Instance)
+    $selectView.Answer = $Instance
+
+    # ---- restart -----------------------------------------------------------
+
+    $restartView = [FakeRestartView]::new()
+    $selectView = [FakeSelectView]::new()
+    $selectView.Answer = $Instance
+    $presenter = [RestartPresenter]::new($service, (New-ViewsRoot), "cli")
+    $presenter.Views = @{ "Restart" = $restartView; "Error" = $failureView }
+    $presenter.Picker.Views = @{ "SelectInstance" = $selectView }
+
+    # 5. A no at the door abandons: the warning was said, nothing was touched.
+    $restartView.Yes = $false
+    $restartView.Orders.Clear()
+    $fake.Called.Clear()
+    $result = $presenter.Run("")
+    Check "a no at the door abandons" "$($result.Status)/$($result.Message)" "Ok/Restart : cancelled"
+    Check "  ... after the warning and the question" ($restartView.Orders -join " | ") "warning $Instance | ask | cancelled modified"
+    Check "  ... and nothing was touched" ($fake.Called.Count) 0
+
+    # 6. The yes goes: stopped, then started again - in that order.
+    $restartView.Yes = $true
+    $restartView.Orders.Clear()
+    $fake.Called.Clear()
+    $result = $presenter.Run("")
+    Check "the restart goes" "$($result.Status)/$($result.Message)" "Ok/Restart : $Instance"
+    Check "  ... the warning, the door, the line, the banner" `
+        ($restartView.Orders -join " | ") "warning $Instance | ask | restarting $Instance | report $Instance"
+    Check "  ... stopped before started" `
+        (($fake.Called.IndexOf("terminate $Instance")) -lt ($fake.Called.IndexOf("start $Instance"))) $true
+
+    # 7. A stop that fails names the half: the refusal reaches the error view
+    # and the run is a fault.
+    $fake.TerminateRefusal = "boom"
+    $failureView.Orders.Clear()
+    $result = $presenter.Run("")
+    Check "a failed stop is a fault" "$($result.Status)" "Nok"
+    Check "  ... with the half named" `
+        (($failureView.Orders -join " | ") -like "error The stop did not complete - '$Instance' may still be running, and was not started again. boom") $true
+    $fake.TerminateRefusal = ""
+
+    # ---- migrate -----------------------------------------------------------
+
+    # Rien à emporter : la flotte sous la racine est vide — le voyage
+    # instancié (archiver, désinscrire) est l'affaire du banc des archives.
+    $fake.Distros = @()
+
+    $migrateView = [FakeMigrateView]::new()
+    $presenter = [MigratePresenter]::new($fleet, (New-ViewsRoot), "cli")
+    $presenter.Views = @{ "Migrate" = $migrateView; "Error" = $failureView }
+
+    # 8. An empty answer cancels - with the question's own words.
+    $migrateView.Target = ""
+    $migrateView.Orders.Clear()
+    $result = $presenter.Run("")
+    Check "an empty answer cancels" "$($result.Status)/$($result.Message)" "Ok/Migrate : cancelled"
+    Check "  ... the question carried the root" ($migrateView.Orders[0]) "ask root=$Root"
+    Check "  ... and the cancel was said" ($migrateView.Orders -contains "cancelled moved") $true
+
+    # 9. The working folder itself is not a refusal: it is said, and nothing
+    # moves.
+    $migrateView.Target = $Root
+    $migrateView.Orders.Clear()
+    $fake.Called.Clear()
+    $result = $presenter.Run("")
+    Check "the working folder is said, not refused" "$($result.Status)/$($result.Message)" "Ok/Migrate : cancelled"
+    Check "  ... the line, and no cancel" ($migrateView.Orders -join " | ") "ask root=$Root | same-folder"
+    Check "  ... and nothing moved" ($fake.Called.Count) 0
+
+    # 10. A target Test-FleetTarget refuses is said with its own words, and
+    # nothing moves.
+    $migrateView.Target = "effef"
+    $migrateView.Orders.Clear()
+    $fake.Called.Clear()
+    $result = $presenter.Run("")
+    Check "a relative target is refused cheap" `
+        ($migrateView.Orders -contains "problem 'effef' is not an absolute folder - give a full path, like 'D:\WSL'.") $true
+    Check "  ... and nothing moved" ($fake.Called.Count) 0
+
+    # 11. A good target goes: the lead, the journey (no instance to carry: the
+    # archives only), the report, and the root file rewritten.
+    $NewRoot = Join-Path $World "new-root"
+    $migrateView.Target = $NewRoot
+    $migrateView.Orders.Clear()
+    $fake.Called.Clear()
+    $result = $presenter.Run("")
+    Check "a good target goes" "$($result.Status)/$($result.Message)" "Ok/Migrate : $NewRoot"
+    Check "  ... the lead then the report" ($migrateView.Orders -join " | ") "ask root=$Root | lead | report $NewRoot moved="
+    Check "  ... and the root file follows" "$(Get-Content (Join-Path $env:LOCALAPPDATA 'wsl-stack\root.txt') -Raw)".Trim() "$NewRoot"
+
+    # 12. A target GIVEN passes both refusals, as the window's launch does -
+    # and the service's own guard still answers a target it hates.
+    $GivenRoot = Join-Path $World "given-root"
+    $migrateView.Orders.Clear()
+    $result = $presenter.Run($GivenRoot)
+    Check "a given target skips the question" (@($migrateView.Orders | Where-Object { $_ -like "ask*" }).Count) 0
+    Check "  ... and goes" "$($result.Status)/$($result.Message)" "Ok/Migrate : $GivenRoot"
+
+    $migrateView.Orders.Clear()
+    $failureView.Orders.Clear()
+    $result = $presenter.Run("effef")
+    Check "a given relative target is the service's refusal" "$($result.Status)" "Nok"
+    Check "  ... painted" (($failureView.Orders -join " | ") -like "error 'effef' is not an absolute folder*") $true
+
+    # ---- wslconfig ---------------------------------------------------------
+
+    $configView = [FakeWslConfigView]::new()
+    $presenter = [WslConfigPresenter]::new($fleet, (New-ViewsRoot), "cli")
+    $presenter.Views = @{ "WslConfig" = $configView; "Error" = $failureView }
+
+    # 13. The lead, the call, the report - the file was born of its template.
+    $fleet.Created = $true
+    $fleet.Called.Clear()
+    $configView.Orders.Clear()
+    $result = $presenter.Run()
+    Check "wslconfig goes" "$($result.Status)/$($result.Message)" "Ok/WslConfig : $($fleet.Path)"
+    Check "  ... lead, call, report - created" `
+        ("$($configView.Orders -join ' | ')/$($fleet.Called -join ',')") "lead | report $($fleet.Path) created=True/wslconfig"
+
+    # 14. The file already there says its path instead.
+    $fleet.Created = $false
+    $configView.Orders.Clear()
+    $result = $presenter.Run()
+    Check "an existing file says its path" ($configView.Orders -contains "report $($fleet.Path) created=False") $true
+
+    # 15. A service that refuses is a fault, painted by the error view.
+    $fleet.Refusal = "boom"
+    $failureView.Orders.Clear()
+    $result = $presenter.Run()
+    Check "a refused opening is a fault" "$($result.Status)/$($result.Message)" "Nok/WslConfig : boom"
+    Check "  ... painted" ($failureView.Orders -join " | ") "error boom"
+} finally {
+    Remove-Item -Recurse -Force $World -ErrorAction SilentlyContinue
+}
+
+Write-Output ""
+Write-Output ("failures: " + $Failures)
+exit $Failures

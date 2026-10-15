@@ -2,12 +2,11 @@
 # view a gesture looks up is on disk.
 #
 #   - every block of Start-Cli.ps1's $gestures table calls a method its
-#     controller carries - a renamed method would only show the day the
+#     presenter carries - a renamed method would only show the day the
 #     command runs, in front of the user;
-#   - every method of the two controllers that names a view through
-#     GetView("X") lands on a file under Views\cli (the Instance folder, the
-#     Fleet folder, their shared ones) - a renamed view file is the same kind
-#     of silence;
+#   - every presenter method that names a view through GetView("X") lands on
+#     a file under Views\cli (the Instance folder, the Fleet folder, their
+#     shared ones) - a renamed view file is the same kind of silence;
 #   - the menu of Start-Cli.ps1 shows each gesture word it routes, and the
 #     way-in menu of wsl.ps1 its own two.
 #
@@ -27,14 +26,10 @@ function Fail([string]$Message) {
 }
 
 $startCli = Get-Content (Join-Path $Windows "Start-Cli.ps1") -Raw
-$controllers = @{}
-foreach ($name in @("InstanceController", "FleetController")) {
-    $controllers[$name] = Get-Content (Join-Path $Windows "Controllers\$name.psm1") -Raw
-}
 
-# 1. Every gesture block calls a method its controller carries.
+# 1. Every gesture block calls a method its presenter carries.
 $seen = @{}
-# Les gestes migrés : leur presenter porte la méthode, par convention de nom.
+# Les gestes : leur presenter porte la méthode, par convention de nom.
 $migrated = [regex]::Matches($startCli, '"([a-z_]+)"\s*=\s*\{\s*param\([^)]*\)\s*\$Presenters\.([A-Za-z]+)\.([A-Za-z]+)\(')
 foreach ($m in $migrated) {
     $word = $m.Groups[1].Value
@@ -52,22 +47,15 @@ foreach ($m in $migrated) {
     if (-not $carried) { Fail "gesture '$word' calls $($presenter)Presenter.$method - no such method" }
 }
 
-# Les gestes pas encore migrés : le contrôleur d'abord.
-$gestures = [regex]::Matches($startCli, '"([a-z_]+)"\s*=\s*\{\s*param\([^)]*\)\s*\$(Instance|Fleet)\.([A-Za-z]+)\(')
-foreach ($m in $gestures) {
-    $word = $m.Groups[1].Value
-    $owner = "$($m.Groups[2].Value)Controller"
-    $method = $m.Groups[3].Value
-    $seen[$word] = $true
-    if ($controllers[$owner] -notmatch "\[ActionResult\]\s+$method\(") {
-        Fail "gesture '$word' calls $owner.$method - no such method"
-    }
+# Un bloc d'une autre forme passerait sous le radar : chacun doit se lire ici.
+$total = [regex]::Matches($startCli, '"([a-z_]+)"\s*=\s*\{').Count
+if ($migrated.Count -ne $total) {
+    Fail "$total gesture block(s) in Start-Cli.ps1, only $($migrated.Count) read - a block has another shape"
 }
-$total = $migrated.Count + $gestures.Count
 if ($total -eq 0) { Fail "no gesture block found in Start-Cli.ps1 - this check read nothing" }
-Write-Host "$total gesture(s) read ($($migrated.Count) migrated)."
+Write-Host "$total gesture(s) read."
 
-# 2. Every GetView("X") of the two controllers lands on a file.
+# 2. Every GetView("X") of a presenter lands on a file.
 $viewFolders = @(
     (Join-Path $Windows "Views\cli\Instance"),
     (Join-Path (Join-Path $Windows "Views\cli\Instance") "shared"),
@@ -76,7 +64,6 @@ $viewFolders = @(
     (Join-Path $Windows "Views\cli\shared")
 )
 $lookers = @{}
-foreach ($name in @("InstanceController", "FleetController")) { $lookers[$name] = $controllers[$name] }
 foreach ($presenter in @(Get-ChildItem (Join-Path $Windows "Presenters") -Recurse -Filter *.psm1)) {
     $lookers[$presenter.Name] = Get-Content $presenter.FullName -Raw
 }
@@ -90,7 +77,7 @@ foreach ($name in $lookers.Keys) {
         if (-not $found) { Fail "$name looks up the view '$view' - no $view.psm1 under Views\cli" }
     }
 }
-Write-Host "the controllers' and presenters' view lookups: read."
+Write-Host "the presenters' view lookups: read."
 
 # 3. The menu shows each routed word, and the way-in its own two.
 $menuWords = [regex]::Matches($startCli, '\$menu = \$menu\.Add\("([a-z_]+)",\s*"([^"]*)"') | ForEach-Object { $_.Groups[1].Value }

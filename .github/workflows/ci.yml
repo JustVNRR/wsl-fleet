@@ -432,6 +432,11 @@ jobs:
         shell: bash
         run: pwsh -NoProfile -File tests/build-presenter-test.ps1
 
+      - name: The readings and the fleet, presenters driven by fake views
+        if: always()
+        shell: bash
+        run: pwsh -NoProfile -File tests/fleet-presenters-test.ps1
+
       - name: Removing an instance, with a stand-in wsl
         if: always()
         shell: bash

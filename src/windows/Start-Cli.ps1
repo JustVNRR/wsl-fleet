@@ -1,7 +1,7 @@
 # ==============================================================================
 # L'ENTRÉE DU CLI — LA RACINE DE LA CONSOLE
 # ==============================================================================
-# Le menu, le dispatch, la construction des services et des contrôleurs (le
+# Le menu, le dispatch, la construction des services et des presenters (le
 # type « cli »), et le geste.
 #
 #   .\Start-Cli.ps1                le menu
@@ -18,8 +18,6 @@
 #
 # Ce dont ce fichier nomme, déclaré ici : il tire ses modules lui-même.
 using module .\Service\ServiceFactory.psm1
-using module .\Controllers\InstanceController.psm1
-using module .\Controllers\FleetController.psm1
 using module .\Presenters\Instance\ArchivePresenter.psm1
 using module .\Presenters\Instance\RemovePresenter.psm1
 using module .\Presenters\Instance\DeleteArchivePresenter.psm1
@@ -31,6 +29,11 @@ using module .\Presenters\Instance\RemovePackPresenter.psm1
 using module .\Presenters\Instance\ManagePacksPresenter.psm1
 using module .\Presenters\Instance\SetAppearancePresenter.psm1
 using module .\Presenters\Instance\BuildPresenter.psm1
+using module .\Presenters\Instance\ListPresenter.psm1
+using module .\Presenters\Instance\OpenPresenter.psm1
+using module .\Presenters\Instance\RestartPresenter.psm1
+using module .\Presenters\Fleet\MigratePresenter.psm1
+using module .\Presenters\Fleet\WslConfigPresenter.psm1
 using module .\Views\cli\MenuCli.psm1
 
 [CmdletBinding()]
@@ -45,7 +48,7 @@ param(
 )
 
 # Les dossiers : la racine du dépôt, deux crans au-dessus. Les vues vivent
-# sous Views\ : c'est CE dossier que les contrôleurs prennent pour racine.
+# sous Views\ : c'est CE dossier que les presenters prennent pour racine.
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $Assets = Join-Path $RepoRoot "assets"
 $distroTree = Join-Path $RepoRoot "src\distro"
@@ -58,12 +61,8 @@ $root = [ServiceFactory]::ResolveRoot($Assets, $distroTree)
 $fleetService = [ServiceFactory]::CreateFleetService($root, $Assets, $distroTree)
 $instanceService = [ServiceFactory]::CreateInstanceService($root, $Assets, $distroTree)
 
-# Les contrôleurs, au type « cli ».
-$instanceController = [InstanceController]::new($instanceService, $ViewsRoot, "cli")
-$fleetController = [FleetController]::new($fleetService, $ViewsRoot, "cli")
-
-# Les presenters migrés : un par vue, construits ici — objets légers, la vue
-# naît au premier geste. Les gestes pas encore migrés gardent le contrôleur.
+# Les presenters : un par vue, construits ici — objets légers, la vue naît au
+# premier geste. Le « cli » est le type d'UI, comme le « wpf » de la fenêtre.
 $presenters = @{
     Archive       = [ArchivePresenter]::new($instanceService, $ViewsRoot, "cli")
     Remove        = [RemovePresenter]::new($instanceService, $ViewsRoot, "cli")
@@ -76,30 +75,35 @@ $presenters = @{
     ManagePacks   = [ManagePacksPresenter]::new($instanceService, $ViewsRoot, "cli")
     SetAppearance = [SetAppearancePresenter]::new($instanceService, $ViewsRoot, "cli")
     Build         = [BuildPresenter]::new($instanceService, $ViewsRoot, "cli")
+    List          = [ListPresenter]::new($instanceService, $ViewsRoot, "cli")
+    Open          = [OpenPresenter]::new($instanceService, $ViewsRoot, "cli")
+    Restart       = [RestartPresenter]::new($instanceService, $ViewsRoot, "cli")
+    Migrate       = [MigratePresenter]::new($fleetService, $ViewsRoot, "cli")
+    WslConfig     = [WslConfigPresenter]::new($fleetService, $ViewsRoot, "cli")
 }
 
-# Le geste, un bloc par commande : le contrôleur et le nom arrivent en
-# paramètres, le bloc rend l'ActionResult du geste.
+# Le geste, un bloc par commande : le nom et la table des presenters arrivent
+# en paramètres, le bloc rend l'ActionResult du geste.
 $gestures = [ordered]@{
-    "list"           = { param($Instance, $Fleet, $Name) $Instance.List() }
-    "build"          = { param($Instance, $Fleet, $Name, $Presenters) $Presenters.Build.Run() }
-    "restart"        = { param($Instance, $Fleet, $Name) $Instance.Restart($Name) }
-    "shell"          = { param($Instance, $Fleet, $Name) $Instance.Open($Name) }
-    "add_pack"       = { param($Instance, $Fleet, $Name, $Presenters) $Presenters.AddPack.Run($Name) }
-    "remove_pack"    = { param($Instance, $Fleet, $Name, $Presenters) $Presenters.RemovePack.Run($Name) }
-    "manage_packs"   = { param($Instance, $Fleet, $Name, $Presenters) $Presenters.ManagePacks.Run($Name) }
-    "theme"          = { param($Instance, $Fleet, $Name, $Presenters) $Presenters.SetAppearance.Run($Name) }
-    "unregister"     = { param($Instance, $Fleet, $Name, $Presenters) $Presenters.Remove.Run($Name) }
-    "archive"        = { param($Instance, $Fleet, $Name, $Presenters) $Presenters.Archive.Run($Name) }
-    "restore"        = { param($Instance, $Fleet, $Name, $Presenters) $Presenters.Restore.Run($Name) }
-    "duplicate"      = { param($Instance, $Fleet, $Name, $Presenters) $Presenters.Duplicate.Run($Name) }
-    "shrink"         = { param($Instance, $Fleet, $Name, $Presenters) $Presenters.Compact.Run($Name) }
-    "wslconfig"      = { param($Instance, $Fleet, $Name) $Fleet.WslConfig() }
-    "migrate"        = { param($Instance, $Fleet, $Name) $Fleet.Migrate($Name) }
+    "list"           = { param($Name, $Presenters) $Presenters.List.Run() }
+    "build"          = { param($Name, $Presenters) $Presenters.Build.Run() }
+    "restart"        = { param($Name, $Presenters) $Presenters.Restart.Run($Name) }
+    "shell"          = { param($Name, $Presenters) $Presenters.Open.Run($Name) }
+    "add_pack"       = { param($Name, $Presenters) $Presenters.AddPack.Run($Name) }
+    "remove_pack"    = { param($Name, $Presenters) $Presenters.RemovePack.Run($Name) }
+    "manage_packs"   = { param($Name, $Presenters) $Presenters.ManagePacks.Run($Name) }
+    "theme"          = { param($Name, $Presenters) $Presenters.SetAppearance.Run($Name) }
+    "unregister"     = { param($Name, $Presenters) $Presenters.Remove.Run($Name) }
+    "archive"        = { param($Name, $Presenters) $Presenters.Archive.Run($Name) }
+    "restore"        = { param($Name, $Presenters) $Presenters.Restore.Run($Name) }
+    "duplicate"      = { param($Name, $Presenters) $Presenters.Duplicate.Run($Name) }
+    "shrink"         = { param($Name, $Presenters) $Presenters.Compact.Run($Name) }
+    "wslconfig"      = { param($Name, $Presenters) $Presenters.WslConfig.Run() }
+    "migrate"        = { param($Name, $Presenters) $Presenters.Migrate.Run($Name) }
 
     # La corbeille d'une archive se dit par son nom : pas dans le menu, son
     # mot la route.
-    "delete_archive" = { param($Instance, $Fleet, $Name, $Presenters) $Presenters.DeleteArchive.Run($Name) }
+    "delete_archive" = { param($Name, $Presenters) $Presenters.DeleteArchive.Run($Name) }
 }
 
 # Le menu : un rang par commande — le mot, la ligne, le bloc. L'ordre est
@@ -149,7 +153,7 @@ if ($Command) {
 # Le geste court — à ce cran, pas dans une méthode — et son ActionResult dit
 # le code de sortie : Nok échoue, Ok passe, l'abandon compris (rien n'a
 # échoué).
-$result = & $item.Action $instanceController $fleetController "$Name" $presenters
+$result = & $item.Action "$Name" $presenters
 if ($null -eq $result) { exit 1 }
 if ("$($result.Status)" -eq "Nok") { exit 1 }
 exit 0

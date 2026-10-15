@@ -30,6 +30,7 @@ using module .\Presenters\Instance\AddPackPresenter.psm1
 using module .\Presenters\Instance\RemovePackPresenter.psm1
 using module .\Presenters\Instance\ManagePacksPresenter.psm1
 using module .\Presenters\Instance\SetAppearancePresenter.psm1
+using module .\Presenters\Instance\BuildPresenter.psm1
 using module .\Views\cli\MenuCli.psm1
 
 [CmdletBinding()]
@@ -74,13 +75,14 @@ $presenters = @{
     RemovePack    = [RemovePackPresenter]::new($instanceService, $ViewsRoot, "cli")
     ManagePacks   = [ManagePacksPresenter]::new($instanceService, $ViewsRoot, "cli")
     SetAppearance = [SetAppearancePresenter]::new($instanceService, $ViewsRoot, "cli")
+    Build         = [BuildPresenter]::new($instanceService, $ViewsRoot, "cli")
 }
 
 # Le geste, un bloc par commande : le contrôleur et le nom arrivent en
 # paramètres, le bloc rend l'ActionResult du geste.
 $gestures = [ordered]@{
     "list"           = { param($Instance, $Fleet, $Name) $Instance.List() }
-    "build"          = { param($Instance, $Fleet, $Name) $Instance.Build() }
+    "build"          = { param($Instance, $Fleet, $Name, $Presenters) $Presenters.Build.Run() }
     "restart"        = { param($Instance, $Fleet, $Name) $Instance.Restart($Name) }
     "shell"          = { param($Instance, $Fleet, $Name) $Instance.Open($Name) }
     "add_pack"       = { param($Instance, $Fleet, $Name, $Presenters) $Presenters.AddPack.Run($Name) }

@@ -7,9 +7,10 @@
 # the build made up would be worse than no proposal.
 #
 # The rule is written in the two homes that propose it - the console's build
-# view and the window's BuildViewModel: the checks drive the window's, and
-# the last one reads both files and asks that the two copies stay the same
-# text, since a drift there would propose two different names to two faces.
+# presenter and the window's BuildViewModel: the checks drive the window's,
+# and the last one reads both files and asks that the two copies stay the
+# same text, since a drift there would propose two different names to two
+# faces.
 #
 # Usage:  pwsh -NoProfile -File tests\user-name-test.ps1
 using module ..\src\windows\ViewModels\BuildViewModel.psm1
@@ -72,9 +73,9 @@ function CleaningBlock {
     return ((@($Match.Value -split "`n") | ForEach-Object { "$_".Trim() }) -join "|")
 }
 $InVm = CleaningBlock "..\src\windows\ViewModels\BuildViewModel.psm1"
-$InView = CleaningBlock "..\src\windows\Views\cli\Instance\Build.psm1"
-Check "the cleaning is found in both homes" (($InVm.Length -gt 0) -and ($InView.Length -gt 0)) $true
-Check "and the two copies are the same text" ($InVm -eq $InView) $true
+$InConsole = CleaningBlock "..\src\windows\Presenters\Instance\BuildPresenter.psm1"
+Check "the cleaning is found in both homes" (($InVm.Length -gt 0) -and ($InConsole.Length -gt 0)) $true
+Check "and the two copies are the same text" ($InVm -eq $InConsole) $true
 
 Write-Output ""
 Write-Output ("failures: " + $Failures)

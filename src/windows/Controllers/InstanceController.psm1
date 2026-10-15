@@ -31,8 +31,8 @@ using module ..\Dto\InstanceDto.psm1
 # service et affiche la vue du geste, l'instance déjà là.
 #
 # Les gestes migrés (archiver, retirer, compacter, restaurer, copier, la
-# corbeille d'archive, les packs, le look) n'ont plus de méthode ici : ils
-# vivent dans leurs presenters, un par vue.
+# corbeille d'archive, les packs, le look, la naissance) n'ont plus de méthode
+# ici : ils vivent dans leurs presenters, un par vue.
 #
 # Ce qu'une vue porte, ses méthodes :
 #   Ask(...) — la question, préformatée, avec les données reçues ; elle rend
@@ -47,9 +47,8 @@ using module ..\Dto\InstanceDto.psm1
 # l'utilisateur a abandonné. L'entrée du cli en tire son code de sortie, la
 # fenêtre sa ligne de trail.
 #
-# La naissance — le seul geste long qui reste ici — se court sur place : le
-# cli est le seul monde qui passe par ce contrôleur (le gui a ses ViewModels),
-# et il n'a pas de fenêtre à bloquer.
+# Le cli est le seul monde qui passe par ce contrôleur (le gui a ses
+# ViewModels), et il n'a pas de fenêtre à bloquer.
 class InstanceController : BaseController {
     hidden [InstanceService]$Service
 
@@ -81,52 +80,8 @@ class InstanceController : BaseController {
     }
 
     # =========================================================================
-    # LA NAISSANCE ET LA VIE
+    # LA VIE
     # =========================================================================
-
-    # La naissance : ses questions tiennent tout (le nom, l'utilisateur, la
-    # route et sa source, les packs, l'onboarding). Le contrôleur lit ce que
-    # ses listes affichent — les sources (avec leur famille), le magasin, la
-    # checklist — et lui passe aussi la porte du registre, liée au service :
-    # la référence tapée se vérifie pendant la question, avec les mots de la
-    # porte, sans que la vue connaisse le service.
-    [ActionResult] Build() {
-        $view = $this.GetView("Build")
-        try {
-            $sources = $this.Service.GetBuildSources()
-            $images = @($this.Service.GetAllSavedImages())
-            $packs = @($this.Service.GetBuildPacks())
-            $checkRegistry = $this.Service.IsRegistryImageValid
-        } catch {
-            $this.ShowFailure($_.Exception.Message)
-            return [ActionResult]::Nok("Build : $($_.Exception.Message)")
-        }
-        $dto = $view.Ask($sources, $images, $packs, $checkRegistry)
-        if ($null -eq $dto) { return [ActionResult]::Ok("Build : cancelled") }
-
-        # Le docker doit répondre avant la FABRICATION — l'ancienne sondait
-        # là : le questionnaire d'abord, puis la sonde, puis la naissance.
-        # Le démarrage est direct : le service ne relance rien s'il tourne
-        # déjà, et son verdict décide — refusé, la naissance s'arrête dite,
-        # le refus peint, au lieu de s'écraser en plein docker build (vécu
-        # sur sa machine).
-        if (-not ($this.Service.StartDocker())) {
-            $view.Abort(@("Docker is not responding.", "Start Docker Desktop, then try again."))
-            return [ActionResult]::Nok("Build : Docker is not responding.")
-        }
-        try {
-            $response = $this.Service.Build($dto)
-        } catch {
-            $this.ShowFailure($_.Exception.Message)
-            return [ActionResult]::Nok("Build : $($dto.Name) - $($_.Exception.Message)")
-        }
-        $view.Show($dto.Name, $response)
-        # La naissance passée, le shell qu'elle a promis s'ouvre — le cli
-        # seul : la fenêtre a son ouvrier, qui fait de même à sa fin. Un
-        # shell qui ne s'ouvre pas ne défait pas la naissance.
-        try { $null = $this.Service.Open($dto.Name) } catch { }
-        return [ActionResult]::Ok("Build : $($dto.Name)")
-    }
 
     [ActionResult] Open([string]$instanceName) {
         $name = $this.SelectInstance($instanceName, @())

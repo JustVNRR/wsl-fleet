@@ -427,6 +427,11 @@ jobs:
         shell: bash
         run: pwsh -NoProfile -File tests/pack-theme-presenters-test.ps1
 
+      - name: The birth, its questionnaire driven by a fake view
+        if: always()
+        shell: bash
+        run: pwsh -NoProfile -File tests/build-presenter-test.ps1
+
       - name: Removing an instance, with a stand-in wsl
         if: always()
         shell: bash

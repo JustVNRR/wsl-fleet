@@ -140,22 +140,6 @@ class BaseViewCli {
         return $Answer
     }
 
-    # Un nom d'instance, demandé jusqu'à ce qu'il en soit un : la forme
-    # vérifiée, l'indice de refus montré, le vide qui annule.
-    [string] AskName([string]$question, [string]$what) {
-        while ($true) {
-            $Answer = [string](Read-Host $question)
-            if ([string]::IsNullOrWhiteSpace($Answer)) { $this.StopCancelled($what) }
-            $Answer = $Answer.Trim()
-            if ($Answer -match '^[A-Za-z0-9][A-Za-z0-9_.-]*$') { return $Answer }
-            Write-Host "  Letters, digits, '.', '_' and '-' only." -ForegroundColor $this.Colour("hint")
-        }
-
-        # Jamais atteint — la boucle ne sort qu'en rendant ou en annulant ;
-        # pour l'analyseur, qui ne sait pas le prouver.
-        return ""
-    }
-
     # --- les deux fins d'une question -----------------------------------------
 
     # L'annulation AFFICHÉE : le presenter a décidé, la vue dit les mots —

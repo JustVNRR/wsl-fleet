@@ -443,8 +443,9 @@ class BuildViewModel : BaseViewModel {
         if ($this.RoadIndex -eq 3 -and $this.RecipeIndex -ge 0) { $family = "$($this.Recipes[$this.RecipeIndex].Family)" }
         $packs = @()
         try { $packs = @($this._instance.GetBuildPacks()) } catch { }
-        $pickedPacks = $this.OpenBox("BuildPacks", @("$($this.Name)".Trim(), $family, $packs))
-        if ($null -eq $pickedPacks) { return }
+        $answer = $this.OpenBox("BuildPacks", @("$($this.Name)".Trim(), $family, $packs))
+        if ($null -eq $answer) { return }
+        $pickedPacks = @($answer.Packs)
 
         $dto = [BuildDto]::new()
         $dto.Name = "$($this.Name)".Trim()

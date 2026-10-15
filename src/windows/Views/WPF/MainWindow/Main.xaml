@@ -4,7 +4,6 @@
         <RowDefinition Height="Auto"/>
         <RowDefinition Height="*"/>
         <RowDefinition Height="Auto"/>
-        <RowDefinition Height="Auto"/>
     </Grid.RowDefinitions>
 
     <!-- Header: the title and the working folder on the left, the add, the
@@ -156,22 +155,4 @@
             </Style>
         </ProgressBar.Style>
     </ProgressBar>
-
-    <!-- Status line: a read-only box, not a label - same look, but the
-         text can be selected and copied (TextBlock never offers that). -->
-    <TextBlock Grid.Row="3" Margin="0,8,0,0" Text="{Binding Status}"
-           TextTrimming="CharacterEllipsis"
-           MaxWidth="400"
-           ToolTip="{Binding RelativeSource={RelativeSource Self}, Path=Text}">
-        <TextBlock.Style>
-            <Style TargetType="TextBlock">
-                <Setter Property="Foreground" Value="{DynamicResource AppNewsBrush}"/>
-                <Style.Triggers>
-                    <DataTrigger Binding="{Binding Alert}" Value="True">
-                        <Setter Property="Foreground" Value="{DynamicResource AppDangerBrush}"/>
-                    </DataTrigger>
-                </Style.Triggers>
-            </Style>
-        </TextBlock.Style>
-    </TextBlock>
 </Grid>

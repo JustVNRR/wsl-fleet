@@ -26,6 +26,9 @@ using module ..\src\windows\ViewModels\MainWindowViewModel.psm1
 using module ..\src\windows\ViewModels\RootMoveViewModel.psm1
 using module ..\src\windows\ViewModels\PackDuplicateViewModel.psm1
 using module ..\src\windows\ViewModels\ConfirmViewModel.psm1
+using module ..\src\windows\ViewModels\RecipeNameViewModel.psm1
+using module ..\src\windows\ViewModels\DockerRegisterViewModel.psm1
+using module ..\src\windows\ViewModels\ErrorViewModel.psm1
 
 $bad = 0
 $WpfRoot = (Get-Item (Join-Path $PSScriptRoot "..\src\windows\Views\WPF")).FullName
@@ -151,7 +154,10 @@ $map = @(
     @{ X = 'MainWindow/Settings.xaml';     T = @([SettingsViewModel]) },
     @{ X = 'shared/RootMove.xaml';         T = @([RootMoveViewModel]) },
     @{ X = 'shared/PackDuplicate.xaml';    T = @([PackDuplicateViewModel]) },
-    @{ X = 'shared/Confirm.xaml';          T = @([ConfirmViewModel]) }
+    @{ X = 'shared/Confirm.xaml';          T = @([ConfirmViewModel]) },
+    @{ X = 'shared/RecipeName.xaml';       T = @([RecipeNameViewModel]) },
+    @{ X = 'Instance/DockerRegister.xaml'; T = @([DockerRegisterViewModel]) },
+    @{ X = 'shared/Error.xaml';            T = @([ErrorViewModel]) }
 )
 foreach ($entry in $map) {
     $path = Join-Path $WpfRoot $entry.X

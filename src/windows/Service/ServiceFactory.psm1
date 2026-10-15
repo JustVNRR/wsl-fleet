@@ -10,6 +10,7 @@ using module .\InstanceService.psm1
 using module .\FleetService.psm1
 using module .\WpfService.psm1
 using module .\PackCatalogService.psm1
+using module .\LoggerService.psm1
 
 class ServiceFactory {
     static [InstanceService] CreateInstanceService([string]$root, [string]$assets, [string]$distroTree) {
@@ -28,6 +29,14 @@ class ServiceFactory {
     # de la lire (le fichier de mémoire, le registre : des chemins absolus,
     # rien à voir avec ce foyer), puis rendue. C'est ici, pas chez l'entrée :
     # un dépôt joint ses dossiers à la racine et refuse un chemin vide.
+    # The log: home and name decided here, once - %LOCALAPPDATA% survives
+    # cleanups, where %TEMP% takes the file with it.
+    static [LoggerService] CreateLoggerService() {
+        $base = "$env:LOCALAPPDATA"
+        if (-not $base) { $base = [IO.Path]::GetTempPath() }
+        return [LoggerService]::new((Join-Path $base "wsl-stack\wsl-stack.log"))
+    }
+
     static [string] ResolveRoot([string]$assets, [string]$distroTree) {
         $fleet = [ServiceFactory]::CreateFleetService([IO.Path]::GetTempPath(), $assets, $distroTree)
         return $fleet.GetRoot()

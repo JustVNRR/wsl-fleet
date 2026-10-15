@@ -17,6 +17,8 @@
 # la vue : un minuteur qui toppe Tick — le ViewModel regarde l'enfant de là.
 using module .\BaseViewModel.psm1
 using module ..\Tools\Helpers.psm1
+using module ..\Service\LoggerService.psm1
+using module ..\Dto\InstanceDto.psm1
 
 # Une ligne du tableau : ce qu'elle montre, et si elle travaille. Le petit
 # ruban remplace ses icônes pendant qu'un geste court.
@@ -51,12 +53,14 @@ class MainWindowViewModel : BaseViewModel {
     hidden [object]$_catalogue
     hidden [string]$_assets = ""
     hidden [string]$_runners = ""
+    hidden [object]$_log = $null
+    # One error box at a time: a box that fails on its own must not call
+    # itself again for ever.
+    hidden [bool]$_popping = $false
 
     # L'état bindable : de VRAIES propriétés — WPF ne lit que celles-là.
     [object[]]$Rows = @()
     [string]$Root = ""
-    [string]$Status = "Ready."
-    [bool]$Alert = $false
     [bool]$Busy = $false
     [bool]$Free = $true
     [string]$ColourSet = ""
@@ -85,13 +89,14 @@ class MainWindowViewModel : BaseViewModel {
     [System.Windows.Input.ICommand]$DeleteArchiveCommand
 
     MainWindowViewModel([object]$instanceService, [object]$fleetService, [object]$wpfService,
-                        [object]$packCatalog, [string]$assetsDir, [string]$runnersDir) {
+                        [object]$packCatalog, [string]$assetsDir, [string]$runnersDir, [object]$logger) {
         $this._instance = $instanceService
         $this._fleet = $fleetService
         $this._wpf = $wpfService
         $this._catalogue = $packCatalog
         $this._assets = $assetsDir
         $this._runners = $runnersDir
+        $this._log = $logger
 
         try {
             $look = $this._wpf.GetTheme()
@@ -136,10 +141,21 @@ class MainWindowViewModel : BaseViewModel {
         }
     }
 
-    # La ligne d'état, deux voix : les nouvelles, et le rouge du refus.
+    # The one door every message goes through: the entry is built here - when,
+    # level, words - and the log takes it; a refusal is an error, everything
+    # else is news. An error also shows its box, once - a box that fails on
+    # its own must not call itself again for ever.
     [void] SetStatus([string]$message, [bool]$alert) {
-        $this.Set("Status", $message)
-        $this.Set("Alert", $alert)
+        if (-not $this._log) { return }
+        $entry = [LogEntryDto]::new()
+        $entry.When = Get-Date
+        $entry.Level = if ($alert) { "ERROR" } else { "INFO" }
+        $entry.Message = "$message"
+        $this._log.Write($entry)
+        if ($alert -and -not $this._popping) {
+            $this._popping = $true
+            try { $null = $this.ShowFace("Error", @($entry)) } finally { $this._popping = $false }
+        }
     }
 
     # La bande et les mains liées, pour tout ce qui dure.
@@ -358,7 +374,6 @@ class MainWindowViewModel : BaseViewModel {
         if ($null -ne $this.Worker) {
             if (-not $this.Worker.HasExited) {
                 $this.Ticks++
-                $this.SetStatus("The $($this.WorkerVerb.ToLower()) of '$($this.WorkerName)' - running - tick $($this.Ticks)", $false)
                 return
             }
 

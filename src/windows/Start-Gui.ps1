@@ -59,6 +59,7 @@ $fleet = [ServiceFactory]::CreateFleetService($root, $Assets, $distroTree)
 $instances = [ServiceFactory]::CreateInstanceService($root, $Assets, $distroTree)
 $wpfService = [ServiceFactory]::CreateWpfService($Assets)
 $catalogue = [ServiceFactory]::CreatePackCatalogService($Assets)
+$logger = [ServiceFactory]::CreateLoggerService()
 
 # Le contexte des fenêtres : le look et les dossiers — les polices (VT323,
 # les glyphes), la fenêtre se les résout elle-même.
@@ -68,7 +69,7 @@ $baseView::SetContext($look, $Assets)
 # 4. Le ViewModel — l'écran, ses états, ses commandes. Les services sont à
 # lui ; les dossiers dont il a besoin (les ouvriers, les assets) voyagent en
 # clair.
-$vm = [MainWindowViewModel]::new($instances, $fleet, $wpfService, $catalogue, $Assets, $Runners)
+$vm = [MainWindowViewModel]::new($instances, $fleet, $wpfService, $catalogue, $Assets, $Runners, $logger)
 
 # La porte d'ouverture : l'entrée pose où et comment on trouve une vue — le
 # ViewModel, lui, dit seulement « ouvre la boîte X » (la même mécanique que

@@ -7,8 +7,9 @@ using module ..\BaseViewWpf.psm1
 
 # La fenêtre des packs de la naissance, par-dessus le formulaire : les lignes
 # de la famille choisie (toutes quand elle est illisible — et c'est dit), le
-# socle pré-coché quand elle colle. APPLY rend les noms ; Cancel rend $null et
-# le formulaire reprend la main ; rien de coché est une réponse — il naîtra nu.
+# socle pré-coché quand elle colle. APPLY rend la réponse — les noms portés
+# par un objet, liste vide comprise, qui est une réponse ; Cancel rend $null
+# et le formulaire reprend la main. Rien de coché : il naîtra nu.
 #
 # Extraite de la naissance telle quelle — sa conversion en Vue + ViewModel
 # viendra avec les packs ; son contrat, lui, ne bougera pas.
@@ -61,6 +62,9 @@ class WpfBuildPacksView : BaseViewWpf {
         $this.FitToContent($null)
         $null = $this.OpenAs($null)
         if ($null -eq $this.Result) { return $null }
-        return ,$this.Result
+        # The answer travels as one object: an empty list is a real answer
+        # (the instance starts bare) and an empty array never survives a
+        # method return - it evaporates into $null on the way.
+        return [PSCustomObject]@{ Packs = [string[]]@($this.Result) }
     }
 }

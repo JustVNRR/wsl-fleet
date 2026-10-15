@@ -1,3 +1,4 @@
+#!/bin/bash
 set -e
 
 C_RESET=''
@@ -7,6 +8,7 @@ C_YELLOW=''
 C_CYAN=''
 C_GREY=''
 if [ -r /etc/skel/.config/zsh/lib/colours.sh ]; then
+    # shellcheck source=/dev/null
     . /etc/skel/.config/zsh/lib/colours.sh || true
 fi
 

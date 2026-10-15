@@ -415,3 +415,11 @@ class UnregisterDockerResponseDto {
     [string]$Restart = ""
 }
 
+# One line of the log: when it happened, its level (INFO, WARN, ERROR), and
+# its words. The caller builds it; the logger writes it and never more.
+class LogEntryDto {
+    [DateTime]$When
+    [string]$Level
+    [string]$Message
+}
+

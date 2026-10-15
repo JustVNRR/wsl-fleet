@@ -25,11 +25,15 @@ class InstanceRowViewModel : BaseViewModel {
     [string]$Size = ""
     [bool]$IsArchive = $false
     [bool]$IsBusy = $false
+    # The Docker Desktop state, read with the index - the docker gesture
+    # decides its direction on it.
+    [string]$Docker = ""
 
     InstanceRowViewModel([object]$row) {
         $this.Name = "$($row.Name)"
         $this.Size = Format-Size ([double]$row.Size)
         $this.IsArchive = [bool]$row.IsArchive
+        $this.Docker = "$($row.Docker)"
     }
 
     [void] Spin([bool]$on) {
@@ -75,6 +79,7 @@ class MainWindowViewModel : BaseViewModel {
     [System.Windows.Input.ICommand]$DuplicateCommand
     [System.Windows.Input.ICommand]$ArchiveCommand
     [System.Windows.Input.ICommand]$CompactCommand
+    [System.Windows.Input.ICommand]$DockerCommand
     [System.Windows.Input.ICommand]$RemoveCommand
     [System.Windows.Input.ICommand]$RestoreCommand
     [System.Windows.Input.ICommand]$DeleteArchiveCommand
@@ -104,6 +109,7 @@ class MainWindowViewModel : BaseViewModel {
         $this.DuplicateCommand = $this.NewCommand({ param($vm, $rowName) $vm.Duplicate($rowName) })
         $this.ArchiveCommand = $this.NewCommand({ param($vm, $rowName) $vm.Archive($rowName) })
         $this.CompactCommand = $this.NewCommand({ param($vm, $rowName) $vm.Compact($rowName) })
+        $this.DockerCommand = $this.NewCommand({ param($vm, $rowName) $vm.DockerDesktop($rowName) })
         $this.RemoveCommand = $this.NewCommand({ param($vm, $rowName) $vm.Remove($rowName) })
         $this.RestoreCommand = $this.NewCommand({ param($vm, $rowName) $vm.Restore($rowName) })
         $this.DeleteArchiveCommand = $this.NewCommand({ param($vm, $rowName) $vm.DeleteArchive($rowName) })
@@ -251,6 +257,28 @@ class MainWindowViewModel : BaseViewModel {
         $this.StartLong("Compact", $name, $first, "Compacting '$name'...")
     }
 
+    # Docker Desktop: the row's state decides the direction, the face carries
+    # the sentence and the restart box, the runner the write and the restart.
+    # A state that cannot be read stops here, said.
+    [void] DockerDesktop([string]$name) {
+        $state = ""
+        foreach ($row in $this.Rows) {
+            if ("$($row.Name)" -ceq "$name") { $state = "$($row.Docker)"; break }
+        }
+        if ($state -ne "yes" -and $state -ne "no") {
+            $this.SetStatus("DockerDesktop : $name - its Docker Desktop state cannot be read.", $true)
+            return
+        }
+
+        $answered = $this.ShowFace("DockerRegister", @($name, $state))
+        if (-not $answered) { return }
+
+        $action = if ($state -eq "yes") { "unregister" } else { "register" }
+        $restart = if ($answered.Restart) { "True" } else { "False" }
+        $message = if ($action -eq "register") { "Registering '$name' with Docker Desktop..." } else { "Taking '$name' out of Docker Desktop..." }
+        $this.StartLong("DockerRegister", $name, $action, $message, $restart)
+    }
+
     [void] Restore([string]$name) {
         $dto = $this.ShowFace("Restore", @($name))
         if (-not $dto) { return }
@@ -274,7 +302,7 @@ class MainWindowViewModel : BaseViewModel {
     # minuteur de la vue toppe Tick) — rien à poser ici. La ligne est
     # assemblée à la main, chaque valeur citée : un tableau est joint
     # aveuglément, et un nom qui casse la ligne est refusé ici, avant.
-    hidden [void] StartLong([string]$verb, [string]$name, [string]$arg1, [string]$message) {
+    hidden [void] StartLong([string]$verb, [string]$name, [string]$arg1, [string]$message, [string]$arg2 = "") {
         $workerPath = Join-Path $this._runners "$($verb)Runner.ps1"
         $log = Join-Path $env:TEMP "wsl-stack-gui-job.log"
         Remove-Item -LiteralPath $log -ErrorAction SilentlyContinue
@@ -282,7 +310,7 @@ class MainWindowViewModel : BaseViewModel {
         $this.SpinRow($name, $true)
         $this.SetBusy($true, $message)
 
-        if (-not (Test-ProcessArguments @($verb, $name, $arg1, $this._assets, $this.Root))) {
+        if (-not (Test-ProcessArguments @($verb, $name, $arg1, $arg2, $this._assets, $this.Root))) {
             $this.SpinRow($name, $false)
             $this.SetBusy($false, "")
             $this.SetStatus("The job was not launched: a value carries a double quote or a trailing backslash.", $true)
@@ -292,7 +320,7 @@ class MainWindowViewModel : BaseViewModel {
         try {
             $this.Worker = Start-Process pwsh -PassThru -WindowStyle Hidden -ArgumentList @(
                 "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", "`"$workerPath`"",
-                "`"$name`"", "`"$arg1`"", "`"`"", "`"$($this._assets)`"", "`"$($this.Root)`"")
+                "`"$name`"", "`"$arg1`"", "`"$arg2`"", "`"$($this._assets)`"", "`"$($this.Root)`"")
             $this.WorkerVerb = $verb
             $this.WorkerName = $name
             $this.Ticks = 0

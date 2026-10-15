@@ -29,6 +29,8 @@ WSL Fleet CLI
     remove_pack  uninstall a pack from an instance
     manage_packs choose the packs an instance should carry
     theme        choose the icon, font and colours
+    register_docker register an instance with Docker Desktop
+    unregister_docker take an instance out of Docker Desktop
     unregister   remove an instance
     archive      write an instance to a named archive
     restore      rebuild an instance from an archive
@@ -66,6 +68,8 @@ read, the colours a console has always had are used.
 | [`.\wsl.ps1 remove_pack`](#remove_pack) | uninstall a pack from an instance |
 | [`.\wsl.ps1 manage_packs`](#manage_packs) | choose the packs an instance should carry |
 | [`.\wsl.ps1 theme`](#theme) | choose the icon, font and colours |
+| [`.\wsl.ps1 register_docker`](#register_docker) | register an instance with Docker Desktop |
+| [`.\wsl.ps1 unregister_docker`](#unregister_docker) | take an instance out of Docker Desktop |
 | [`.\wsl.ps1 unregister`](#unregister) | remove an instance |
 | [`.\wsl.ps1 archive`](#archive) | write an instance to a named archive |
 | [`.\wsl.ps1 restore`](#restore) | rebuild an instance from an archive |
@@ -749,6 +753,47 @@ the one in use is marked `(current)`.
 
 That file is JSON with comments in it, and the command reads it without
 touching it — nothing here writes to it: it is Terminal's file.
+
+---
+
+## `register_docker`
+
+Puts one of your instances into Docker Desktop's WSL integration list.
+
+```powershell
+.\wsl.ps1 register_docker
+```
+
+It lists the instances Docker Desktop does not carry yet — one already there is
+not offered (that is `unregister_docker`'s list), and a settings file that
+cannot be read (Docker Desktop never started once) leaves nothing to offer,
+which is said rather than guessed.
+
+Then two questions: `Register 'x' with Docker Desktop?`, and `Restart Docker
+Desktop now? Running containers will stop.` — default yes, because a restart is
+the only way Docker Desktop picks the name up right now. Answering no writes the
+name and nothing more: it applies at Docker Desktop's next start, and nothing
+running is disturbed. With the restart answered yes and Docker Desktop stopped,
+it is started instead — a start reads the list.
+
+The name can be given directly, which skips the menu:
+`.\wsl.ps1 register_docker mydistro`.
+
+---
+
+## `unregister_docker`
+
+Takes one of your instances out of Docker Desktop's integration list — the
+instance itself is untouched.
+
+```powershell
+.\wsl.ps1 unregister_docker
+```
+
+The same visit in the other direction: the list holds the instances Docker
+Desktop carries, the two questions are the same, and the same restart rules
+apply. An instance taken out keeps its `docker` client until Docker Desktop
+restarts — that is when it goes.
 
 ---
 

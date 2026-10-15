@@ -194,6 +194,40 @@ class InstanceService {
         Start-Process -FilePath $path
     }
 
+    # The two Docker Desktop gestures: the name written in Docker Desktop's
+    # settings, then the restart that makes it seen - asked for or not. A
+    # registration starts a stopped Docker Desktop (a start reads the list);
+    # an unregistration leaves it alone, there is nothing live to refresh.
+    # The restart that will not happen is not a fault: the name is written,
+    # it applies at the next start - the report says which.
+    [RegisterDockerResponseDto] RegisterDocker([RegisterDockerDto]$dto) {
+        $name = "$($dto.InstanceName)"
+        $response = [RegisterDockerResponseDto]::new()
+        $response.InstanceName = $name
+        try { $this.Docker.SetDesktopState($name) }
+        catch { throw "Docker Desktop's settings could not take '$name': $($_.Exception.Message)" }
+        if ($dto.Restart) {
+            if ($this.Docker.TestRunning()) {
+                $response.Restart = if ($this.Docker.RestartDesktop()) { "restarted" } else { "pending" }
+            } else {
+                $response.Restart = if ($this.Docker.StartDesktop()) { "started" } else { "pending" }
+            }
+        }
+        return $response
+    }
+
+    [UnregisterDockerResponseDto] UnregisterDocker([UnregisterDockerDto]$dto) {
+        $name = "$($dto.InstanceName)"
+        $response = [UnregisterDockerResponseDto]::new()
+        $response.InstanceName = $name
+        try { $this.Docker.RemoveDesktopState($name) }
+        catch { throw "Docker Desktop's settings could not release '$name': $($_.Exception.Message)" }
+        if ($dto.Restart -and $this.Docker.TestRunning()) {
+            $response.Restart = if ($this.Docker.RestartDesktop()) { "restarted" } else { "pending" }
+        }
+        return $response
+    }
+
     # Les lignes d'une liste de sources, mises en forme : le nom sans son hash
     # final, la date du fichier à l'ancien format d'écran, triées — et la
     # famille quand la lecture la porte (un Dockerfile, pas un onboarding).

@@ -192,7 +192,7 @@ $mainVm = [IO.File]::ReadAllText((Join-Path $PSScriptRoot "..\src\windows\ViewMo
 $pins = @(
     @{ Pattern = 'Join-Path \$this\._runners "\$\(\$verb\)Runner\.ps1"';                      What = "the runner file named after the verb" },
     @{ Pattern = '"-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", "`"\$workerPath`"",'; What = "the hidden worker line" },
-    @{ Pattern = '"`"\$name`"", "`"\$arg1`"", "`"`"", "`"\$\(\$this\._assets\)`"", "`"\$\(\$this\.Root\)`""';     What = "the hidden worker's five arguments" },
+    @{ Pattern = '"`"\$name`"", "`"\$arg1`"", "`"\$arg2`"", "`"\$\(\$this\._assets\)`"", "`"\$\(\$this\.Root\)`""'; What = "the hidden worker's five arguments" },
     @{ Pattern = '"-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "`"\$workerPath`"",';               What = "the visible console line" },
     @{ Pattern = '"`"\$name`"", "`"\$arg1`"", "`"\$arg2`"", "`"\$\(\$this\._assets\)`"", "`"\$\(\$this\.Root\)`""'; What = "the visible console's five arguments" }
 )

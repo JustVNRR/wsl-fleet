@@ -439,6 +439,8 @@ The scripts themselves live in `src\windows\` — `wsl.ps1` is the only thing to
 | [`.\wsl.ps1 remove_pack`](docs/wsl/commands.md#remove_pack) | uninstall a pack from an instance |
 | [`.\wsl.ps1 manage_packs`](docs/wsl/commands.md#manage_packs) | choose the packs an instance should carry |
 | [`.\wsl.ps1 theme`](docs/wsl/commands.md#theme) | choose the icon, font and colours |
+| [`.\wsl.ps1 register_docker`](docs/wsl/commands.md#register_docker) | register an instance with Docker Desktop |
+| [`.\wsl.ps1 unregister_docker`](docs/wsl/commands.md#unregister_docker) | take an instance out of Docker Desktop |
 | [`.\wsl.ps1 unregister`](docs/wsl/commands.md#unregister) | remove an instance |
 | [`.\wsl.ps1 archive`](docs/wsl/commands.md#archive) | write an instance to a named archive |
 | [`.\wsl.ps1 restore`](docs/wsl/commands.md#restore) | rebuild an instance from an archive |

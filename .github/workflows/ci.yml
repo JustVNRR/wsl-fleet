@@ -427,6 +427,11 @@ jobs:
         shell: bash
         run: pwsh -NoProfile -File tests/instance-presenters-test.ps1
 
+      - name: The Docker Desktop gestures, presenters driven by fake views
+        if: always()
+        shell: bash
+        run: pwsh -NoProfile -File tests/docker-presenters-test.ps1
+
       - name: The packs and the look, presenters driven by fake views
         if: always()
         shell: bash

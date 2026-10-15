@@ -108,6 +108,11 @@
                                             Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="Transparent"
                                             Style="{DynamicResource LiveRowButton}"
                                             ToolTip="Compact"/>
+                                    <Button Name="BtnRowDocker" Command="{Binding DataContext.DockerCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding Name}" Content="&#xF1B2;" FontFamily="{DynamicResource IconFace}"
+                                            Margin="0,0,4,0" Background="Transparent"
+                                            Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="Transparent"
+                                            Style="{DynamicResource LiveRowButton}"
+                                            ToolTip="Docker Desktop"/>
                                     <Button Name="BtnRowRemove" Command="{Binding DataContext.RemoveCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding Name}" Content="&#xF1F8;" FontFamily="{DynamicResource IconFace}"
                                             Background="Transparent"
                                             Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="Transparent"

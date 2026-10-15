@@ -391,3 +391,27 @@ class ListResponseDto {
     [string[]]$Running = @()
 }
 
+# The two Docker Desktop gestures: the name and the restart answer in, the
+# name and what the restart became out - "restarted", "started", or
+# "pending" when it would not; an empty string when it was not asked, and
+# the name applies at Docker Desktop's next start.
+class RegisterDockerDto {
+    [string]$InstanceName
+    [bool]$Restart = $true
+}
+
+class RegisterDockerResponseDto {
+    [string]$InstanceName
+    [string]$Restart = ""
+}
+
+class UnregisterDockerDto {
+    [string]$InstanceName
+    [bool]$Restart = $true
+}
+
+class UnregisterDockerResponseDto {
+    [string]$InstanceName
+    [string]$Restart = ""
+}
+

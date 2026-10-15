@@ -320,6 +320,26 @@ class WslRepository {
         return 1
     }
 
+    # Un fichier copié dans l'instance par les mêmes deux routes que le
+    # dossier : les disques montés quand ils sont là, sinon le partage de
+    # Windows. Rend le code de l'opération — zéro quand c'est fait.
+    [int] CopyFileIntoInstance([string]$instanceName, [string]$sourceFile, [string]$targetPath) {
+        $throughTheDrives = "/mnt/" + $sourceFile.Substring(0, 1).ToLower() + ($sourceFile.Substring(2) -replace "\\", "/")
+        $drivesMounted = ($this.RunInInstance($instanceName, "", @("test", "-f", $throughTheDrives), "") -eq 0)
+
+        if ($drivesMounted) {
+            return $this.RunInInstance($instanceName, "", @("cp", "-f", $throughTheDrives, $targetPath), "")
+        }
+
+        $unc = "\\wsl.localhost\$instanceName" + ($targetPath -replace "/", "\")
+        try {
+            Copy-Item -LiteralPath $sourceFile -Destination $unc -Force -ErrorAction Stop
+            return 0
+        } catch {
+            return 1
+        }
+    }
+
     # Un script du pack, lancé depuis son propre dossier. La sortie coule — le
     # dossier est mis à l'exécutable et rien de plus — et l'écran la voit :
     # un install dure des minutes. env LANG=C : WSL tend la locale de Windows,

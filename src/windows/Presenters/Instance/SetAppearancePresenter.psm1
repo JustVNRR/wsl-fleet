@@ -185,7 +185,7 @@ class SetAppearancePresenter : BasePresenter {
             $this.ShowFailure($_.Exception.Message)
             return [ActionResult]::Nok("SetAppearance : $($dto.InstanceName) - $($_.Exception.Message)")
         }
-        $view.Show($dto.InstanceName, $response)
+        $view.Show($response)
         return [ActionResult]::Ok("SetAppearance : $($dto.InstanceName)")
     }
 

@@ -26,7 +26,7 @@ class WslConfigPresenter : BasePresenter {
             $this.ShowFailure($_.Exception.Message)
             return [ActionResult]::Nok("WslConfig : $($_.Exception.Message)")
         }
-        $view.Show($report.Path, $report.Created)
+        $view.Show($report)
         return [ActionResult]::Ok("WslConfig : $($report.Path)")
     }
 }

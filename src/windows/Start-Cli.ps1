@@ -97,7 +97,7 @@ $gestures = [ordered]@{
     "archive"        = { param($Name, $Presenters) $Presenters.Archive.Run($Name) }
     "restore"        = { param($Name, $Presenters) $Presenters.Restore.Run($Name) }
     "duplicate"      = { param($Name, $Presenters) $Presenters.Duplicate.Run($Name) }
-    "shrink"         = { param($Name, $Presenters) $Presenters.Compact.Run($Name) }
+    "compact"         = { param($Name, $Presenters) $Presenters.Compact.Run($Name) }
     "wslconfig"      = { param($Name, $Presenters) $Presenters.WslConfig.Run() }
     "migrate"        = { param($Name, $Presenters) $Presenters.Migrate.Run($Name) }
 
@@ -123,7 +123,7 @@ $menu = $menu.Add("unregister",   "remove an instance",                       $g
 $menu = $menu.Add("archive",      "write an instance to a named archive",     $gestures["archive"])
 $menu = $menu.Add("restore",      "rebuild an instance from an archive",      $gestures["restore"])
 $menu = $menu.Add("duplicate",    "copy an instance under another name",      $gestures["duplicate"])
-$menu = $menu.Add("shrink",       "reclaim the space an instance has freed",  $gestures["shrink"])
+$menu = $menu.Add("compact",       "reclaim the space an instance has freed",  $gestures["compact"])
 $menu = $menu.Add("wslconfig",    "open the Windows-wide WSL settings",       $gestures["wslconfig"])
 $menu = $menu.Add("migrate",      "move the fleet to another folder",         $gestures["migrate"])
 

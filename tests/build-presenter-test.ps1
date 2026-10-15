@@ -121,7 +121,7 @@ class FakeBuildView {
     [void] ShowCancelled([string]$what) { $this.Orders.Add("cancelled $what") }
     [void] ShowUnknownRegistry([string]$reference, [string]$why) { $this.Orders.Add("unknown $reference / $why") }
     [void] ShowAbort([string[]]$lines) { $this.Orders.Add("abort $($lines -join ' / ')") }
-    [void] Show([string]$name, [object]$response) { $this.Orders.Add("report $name $($response.Status)") }
+    [void] Show([object]$response) { $this.Orders.Add("report $($response.InstanceName) $($response.Status)") }
 
     [string] AskInstanceName([string]$question) {
         $answer = $this.Next($this.NameAnswers, $this.NameAt)

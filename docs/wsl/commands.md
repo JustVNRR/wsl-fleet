@@ -33,7 +33,7 @@ WSL Fleet CLI
     archive      write an instance to a named archive
     restore      rebuild an instance from an archive
     duplicate    copy an instance under another name
-    shrink       reclaim the space an instance has freed
+    compact       reclaim the space an instance has freed
     wslconfig    open the Windows-wide WSL settings
     migrate      move the fleet to another folder
   up/down to move, Enter to choose, Escape to cancel
@@ -70,7 +70,7 @@ read, the colours a console has always had are used.
 | [`.\wsl.ps1 archive`](#archive) | write an instance to a named archive |
 | [`.\wsl.ps1 restore`](#restore) | rebuild an instance from an archive |
 | [`.\wsl.ps1 duplicate`](#duplicate) | copy an instance under another name |
-| [`.\wsl.ps1 shrink`](#shrink) | reclaim the space an instance has freed |
+| [`.\wsl.ps1 compact`](#compact) | reclaim the space an instance has freed |
 | [`.\wsl.ps1 wslconfig`](#wslconfig) | open the Windows-wide WSL settings |
 | [`.\wsl.ps1 migrate`](#migrate) | move the fleet to another folder |
 
@@ -137,7 +137,7 @@ refuses a taken name, the room for twice the disk is checked, and a running
 source is stopped for the read and started again after), **archive** (the same backup
 `archive` writes: it asks the name, the instance's own prefilled, and stops
 a running instance for the export, starting it again once the tar is done),
-**Compact** (the same compact `shrink` runs, behind a gate - the instance
+**Compact** (the same compaction the `compact` command runs, behind a gate - the instance
 must be idle, and the removal's archive-first box is offered - and the row
 shows a small scrolling band while it works), and the trash, which opens the same gate
 `unregister` puts up - what is lost, spelled out, and the exact
@@ -926,12 +926,12 @@ shows the numbers before starting.
 
 ---
 
-## `shrink`
+## `compact`
 
 Gives back to Windows the space the instance has freed inside itself.
 
 ```powershell
-.\wsl.ps1 shrink
+.\wsl.ps1 compact
 ```
 
 Space is only added to a virtual disk, never returned on its own: a 60 GB file

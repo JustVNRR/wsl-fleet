@@ -56,7 +56,7 @@ class MigratePresenter : BasePresenter {
             return [ActionResult]::Nok("Migrate : $($_.Exception.Message)")
         }
 
-        $view.Show($response.Target, $response.Moved)
+        $view.Show($response)
         return [ActionResult]::Ok("Migrate : $($response.Target)")
     }
 }

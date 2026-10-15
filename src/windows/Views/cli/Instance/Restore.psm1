@@ -48,13 +48,13 @@ class CliRestoreView : BaseViewCli {
     # deux phrases d'après-restauration. Ce que la pose a fait du look et de
     # Docker Desktop n'a plus de source — la réponse ne porte que le nom
     # rebâti.
-    [void] Show([string]$archiveName, [object]$response) {
+    [void] Show([object]$response) {
         Write-Host ""
         Write-Host "============================================================" -ForegroundColor $this.Colour("success")
-        Write-Host "       '$($response)' restored from an archive" -ForegroundColor $this.Colour("success")
+        Write-Host "       '$($response.InstanceName)' restored from an archive" -ForegroundColor $this.Colour("success")
         Write-Host "============================================================" -ForegroundColor $this.Colour("success")
         Write-Host ""
-        Write-Host "  * From             : " -NoNewline; Write-Host "$archiveName" -ForegroundColor $this.Colour("info")
+        Write-Host "  * From             : " -NoNewline; Write-Host "$($response.ArchiveName)" -ForegroundColor $this.Colour("info")
         Write-Host ""
         Write-Host "  The archive is kept." -ForegroundColor $this.Colour("hint")
         Write-Host "  Windows Terminal: restart it to see the icon, the font and the colour" -ForegroundColor $this.Colour("muted")

@@ -443,7 +443,7 @@ The scripts themselves live in `src\windows\` — `wsl.ps1` is the only thing to
 | [`.\wsl.ps1 archive`](docs/wsl/commands.md#archive) | write an instance to a named archive |
 | [`.\wsl.ps1 restore`](docs/wsl/commands.md#restore) | rebuild an instance from an archive |
 | [`.\wsl.ps1 duplicate`](docs/wsl/commands.md#duplicate) | copy an instance under another name |
-| [`.\wsl.ps1 shrink`](docs/wsl/commands.md#shrink) | reclaim the space an instance has freed |
+| [`.\wsl.ps1 compact`](docs/wsl/commands.md#compact) | reclaim the space an instance has freed |
 | [`.\wsl.ps1 wslconfig`](docs/wsl/commands.md#wslconfig) | open the Windows-wide WSL settings |
 | [`.\wsl.ps1 migrate`](docs/wsl/commands.md#migrate) | move the fleet to another folder |
 

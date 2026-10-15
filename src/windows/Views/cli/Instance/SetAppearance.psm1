@@ -130,9 +130,9 @@ class CliSetAppearanceView : BaseViewCli {
     }
 
     # Le rapport : les changements, dans les mots du service.
-    [void] Show([string]$name, [object]$response) {
+    [void] Show([object]$response) {
         Write-Host ""
-        Write-Host "==> Theme of '$name': $(@($response) -join ', ')" -ForegroundColor $this.Colour("success")
+        Write-Host "==> Theme of '$($response.InstanceName)': $(@($response.Changes) -join ', ')" -ForegroundColor $this.Colour("success")
         Write-Host ""
     }
 }

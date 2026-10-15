@@ -37,7 +37,7 @@ try {
     $dto = [RestoreDto]::new()
     $dto.ArchiveName = $Name
     $dto.InstanceName = $Arg1
-    $built = $service.Restore($dto)
+    $built = $service.Restore($dto).InstanceName
     Write-Stamp ("RESULT OK " + $built + ": restored from '" + $Name + "'")
     exit 0
 } catch {

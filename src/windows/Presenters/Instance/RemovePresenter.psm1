@@ -69,7 +69,7 @@ class RemovePresenter : BasePresenter {
             $this.ShowFailure($_.Exception.Message)
             return [ActionResult]::Nok("Remove : $name - $($_.Exception.Message)")
         }
-        $view.Show($name, $null)
+        $view.Show()
         return [ActionResult]::Ok("Remove : $name")
     }
 }

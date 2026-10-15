@@ -158,11 +158,16 @@ class CompactDto {
     [bool]$ArchiveFirst = $false
 }
 
-# Le nom de l'instance relue, et si l'archivage d'abord a eu lieu.
+# Le nom de l'instance relue, si l'archivage d'abord a eu lieu — et les
+# tailles, mesurées par le service : avant la compaction, après, et la gagnée
+# (l'écart, zéro quand le disque n'avait rien à rendre).
 class CompactResponseDto {
     [string]$InstanceName
     [bool]$Archived
     [bool]$Restarted
+    [long]$SizeBefore
+    [long]$SizeAfter
+    [long]$Gained
 }
 
 # --- le look ------------------------------------------------------------------
@@ -219,6 +224,7 @@ class AddPackDto {
 # Le déroulé : Outcome (installed, already, declined, failed), le code de
 # sortie, ce qui est entré, ce qui était déjà là.
 class AddPackResponseDto {
+    [string]$InstanceName
     [string]$Outcome
     [int]$ExitCode
     [string[]]$Installed = @()
@@ -233,6 +239,7 @@ class RemovePackDto {
 # Outcome (removed, refused, failed), le code de sortie, et les dépendants
 # qui refusent le départ quand il y en a.
 class RemovePackResponseDto {
+    [string]$InstanceName
     [string]$Outcome
     [int]$ExitCode
     [string[]]$Dependents = @()
@@ -247,6 +254,7 @@ class ManagePacksDto {
 }
 
 class ManagePacksResponseDto {
+    [string]$InstanceName
     [string]$Outcome
     [int]$ExitCode
     [string[]]$Installed = @()
@@ -298,6 +306,7 @@ class ArchiveDto {
 # couleurs), ce que Docker Desktop savait, et si l'instance a été remise en
 # route.
 class ArchiveResponseDto {
+    [string]$InstanceName
     [string]$ArchiveDir
     [string]$Tar
     [string]$LookFont
@@ -308,8 +317,8 @@ class ArchiveResponseDto {
 
 # ArchiveName : l'archive par son nom suffixé ; InstanceName : la nouvelle
 # instance — proposé sans le suffixe, refusé si une instance du même nom
-# existe. Restore rend le nom de l'instance rebâtie, nu. Docker Desktop :
-# l'instance y entre comme l'archive le dit, sans question.
+# existe. Docker Desktop : l'instance y entre comme l'archive le dit, sans
+# question.
 class RestoreDto {
     [string]$ArchiveName
     [string]$InstanceName
@@ -322,5 +331,56 @@ class RestoreDto {
 class DuplicateDto {
     [string]$SourceName
     [string]$CopyName
+}
+
+# Ce que la corbeille rend : l'archive effacée, par son nom.
+class DeleteArchiveResponseDto {
+    [string]$ArchiveName
+}
+
+# Ce que la restauration rend : l'archive d'où elle vient, l'instance rebâtie.
+class RestoreResponseDto {
+    [string]$ArchiveName
+    [string]$InstanceName
+}
+
+# Ce que la copie rend : l'originale et la copie.
+class DuplicateResponseDto {
+    [string]$SourceName
+    [string]$CopyName
+}
+
+# Ce que l'arrêt et le départ rendent : le nom, porté.
+class RestartResponseDto {
+    [string]$InstanceName
+}
+
+# Ce que le shell rend : l'instance ouverte, et si le profil Terminal l'a
+# portée (faux : la console nue, le repli).
+class OpenResponseDto {
+    [string]$InstanceName
+    [bool]$Profile
+}
+
+# Ce que la visite du look rend : l'instance revisitée et les changements,
+# dans les mots du service.
+class SetAppearanceResponseDto {
+    [string]$InstanceName
+    [string[]]$Changes = @()
+}
+
+# Ce que l'ouverture des réglages rend : le chemin du .wslconfig, et s'il est
+# né de son gabarit à cette ouverture.
+class WslConfigResponseDto {
+    [string]$Path
+    [bool]$Created
+}
+
+# Le tableau de la liste, d'un bloc : les lignes, les dossiers laissés
+# derrière, et qui tourne — assemblés par le presenter, qui lit au service.
+class ListResponseDto {
+    [object[]]$Rows = @()
+    [object[]]$Orphans = @()
+    [string[]]$Running = @()
 }
 

@@ -130,13 +130,13 @@ class CliBuildView : BaseViewCli {
     }
 
     # Le verdict de la naissance : ses lignes, puis le mot de la fin.
-    [void] Show([string]$name, [object]$response) {
+    [void] Show([object]$response) {
         foreach ($message in @($response.Messages)) {
             Write-Host ""
             Write-Host "  $message" -ForegroundColor $this.Colour("muted")
         }
         Write-Host ""
-        Write-Host "==> Built '$name' ($($response.Status))." -ForegroundColor $this.Colour("success")
+        Write-Host "==> Built '$($response.InstanceName)' ($($response.Status))." -ForegroundColor $this.Colour("success")
         Write-Host ""
     }
 }

@@ -5,6 +5,12 @@
 # `wsl.ps1 remove_pack` runs this before deleting the pack's folder: what the
 # install added leaves the machine, and only that.
 #
+# The packages come from the note the install wrote beside this file -
+# installed-by-pack.txt, what it really ADDED. On the built image the note is
+# empty: what the image brought is not the pack's to take, and the
+# foundations (sudo, tar, gzip) never go on the table. An install from before
+# the note left none: nothing is taken back, the folder leaves alone.
+#
 # The apt packages go one at a time, and one another installed pack still
 # claims stays where it is - a pack is one claimant among others, not an
 # owner. This pack claims a lot (sudo, git, make...), so it only ever leaves
@@ -26,11 +32,14 @@ here=$(cd "$(dirname "$0")" && pwd)
 # behind wsl.exe only showed whole lines: the question stayed invisible and
 # the call waited forever. This prompt ends its line, so it shows.
 sudo_prompt=$(printf '[sudo] password:\n')
-packages=$(sed -n 's/^PACK_PACKAGES *:=[[:space:]]*//p' "$here/pack.conf")
 
-if [ -z "$packages" ]; then
-    echo "No PACK_PACKAGES found in $here/pack.conf" >&2
-    exit 1
+# The note the install wrote: what it really added. Its absence is an install
+# from before the note - nothing is taken back, and the folder leaves alone.
+recorded=""
+if [ -f "$here/installed-by-pack.txt" ]; then
+    recorded=$(tr '\n' ' ' < "$here/installed-by-pack.txt")
+else
+    echo "This install predates the record of what it added - no package is taken back."
 fi
 
 # A claim is a declaration, not a mention: the name is read off PACK_PACKAGES
@@ -55,7 +64,7 @@ claimed_elsewhere() {
 
 echo "Removing the shell's tools..."
 apt_failed=0
-for package in $packages; do
+for package in $recorded; do
     if claimed_elsewhere "$package"; then
         echo "$package: another installed pack claims it - left in place."
         continue

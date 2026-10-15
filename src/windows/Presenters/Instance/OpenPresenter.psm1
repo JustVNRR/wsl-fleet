@@ -42,7 +42,7 @@ class OpenPresenter : BasePresenter {
             $this.ShowFailure($_.Exception.Message)
             return [ActionResult]::Nok("Open : $name - $($_.Exception.Message)")
         }
-        $view.Show($name, $response)
+        $view.Show($response)
         return [ActionResult]::Ok("Open : $name")
     }
 }

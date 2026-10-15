@@ -23,8 +23,8 @@ class CliDuplicateView : BaseViewCli {
     # tourne ; « Continue ? » se pose à la vue, le presenter la pose.
     [void] ShowDiskWarning([string]$source) {
         Write-Host ""
-        Write-Host "  If '$source' is running, this will stop it: the copy reads a still disk." -ForegroundColor $this.Colour("warning")
-        Write-Host "  Save what you have open in there - stopping it loses anything unsaved." -ForegroundColor $this.Colour("warning")
+        Write-Host "  If '$source' is running, this will stop it." -ForegroundColor $this.Colour("warning")
+        Write-Host "  Save your work before proceeding." -ForegroundColor $this.Colour("warning")
     }
 
     [void] ShowDuplicating([string]$source, [string]$copy) {
@@ -37,10 +37,10 @@ class CliDuplicateView : BaseViewCli {
     # Le rapport : la bannière — la copie (-Response) et l'originale (-Target)
     # — et les deux phrases de Terminal. La place, le look reposé, la réponse
     # de Docker Desktop et l'état rendu n'ont plus de source.
-    [void] Show([string]$source, [object]$response) {
+    [void] Show([object]$response) {
         Write-Host ""
         Write-Host "============================================================" -ForegroundColor $this.Colour("success")
-        Write-Host "       '$($response)' is a copy of '$source'" -ForegroundColor $this.Colour("success")
+        Write-Host "       '$($response.CopyName)' is a copy of '$($response.SourceName)'" -ForegroundColor $this.Colour("success")
         Write-Host "============================================================" -ForegroundColor $this.Colour("success")
         Write-Host ""
         Write-Host "  Windows Terminal: the copy gets a profile of its own, with the icon," -ForegroundColor $this.Colour("muted")

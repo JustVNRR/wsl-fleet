@@ -16,6 +16,6 @@ class CliOpenView : BaseViewCli {
     # Le rapport : rien — la fenêtre qui part EST le rapport. La réponse dit
     # si le profil Terminal l'a portée ou si c'est la console nue :
     # l'utilisateur le voit à sa fenêtre, il n'y a rien à écrire ici.
-    [void] Show([string]$name, [object]$response) {
+    [void] Show([object]$response) {
     }
 }

@@ -68,7 +68,7 @@ class DuplicatePresenter : BasePresenter {
             $this.ShowFailure($_.Exception.Message)
             return [ActionResult]::Nok("Duplicate : $source - $($_.Exception.Message)")
         }
-        $view.Show($source, $response)
+        $view.Show($response)
         return [ActionResult]::Ok("Duplicate : $copy")
     }
 }

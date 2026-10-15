@@ -187,7 +187,7 @@ class FakeAddPackView {
         return ""
     }
     [void] ShowCancelled([string]$what) { $this.Orders.Add("cancelled $what") }
-    [void] Show([string]$name, [object]$response) {
+    [void] Show([object]$response) {
         $this.Orders.Add("report $($response.Outcome) installed=$($response.Installed -join ',')")
     }
 }
@@ -211,7 +211,7 @@ class FakeRemovePackView {
     }
     [void] ShowRemoving([string]$packName, [string]$name) { $this.Orders.Add("removing $packName from $name") }
     [void] ShowCancelled([string]$what) { $this.Orders.Add("cancelled $what") }
-    [void] Show([string]$name, [object]$response) {
+    [void] Show([object]$response) {
         $this.Orders.Add("report $($response.Outcome) dependents=$($response.Dependents -join ',')")
     }
 }
@@ -238,7 +238,7 @@ class FakeManagePacksView {
         $this.Orders.Add("plan [$($toAdd -join ',')] / [$($toRemove -join ',')]")
     }
     [void] ShowCancelled([string]$what) { $this.Orders.Add("cancelled $what") }
-    [void] Show([string]$name, [object]$response) {
+    [void] Show([object]$response) {
         $this.Orders.Add("report $($response.Outcome) failed=$($response.Failed -join ',') installed=$($response.Installed -join ',') removed=$($response.Removed -join ',')")
     }
 }
@@ -332,7 +332,7 @@ class FakeThemeView {
     [void] ShowNoFile() { $this.Orders.Add("nofile") }
     [void] ShowBadExtension() { $this.Orders.Add("badext") }
     [void] ShowCancelled([string]$what) { $this.Orders.Add("cancelled $what") }
-    [void] Show([string]$name, [object]$response) { $this.Orders.Add("report $(@($response) -join ';')") }
+    [void] Show([object]$response) { $this.Orders.Add("report $(@($response.Changes) -join ';')") }
 }
 
 class FakeErrorView {

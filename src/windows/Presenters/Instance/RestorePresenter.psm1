@@ -60,7 +60,7 @@ class RestorePresenter : BasePresenter {
             $this.ShowFailure($_.Exception.Message)
             return [ActionResult]::Nok("Restore : $name - $($_.Exception.Message)")
         }
-        $view.Show($archiveName, $response)
+        $view.Show($response)
         return [ActionResult]::Ok("Restore : $name")
     }
 }

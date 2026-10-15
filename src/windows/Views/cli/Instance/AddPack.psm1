@@ -36,15 +36,9 @@ class CliAddPackView : BaseViewCli {
     # Le rapport : le déroulé du service, mot pour mot — un pack qui décline
     # n'est pas un échec, un pack à moitié installé se redit et se reprend, et
     # ce qui est entré se relit.
-    [void] Show([string]$name, [object]$response) {
-        if ($response.Outcome -eq "declined") {
-            Write-Host "       The pack's files were removed: it is not installed in '$name'." -ForegroundColor $this.Colour("hint")
-            Write-Host ""
-            return
-        }
-
+    [void] Show([object]$response) {
         if ($response.Outcome -eq "copy-failed") {
-            Write-Host "[ABORT] Could not copy the pack's files into '$name' (exit code $($response.ExitCode))." -ForegroundColor $this.Colour("error")
+            Write-Host "[ABORT] Could not copy the pack's files into '$($response.InstanceName)' (exit code $($response.ExitCode))." -ForegroundColor $this.Colour("error")
             Write-Host "        The message above says what refused: the instance, or Windows." -ForegroundColor $this.Colour("hint")
             Write-Host ""
             return

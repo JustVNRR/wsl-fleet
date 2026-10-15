@@ -11,9 +11,11 @@ using module ..\..\..\Tools\Helpers.psm1
 # demander : le contrôleur a lu, la vue montre — et rien du tout s'abandonne
 # ici, comme aujourd'hui.
 class CliListView : BaseViewCli {
-    [void] Show([object[]]$rows, [object[]]$orphans, [string[]]$running) {
-        $instances = @($rows | Where-Object { -not $_.IsArchive })
-        $archives = @($rows | Where-Object { $_.IsArchive })
+    [void] Show([object]$response) {
+        $instances = @($response.Rows | Where-Object { -not $_.IsArchive })
+        $archives = @($response.Rows | Where-Object { $_.IsArchive })
+        $orphans = @($response.Orphans)
+        $running = @($response.Running)
 
         if (($instances.Count + $archives.Count + $orphans.Count) -eq 0) {
             Write-Host ""

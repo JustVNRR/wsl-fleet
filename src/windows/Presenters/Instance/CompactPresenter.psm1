@@ -57,7 +57,7 @@ class CompactPresenter : BasePresenter {
             $this.ShowFailure($_.Exception.Message)
             return [ActionResult]::Nok("Compact : $name - $($_.Exception.Message)")
         }
-        $view.Show($name, $response)
+        $view.Show($response)
         return [ActionResult]::Ok("Compact : $name")
     }
 }

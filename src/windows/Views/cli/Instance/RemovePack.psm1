@@ -50,7 +50,7 @@ class CliRemovePackView : BaseViewCli {
     # Le rapport : le déroulé du service. Ce qui partait avec le pack, les
     # packs sans remove.sh et le ménage des dépendances n'ont plus de source —
     # la réponse ne porte que l'issue, le code et les dépendants.
-    [void] Show([string]$name, [object]$response) {
+    [void] Show([object]$response) {
         # A pack a still-installed pack requires does not leave: the removal
         # would break what stays.
         if ($response.Outcome -eq "conflict") {
@@ -66,7 +66,7 @@ class CliRemovePackView : BaseViewCli {
         if ($response.Outcome -eq "self-failed") {
             Write-Host ""
             Write-Host "[FAIL] The pack could not remove itself (exit code $($response.ExitCode))." -ForegroundColor $this.Colour("error")
-            Write-Host "       Nothing was deleted: it is still installed in '$name'." -ForegroundColor $this.Colour("hint")
+            Write-Host "       Nothing was deleted: it is still installed in '$($response.InstanceName)'." -ForegroundColor $this.Colour("hint")
             Write-Host ""
             return
         }
@@ -74,7 +74,7 @@ class CliRemovePackView : BaseViewCli {
         if ($response.Outcome -eq "folder-failed") {
             Write-Host ""
             Write-Host "[FAIL] The pack's folder could not be deleted (exit code $($response.ExitCode))." -ForegroundColor $this.Colour("error")
-            Write-Host "       It is out of the gmake menu, but its files are still in '$name'." -ForegroundColor $this.Colour("warning")
+            Write-Host "       It is out of the gmake menu, but its files are still in '$($response.InstanceName)'." -ForegroundColor $this.Colour("warning")
             Write-Host ""
             return
         }

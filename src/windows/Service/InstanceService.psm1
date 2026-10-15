@@ -360,23 +360,27 @@ class InstanceService {
         return $response
     }
 
-    # Le shell : une fenêtre part, rien n'est attendu. Vrai quand le profil
-    # Terminal l'a portée, faux pour la console nue — le repli quand aucun
-    # profil ne répond.
-    [bool] Open([string]$instanceName) {
+    # Le shell : une fenêtre part, rien n'est attendu. Le Dto dit si le
+    # profil Terminal l'a portée, ou si c'est la console nue — le repli quand
+    # aucun profil ne répond.
+    [OpenResponseDto] Open([string]$instanceName) {
+        $response = [OpenResponseDto]::new()
+        $response.InstanceName = $instanceName
         if ($this.Terminal.HasWslProfile($instanceName)) {
             $this.Terminal.TouchSettings()
             $this.Wsl.OpenProfile($instanceName)
-            return $true
+            $response.Profile = $true
+            return $response
         }
         $this.Wsl.OpenBareShell($instanceName)
-        return $false
+        $response.Profile = $false
+        return $response
     }
 
     # L'arrêt, puis le départ. Une moitié qui échoue jette avec la moitié
     # nommée et l'état où l'instance reste : personne ne voit dedans, et
     # deviner n'est pas le métier d'ici.
-    [string] Restart([string]$instanceName) {
+    [RestartResponseDto] Restart([string]$instanceName) {
         try {
             $this.Wsl.Terminate($instanceName)
         } catch {
@@ -387,7 +391,9 @@ class InstanceService {
         } catch {
             throw "The start did not complete - '$instanceName' is stopped. $($_.Exception.Message)"
         }
-        return $instanceName
+        $response = [RestartResponseDto]::new()
+        $response.InstanceName = $instanceName
+        return $response
     }
 
     # La destruction : l'archivage d'abord sur le oui, puis le
@@ -439,7 +445,13 @@ class InstanceService {
         }
 
         $wasRunning = @($this.Wsl.GetRunningNames()) -contains $name
+
+        # Les tailles, mesurées ici : ce que le disque pesait avant, ce qu'il
+        # pèse après, et ce qu'il a rendu — la vue n'a rien à calculer.
+        $sizeBefore = $this.Instances.GetVhdxSize($name)
         $this.Wsl.Compact($name)
+        $sizeAfter = $this.Instances.GetVhdxSize($name)
+
         $restarted = $false
         if ($wasRunning) {
             try { $this.Wsl.Start($name); $restarted = $true } catch { }
@@ -449,6 +461,9 @@ class InstanceService {
         $response.InstanceName = $name
         $response.Archived = $archived
         $response.Restarted = $restarted
+        $response.SizeBefore = $sizeBefore
+        $response.SizeAfter = $sizeAfter
+        $response.Gained = $sizeBefore - $sizeAfter
         return $response
     }
 
@@ -507,7 +522,7 @@ class InstanceService {
     # changée, le profil réécrit, le fichier de l'instance avec. Le dessin se
     # donne en quatre champs et se redessine ; une image prend le siège de
     # l'icône — le dessin reste derrière. Rend les changements faits, nus.
-    [string[]] SetAppearance([SetAppearanceDto]$dto) {
+    [SetAppearanceResponseDto] SetAppearance([SetAppearanceDto]$dto) {
         $name = $dto.InstanceName
         $model = $this.Instances.GetInstance($name)
 
@@ -548,7 +563,12 @@ class InstanceService {
             $changes += "icon image"
         }
 
-        if (-not $rewriteProfile) { return @($changes) }
+        if (-not $rewriteProfile) {
+            $response = [SetAppearanceResponseDto]::new()
+            $response.InstanceName = $name
+            $response.Changes = @($changes)
+            return $response
+        }
 
         $guid = $this.Terminal.GetProfileGuid($name)
         if (-not $guid) {
@@ -559,7 +579,10 @@ class InstanceService {
         $this.Instances.SaveInstance($model, "")
         $this.Terminal.TouchSettings()
 
-        return @($changes)
+        $response = [SetAppearanceResponseDto]::new()
+        $response.InstanceName = $name
+        $response.Changes = @($changes)
+        return $response
     }
 
     # Les jeux de couleurs que Windows Terminal a : ceux qu'il livre, ceux que
@@ -630,6 +653,7 @@ class InstanceService {
         }
 
         $response = [AddPackResponseDto]::new()
+        $response.InstanceName = $name
         $response.ExitCode = 0
         $response.Installed = @()
         $response.Skipped = @($skipped)
@@ -673,6 +697,7 @@ class InstanceService {
         $toRemove = @($catalog.ResolveRemoval($installed, @($dto.PackName), @()))
 
         $response = [RemovePackResponseDto]::new()
+        $response.InstanceName = $name
         $response.ExitCode = 0
         $response.Dependents = @()
 
@@ -723,6 +748,7 @@ class InstanceService {
         }
 
         $response = [ManagePacksResponseDto]::new()
+        $response.InstanceName = $name
         $response.ExitCode = 0
         $response.Installed = @()
         $response.Removed = @()
@@ -873,6 +899,7 @@ class InstanceService {
         }
 
         $response = [ArchiveResponseDto]::new()
+        $response.InstanceName = $name
         $response.ArchiveDir = $archiveDir
         $response.Tar = $archiveTar
         $response.LookFont = $theme.GetFontName()
@@ -887,7 +914,7 @@ class InstanceService {
     # l'import, le marqueur aussitôt, le look depuis le fichier à côté du tar,
     # l'icône, le profil. Docker Desktop : l'instance y entre comme l'archive
     # le dit, sans question.
-    [string] Restore([RestoreDto]$dto) {
+    [RestoreResponseDto] Restore([RestoreDto]$dto) {
         $archiveName = $dto.ArchiveName
         $name = $dto.InstanceName
 
@@ -933,12 +960,18 @@ class InstanceService {
             $null = $this.Docker.RestartDesktop()
         }
 
-        return $name
+        $response = [RestoreResponseDto]::new()
+        $response.ArchiveName = $archiveName
+        $response.InstanceName = $name
+        return $response
     }
 
     # Le dossier de l'archive, entier — le tar, le look, la réponse avec.
-    [void] DeleteArchive([string]$archive) {
+    [DeleteArchiveResponseDto] DeleteArchive([string]$archive) {
         $this.Archives.DeleteArchive($archive)
+        $response = [DeleteArchiveResponseDto]::new()
+        $response.ArchiveName = $archive
+        return $response
     }
 
     # La copie : la place vérifiée ici et refusée si elle manque (le pic —
@@ -946,7 +979,7 @@ class InstanceService {
     # l'arrêt, l'export déballé dans le nouveau dossier, le look posé sur la
     # copie — et Docker Desktop comme l'originale, sans question. L'originale
     # s'arrête pour une lecture immobile, et repart quand l'arrêt fut nôtre.
-    [string] Duplicate([DuplicateDto]$dto) {
+    [DuplicateResponseDto] Duplicate([DuplicateDto]$dto) {
         $source = $dto.SourceName
         $copy = $dto.CopyName
 
@@ -1019,7 +1052,10 @@ class InstanceService {
             if ($stopped) { $this.Wsl.Start($source) }
         }
 
-        return $copy
+        $response = [DuplicateResponseDto]::new()
+        $response.SourceName = $source
+        $response.CopyName = $copy
+        return $response
     }
 
     # =========================================================================
@@ -1225,6 +1261,16 @@ class InstanceService {
     # le dit. Rend $null quand c'est fait, le pas et le code sinon.
     hidden [object] RemoveOne([string]$name, [string]$packName, [string]$packsDirectory, [string]$errorLog) {
         $target = "$packsDirectory/$packName"
+
+        # Le remove.sh du CATALOGUE quand il est là : la copie de l'instance
+        # est un instantané de son install, et un retrait que le script
+        # d'hier bloque n'a pas de sortie (vécu : un remove.sh qui visait
+        # les paquets de l'image). Un pack retiré du catalogue garde sa
+        # copie, telle quelle.
+        $catalogRemove = Join-Path $this.Packs.GetFolder($packName) "remove.sh"
+        if (Test-Path $catalogRemove) {
+            $null = $this.Wsl.CopyFileIntoInstance($name, $catalogRemove, "$target/remove.sh")
+        }
 
         if ($this.Wsl.HasInInstance($name, "$target/remove.sh")) {
             $code = $this.Wsl.RunScriptInInstance($name, $target, "remove.sh", $true, $errorLog)

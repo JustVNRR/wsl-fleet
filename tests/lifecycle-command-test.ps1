@@ -1,4 +1,4 @@
-# Drives the lifecycle commands - restart, shell, shrink, list - the way a
+# Drives the lifecycle commands - restart, shell, compact, list - the way a
 # script would: answers on standard input, no console anywhere, and a
 # stand-in wsl.exe ahead on the PATH - built from tests\fake-wsl\wsl.cs,
 # logging every call and answering from its own log: a distribution counts as
@@ -15,7 +15,7 @@
 # same door a user's script goes through.
 #
 # What is checked: for `restart`, the stop comes before the boot; for
-# `shell`, the session is asked by name; for `shrink`, the compact, and
+# `shell`, the session is asked by name; for `compact`, the compact, and
 # the restart only when it was running; for `list`, what the machine says -
 # stopped or running, and an empty machine ending on one.
 #
@@ -159,19 +159,19 @@ try {
     Check "and says what it is doing" (@($Out | Where-Object { "$_".Contains("Opening a shell in '$FakeName'") }).Count -gt 0) $true
     Check "and hands the session's code over" $script:ChildExit 0
 
-    # 3. shrink: one command, in place - and the instance comes back up only
+    # 3. compact: one command, in place - and the instance comes back up only
     # if it was up. The archive question is answered no: a yes takes the
     # archive path, another suite's country.
     Remove-Item $Log -Force -ErrorAction SilentlyContinue
-    $Out = Invoke-Child -Word "shrink" -Answers @("$Pick", "n")
-    Check "shrink compacts the instance picked" (@(Get-Calls | Where-Object { $_ -eq "--manage $FakeName --compact" }).Count) 1
+    $Out = Invoke-Child -Word "compact" -Answers @("$Pick", "n")
+    Check "compact compacts the instance picked" (@(Get-Calls | Where-Object { $_ -eq "--manage $FakeName --compact" }).Count) 1
     Check "and says it is compacted" (@($Out | Where-Object { "$_".Contains("'$FakeName' compacted") }).Count -gt 0) $true
     Check "and a stopped one is not started" (@(Get-Calls | Where-Object { $_ -like "*--exec*" }).Count) 0
     Check "and ends on zero" $script:ChildExit 0
 
     Remove-Item $Log -Force -ErrorAction SilentlyContinue
     Add-Content -Path $Log -Value "-d $FakeName --exec /bin/true"
-    $Out = Invoke-Child -Word "shrink" -Answers @("$Pick", "n")
+    $Out = Invoke-Child -Word "compact" -Answers @("$Pick", "n")
     $Calls = Get-Calls
     Check "a running one is started again after the compact" `
         (([array]::IndexOf($Calls, "--manage $FakeName --compact")) -lt ([array]::LastIndexOf($Calls, "-d $FakeName --exec /bin/true"))) $true

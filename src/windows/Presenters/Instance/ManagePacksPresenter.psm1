@@ -96,7 +96,7 @@ class ManagePacksPresenter : BasePresenter {
             $this.ShowFailure($_.Exception.Message)
             return [ActionResult]::Nok("ManagePacks : $($dto.InstanceName) - $($_.Exception.Message)")
         }
-        $view.Show($dto.InstanceName, $response)
+        $view.Show($response)
         return [ActionResult]::Ok("ManagePacks : $($dto.InstanceName)")
     }
 }

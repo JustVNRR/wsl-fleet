@@ -34,29 +34,4 @@ class CliSelectInstanceView : BaseViewCli {
         Write-Host "        Build one with  .\wsl.ps1 build" -ForegroundColor $this.Colour("hint")
     }
 
-    # L'ancienne question : elle décide encore — les gestes pas encore migrés
-    # s'en servent ; elle mourra avec le dernier.
-    [object] Ask([object[]]$instances, [string]$target) {
-        if ($target) { return $target }
-
-        $All = @($instances | Where-Object { -not $_.IsArchive })
-        if ($All.Count -eq 0) {
-            $this.Abort(@(
-                "No instance of this template is registered on this machine.",
-                "Build one with  .\wsl.ps1 build"
-            ))
-        }
-
-        $Menu = [MenuCli]::new("Our Instances")
-        # La valeur rangée est le NOM — la ligne entière, recastée par le
-        # [string] du contrôleur, s'affichait « WslIndexDto » (vécu).
-        foreach ($row in $All) {
-            $null = $Menu.Add([MenuItemCli]::new(
-                ("{0,-30} {1,10}" -f $row.Name, (Format-Size ($row.Size))), $row.Name))
-        }
-        $Picked = $Menu.Prompt()
-
-        if ($null -eq $Picked) { $this.StopCancelled("modified") }
-        return $Picked.Value
-    }
 }

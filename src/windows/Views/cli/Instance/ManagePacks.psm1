@@ -45,7 +45,7 @@ class CliManagePacksView : BaseViewCli {
     # Le rapport : ce qui a bougé, lu des deux listages du service. La liste
     # entière des portés et le pas qui a échoué n'ont plus de source — la
     # réponse porte les entrés, les sortis et le nom du failli.
-    [void] Show([string]$name, [object]$response) {
+    [void] Show([object]$response) {
         # A failure names the pack; the packs already applied stay.
         if ($response.Outcome -eq "failed") {
             Write-Host ""
@@ -57,11 +57,11 @@ class CliManagePacksView : BaseViewCli {
 
         Write-Host ""
         if ($response.Installed.Count -gt 0) {
-            Write-Host "==> '$name' now carries: $($response.Installed -join ', ')" -ForegroundColor $this.Colour("success")
+            Write-Host "==> '$($response.InstanceName)' now carries: $($response.Installed -join ', ')" -ForegroundColor $this.Colour("success")
             Write-Host "    Open a shell in it to use them:  .\wsl.ps1 shell" -ForegroundColor $this.Colour("muted")
         }
         if ($response.Removed.Count -gt 0) {
-            Write-Host "==> Gone from '$name': $($response.Removed -join ', ')" -ForegroundColor $this.Colour("success")
+            Write-Host "==> Gone from '$($response.InstanceName)': $($response.Removed -join ', ')" -ForegroundColor $this.Colour("success")
         }
     }
 }

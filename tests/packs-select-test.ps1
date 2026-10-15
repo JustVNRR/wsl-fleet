@@ -86,6 +86,11 @@ class FakeWsl : WslRepository {
         return 0
     }
 
+    [int] CopyFileIntoInstance([string]$instanceName, [string]$sourceFile, [string]$targetPath) {
+        $this.Called.Add("refresh $targetPath")
+        return 0
+    }
+
     [int] RemoveFolderInInstance([string]$instanceName, [string]$target) {
         $this.Called.Add("rm-folder $target")
         $leaf = Split-Path -Leaf $target
@@ -351,6 +356,19 @@ $null = $Service.ManagePacks((New-Dto -Add @() -Remove @("fake-b")))
 $Calls = @($Wsl.Called)
 Check "no remove.sh -> the folder leaves, no script runs" `
     ("$(($Calls | Where-Object { $_ -like "* remove.sh *" }).Count)/$(($Calls | Where-Object { $_ -eq 'rm-folder /home/u/.config/packs/fake-b' }).Count)/$(($Calls | Where-Object { $_ -eq 'orphan-cleanup' }).Count)") "0/1/1"
+
+# The catalogue's remove.sh, when it still carries the pack, refreshes the
+# instance's copy before the run: a removal blocked by yesterday's script
+# would have no way out otherwise.
+$Wsl = [FakeWsl]::new()
+$Wsl.Installed = @("fake-b")
+$Service = New-Service $Wsl
+Set-Content -Path (Join-Path $ApplyRoot "fake-b\remove.sh") -Value "#!/bin/sh"
+$null = $Service.ManagePacks((New-Dto -Add @() -Remove @("fake-b")))
+$Calls = @($Wsl.Called)
+Check "the catalogue's remove.sh refreshes the copy before the run" `
+    ($Calls.IndexOf("refresh $Directory/fake-b/remove.sh") -lt $Calls.IndexOf("script $Directory/fake-b remove.sh root")) $true
+Remove-Item (Join-Path $ApplyRoot "fake-b\remove.sh") -Force
 
 # A failed copy names the pack that stopped it, and nothing else was touched.
 $Wsl = [FakeWsl]::new()

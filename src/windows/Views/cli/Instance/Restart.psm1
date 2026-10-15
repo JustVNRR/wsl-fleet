@@ -13,8 +13,7 @@ class CliRestartView : BaseViewCli {
     [void] ShowStoppingWarning([string]$name) {
         Write-Host ""
         Write-Host "  '$name' will be stopped, then started again." -ForegroundColor $this.Colour("warning")
-        Write-Host "  Whatever is open in there and not saved is lost; what is already" -ForegroundColor $this.Colour("warning")
-        Write-Host "  written on the disk stays exactly as it is." -ForegroundColor $this.Colour("warning")
+        Write-Host "  Save your work before proceeding." -ForegroundColor $this.Colour("warning")
     }
 
     # La porte : le blank et la question, ensemble. Ce que la réponse veut
@@ -32,10 +31,10 @@ class CliRestartView : BaseViewCli {
 
     # Le rapport : la bannière. Le chemin du dossier et la taille du disque ne
     # sont plus montrés : rien de tout ça ne traverse, et la vue ne lit pas.
-    [void] Show([string]$name, [object]$response) {
+    [void] Show([object]$response) {
         Write-Host ""
         Write-Host "============================================================" -ForegroundColor $this.Colour("success")
-        Write-Host "       '$name' is running again" -ForegroundColor $this.Colour("success")
+        Write-Host "       '$($response.InstanceName)' is running again" -ForegroundColor $this.Colour("success")
         Write-Host "============================================================" -ForegroundColor $this.Colour("success")
         Write-Host ""
         Write-Host ""

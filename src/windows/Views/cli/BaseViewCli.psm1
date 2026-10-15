@@ -8,12 +8,13 @@ using module .\ThemeCli.psm1
 
 # L'appareil du cli, en une classe : ce que les vues partagent — afficher une
 # liste et lire le choix, poser une question et lire la réponse, les portes
-# de confirmation, les couleurs, l'écran qu'on efface, et les deux fins d'une
-# question (annulée, ou rien à faire). Chaque vue EN HÉRITE : elle porte son
-# Ask et son Show, l'appareil dessous. La question « quelle instance ? » est
-# une vue à part (SelectInstance), elle aussi sur cette base.
+# de confirmation, les couleurs, l'écran qu'on efface, et l'annulation
+# AFFICHÉE. Chaque vue EN HÉRITE : elle peint et lit, l'appareil dessous —
+# aucune vue ne coupe la course : la seule sortie est l'ActionResult du
+# geste, à l'entrée. La question « quelle instance ? » est une vue à part
+# (SelectInstance), elle aussi sur cette base.
 #
-# La vue ne connaît PAS le service : le contrôleur fait toutes les lectures,
+# La vue ne connaît PAS le service : le presenter fait toutes les lectures,
 # et lui passe les données. La base est sans état : tout arrive en paramètre.
 #
 # Ce qui reste dehors pour l'instant : la science des couleurs elle-même
@@ -103,9 +104,11 @@ class BaseViewCli {
         $Picked = $Menu.Prompt()
 
         if ($null -eq $Picked) { return $null }
-        # La virgule : la sortie d'une méthode est déroulée, et « rien coché »
-        # doit arriver comme une liste vide, pas comme rien du tout.
-        return ,@($Picked | ForEach-Object { $_.Value })
+        # Mesuré : sous un retour typé [object[]], la virgule d'autrefois
+        # IMBRIQUAIT le tableau — le choix entier arrivait comme une seule
+        # ligne. Un tableau plat sort déroulé ; rien coché sort une liste
+        # vide, pas rien du tout — et l'Échap, lui, sort $null.
+        return @($Picked | ForEach-Object { $_.Value })
     }
 
     # Un oui/non, la forme de toutes : [Y/n] quand oui est le défaut, [y/N]
@@ -130,47 +133,13 @@ class BaseViewCli {
         Write-Host " \!/ ================================================================ \!/" -ForegroundColor $Colours.Ink -BackgroundColor $Colours.Box
     }
 
-    # Une réponse tapée, son vide une annulation comme une autre : la question
-    # s'écrit ici et Read-Host est demandé nu — ce que Read-Host écrit
-    # lui-même n'atteint jamais un pipe.
-    [string] AskAnswer([string]$question, [string]$what) {
-        Write-Host -NoNewline "${question}: "
-        $Answer = [string](Read-Host).Trim()
-        if ([string]::IsNullOrWhiteSpace($Answer)) { $this.StopCancelled($what) }
-        return $Answer
-    }
+    # --- la fin d'une question -------------------------------------------------
 
-    # --- les deux fins d'une question -----------------------------------------
-
-    # L'annulation AFFICHÉE : le presenter a décidé, la vue dit les mots —
-    # mêmes phrases que StopCancelled, sans couper personne.
+    # L'annulation AFFICHÉE : le presenter a décidé, la vue dit les mots. Une
+    # vue ne coupe jamais la course — la seule sortie est l'ActionResult du
+    # geste, à l'entrée.
     [void] ShowCancelled([string]$what) {
         Write-Host ""
         Write-Host "[ABORT] Operation cancelled by user. Nothing was $what." -ForegroundColor $this.Colour("success")
-    }
-
-    # L'annulation des vues pas encore migrées : elle coupe la course
-    # elle-même — la décision reviendra au presenter, et elle mourra avec la
-    # dernière vue migrée.
-    [void] StopCancelled([string]$what) {
-        Write-Host ""
-        Write-Host "[ABORT] Operation cancelled by user. Nothing was $what." -ForegroundColor $this.Colour("success")
-        exit 0
-    }
-
-    # Rien à faire, ou rien à demander : la première ligne est le refus, les
-    # suivantes sont ses repères — et la course s'arrête ici, en faute.
-    [void] Abort([string[]]$lines) {
-        Write-Host ""
-        $first = $true
-        foreach ($line in @($lines)) {
-            if ($first) {
-                Write-Host "[ABORT] $line" -ForegroundColor $this.Colour("error")
-                $first = $false
-            } else {
-                Write-Host "        $line" -ForegroundColor $this.Colour("hint")
-            }
-        }
-        exit 1
     }
 }

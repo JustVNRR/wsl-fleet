@@ -23,6 +23,7 @@ using module ..\src\windows\Repository\TerminalRepository.psm1
 using module ..\src\windows\Repository\DockerRepository.psm1
 using module ..\src\windows\Repository\ConfigRepository.psm1
 using module ..\src\windows\Model\WslInstance.psm1
+using module ..\src\windows\Dto\InstanceDto.psm1
 using module ..\src\windows\Service\InstanceService.psm1
 using module ..\src\windows\Service\FleetService.psm1
 
@@ -82,10 +83,13 @@ class FakeFleet : FleetService {
         $this.Called = [System.Collections.Generic.List[string]]::new()
     }
 
-    [object] WslConfig() {
+    [WslConfigResponseDto] WslConfig() {
         $this.Called.Add("wslconfig")
         if ($this.Refusal) { throw $this.Refusal }
-        return [PSCustomObject]@{ Path = $this.Path; Created = $this.Created }
+        $response = [WslConfigResponseDto]::new()
+        $response.Path = $this.Path
+        $response.Created = $this.Created
+        return $response
     }
 }
 
@@ -93,8 +97,8 @@ class FakeFleet : FleetService {
 class FakeListView {
     [System.Collections.Generic.List[string]]$Orders
     FakeListView() { $this.Orders = [System.Collections.Generic.List[string]]::new() }
-    [void] Show([object[]]$rows, [object[]]$orphans, [string[]]$running) {
-        $this.Orders.Add("show rows=$($rows.Count) orphans=$($orphans.Count) running=$($running -join ',')")
+    [void] Show([object]$response) {
+        $this.Orders.Add("show rows=$($response.Rows.Count) orphans=$($response.Orphans.Count) running=$($response.Running -join ',')")
     }
 }
 
@@ -102,7 +106,7 @@ class FakeOpenView {
     [System.Collections.Generic.List[string]]$Orders
     FakeOpenView() { $this.Orders = [System.Collections.Generic.List[string]]::new() }
     [void] ShowOpening([string]$name) { $this.Orders.Add("opening $name") }
-    [void] Show([string]$name, [object]$response) { $this.Orders.Add("report $name bare=$response") }
+    [void] Show([object]$response) { $this.Orders.Add("report $($response.InstanceName) bare=$($response.Profile)") }
 }
 
 class FakeRestartView {
@@ -113,7 +117,7 @@ class FakeRestartView {
     [bool] AskRestart() { $this.Orders.Add("ask"); return $this.Yes }
     [void] ShowRestarting([string]$name) { $this.Orders.Add("restarting $name") }
     [void] ShowCancelled([string]$what) { $this.Orders.Add("cancelled $what") }
-    [void] Show([string]$name, [object]$response) { $this.Orders.Add("report $name") }
+    [void] Show([object]$response) { $this.Orders.Add("report $($response.InstanceName)") }
 }
 
 class FakeMigrateView {
@@ -128,14 +132,14 @@ class FakeMigrateView {
     [void] ShowTargetProblem([string]$problem) { $this.Orders.Add("problem $problem") }
     [void] ShowCancelled([string]$what) { $this.Orders.Add("cancelled $what") }
     [void] ShowLead() { $this.Orders.Add("lead") }
-    [void] Show([string]$target, [object]$moved) { $this.Orders.Add("report $target moved=$(@($moved) -join ',')") }
+    [void] Show([object]$response) { $this.Orders.Add("report $($response.Target) moved=$(@($response.Moved) -join ',')") }
 }
 
 class FakeWslConfigView {
     [System.Collections.Generic.List[string]]$Orders
     FakeWslConfigView() { $this.Orders = [System.Collections.Generic.List[string]]::new() }
     [void] ShowLead() { $this.Orders.Add("lead") }
-    [void] Show([string]$path, [bool]$created) { $this.Orders.Add("report $path created=$created") }
+    [void] Show([object]$response) { $this.Orders.Add("report $($response.Path) created=$($response.Created)") }
 }
 
 class FakeErrorView {

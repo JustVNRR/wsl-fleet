@@ -23,12 +23,11 @@ class CliDeleteArchiveView : BaseViewCli {
         Write-Host "==> Deleting the archive '$name'..." -ForegroundColor $this.Colour("info")
     }
 
-    # Le rapport : la bannière et l'irréversible. Le poids rendu et le dossier
-    # n'ont plus de source — le service ne rend rien.
-    [void] Show([string]$name, [object]$response) {
+    # Le rapport : la bannière et l'irréversible, le nom rendu par le service.
+    [void] Show([object]$response) {
         Write-Host ""
         Write-Host "============================================================" -ForegroundColor $this.Colour("success")
-        Write-Host "       Archive '$name' deleted" -ForegroundColor $this.Colour("success")
+        Write-Host "       Archive '$($response.ArchiveName)' deleted" -ForegroundColor $this.Colour("success")
         Write-Host "============================================================" -ForegroundColor $this.Colour("success")
         Write-Host ""
         Write-Host "  * Gone for good - no trash, no copy kept." -ForegroundColor $this.Colour("muted")

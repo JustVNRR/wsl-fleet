@@ -38,19 +38,18 @@ class CliMigrateView : BaseViewCli {
     [void] ShowLead() {
         Write-Host ""
         Write-Host "==> Archiving the fleet" -ForegroundColor $this.Colour("info")
-        Write-Host "  Instances that run are stopped one by one as they are archived - anything" -ForegroundColor $this.Colour("muted")
-        Write-Host "  unsaved in them is lost. Docker Desktop and the others keep running." -ForegroundColor $this.Colour("muted")
+        Write-Host "  Instances are stopped one by one as they are archived." -ForegroundColor $this.Colour("muted")
     }
 
     # Le rapport : ce qui a voyagé — NOMMÉ — et par où ça revient. Rien à
     # emporter reste une fin, pas un refus : la ligne le dit sans noms.
-    [void] Show([string]$target, [object]$moved) {
+    [void] Show([object]$response) {
         Write-Host ""
-        $names = @($moved | Where-Object { $null -ne $_ })
+        $names = @($response.Moved | Where-Object { $null -ne $_ })
         if ($names.Count) {
-            Write-Host "==> Moved $($names -join ', ') and the archives to '$target'." -ForegroundColor $this.Colour("success")
+            Write-Host "==> Moved $($names -join ', ') and the archives to '$($response.Target)'." -ForegroundColor $this.Colour("success")
         } else {
-            Write-Host "==> Moved the archives to '$target'." -ForegroundColor $this.Colour("success")
+            Write-Host "==> Moved the archives to '$($response.Target)'." -ForegroundColor $this.Colour("success")
         }
         Write-Host "    Restore them on the other side with  .\wsl.ps1 restore" -ForegroundColor $this.Colour("muted")
         Write-Host ""

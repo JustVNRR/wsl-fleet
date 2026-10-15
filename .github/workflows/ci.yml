@@ -357,6 +357,11 @@ jobs:
         shell: bash
         run: pwsh -NoProfile -File tests/menu-test.ps1 < tests/menu-test.answers
 
+      - name: The checklists' shape, driven through the real menu
+        if: always()
+        shell: bash
+        run: pwsh -NoProfile -File tests/checklist-views-test.ps1 < tests/checklist-views.answers
+
       - name: The way in - the entry's two words, and the files behind them
         if: always()
         shell: bash

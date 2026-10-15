@@ -49,7 +49,7 @@ class RestartPresenter : BasePresenter {
             $this.ShowFailure($_.Exception.Message)
             return [ActionResult]::Nok("Restart : $name - $($_.Exception.Message)")
         }
-        $view.Show($name, $response)
+        $view.Show($response)
         return [ActionResult]::Ok("Restart : $name")
     }
 }

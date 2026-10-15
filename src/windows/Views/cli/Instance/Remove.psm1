@@ -64,8 +64,9 @@ class CliRemoveView : BaseViewCli {
     # Le rapport : la bannière, et la phrase de Windows Terminal. Les détails
     # de l'ancien écran — ce que le dossier est devenu, les comptes des
     # fantômes et des fragments, la copie — n'ont plus de source : le service
-    # ne rend rien, et l'échec passe par la vue d'erreur.
-    [void] Show([string]$name, [object]$response) {
+    # ne rend rien, la vue ne reçoit rien, et l'échec passe par la vue
+    # d'erreur.
+    [void] Show() {
         Write-Host ""
         Write-Host "============================================================" -ForegroundColor $this.Colour("success")
         Write-Host "                WSL Stack Instance Removed!                 " -ForegroundColor $this.Colour("success")

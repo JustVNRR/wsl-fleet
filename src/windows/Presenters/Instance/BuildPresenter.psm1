@@ -194,7 +194,7 @@ class BuildPresenter : BasePresenter {
             $this.ShowFailure($_.Exception.Message)
             return [ActionResult]::Nok("Build : $($dto.Name) - $($_.Exception.Message)")
         }
-        $view.Show($dto.Name, $response)
+        $view.Show($response)
         # La naissance passée, le shell qu'elle a promis s'ouvre — le cli
         # seul : la fenêtre a son ouvrier, qui fait de même à sa fin. Un
         # shell qui ne s'ouvre pas ne défait pas la naissance.

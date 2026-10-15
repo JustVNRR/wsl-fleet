@@ -27,12 +27,12 @@ class DeleteArchivePresenter : BasePresenter {
 
         $view.ShowDeleting($target)
         try {
-            $this.Service.DeleteArchive($target)
+            $response = $this.Service.DeleteArchive($target)
         } catch {
             $this.ShowFailure($_.Exception.Message)
             return [ActionResult]::Nok("DeleteArchive : $target - $($_.Exception.Message)")
         }
-        $view.Show($target, $null)
+        $view.Show($response)
         return [ActionResult]::Ok("DeleteArchive : $target")
     }
 }

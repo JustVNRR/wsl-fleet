@@ -76,7 +76,7 @@ class RemovePackPresenter : BasePresenter {
             $this.ShowFailure($_.Exception.Message)
             return [ActionResult]::Nok("RemovePack : $($dto.InstanceName) - $($_.Exception.Message)")
         }
-        $view.Show($dto.InstanceName, $response)
+        $view.Show($response)
         return [ActionResult]::Ok("RemovePack : $($dto.InstanceName)")
     }
 }

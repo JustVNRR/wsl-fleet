@@ -1,5 +1,5 @@
 # The five traversals of the second lot, driven by fake views: remove,
-# delete_archive, shrink (compact), restore, duplicate - each presenter runs
+# delete_archive, compact (compact), restore, duplicate - each presenter runs
 # its whole conversation with no console anywhere, the views record what they
 # are told and replay what they are asked, and every decision (the typed
 # name's -ceq, the name loop, the empty archive list, the Dto) is the
@@ -31,6 +31,7 @@ class FakeWsl : WslRepository {
     [System.Collections.Generic.List[string]]$Called
     [string[]]$Distros = @()
     [string[]]$Running = @()
+    [string]$TruncateVhdx = ""
 
     FakeWsl() : base([System.IO.Path]::GetTempPath()) {
         $this.Called = [System.Collections.Generic.List[string]]::new()
@@ -51,7 +52,12 @@ class FakeWsl : WslRepository {
     [void] TerminateQuietly([string]$instanceName) { $this.Called.Add("--terminate $instanceName") }
     [void] Unregister([string]$instanceName) { $this.Called.Add("--unregister $instanceName") }
     [void] Start([string]$instanceName) { $this.Called.Add("-d $instanceName --exec /bin/true") }
-    [void] Compact([string]$instanceName) { $this.Called.Add("--manage $instanceName --compact") }
+    [void] Compact([string]$instanceName) {
+        $this.Called.Add("--manage $instanceName --compact")
+        # La compaction qui rend vraiment de la place : le disque de la scène
+        # rétrécit pendant l'appel, comme le vrai.
+        if ($this.TruncateVhdx) { Set-Content -Path $this.TruncateVhdx -Value "x" -NoNewline }
+    }
     [void] Export([string]$instanceName, [string]$tarPath, [string]$format) { $this.Called.Add("--export $instanceName $tarPath --format $format") }
     [void] Import([string]$instanceName, [string]$folder, [string]$tarPath) {
         # Le vrai import crée le dossier : la doublure fait de même, sinon la
@@ -77,7 +83,7 @@ class FakeRemoveView {
     [void] ShowGateRefused() { $this.Orders.Add("gate-refused") }
     [void] ShowReplacingArchive([string]$name) { $this.Orders.Add("replacing $name") }
     [void] ShowRemovingSteps() { $this.Orders.Add("steps") }
-    [void] Show([string]$name, [object]$response) { $this.Orders.Add("report $name") }
+    [void] Show() { $this.Orders.Add("report") }
     [bool] Confirm([string]$question, [bool]$defaultNo) {
         $this.Orders.Add("confirm $question")
         return $this.ArchiveFirst
@@ -94,7 +100,7 @@ class FakeCompactView {
     [void] ShowNoArchive() { $this.Orders.Add("no-archive") }
     [void] ShowReplacingArchive([string]$name) { $this.Orders.Add("replacing $name") }
     [void] ShowCompacting([string]$name, [bool]$archiveFirst) { $this.Orders.Add("compacting $name archive=$archiveFirst") }
-    [void] Show([string]$name, [object]$response) { $this.Orders.Add("report $name restarted=$($response.Restarted)") }
+    [void] Show([object]$response) { $this.Orders.Add("report $($response.InstanceName) restarted=$($response.Restarted) gained=$($response.Gained)") }
     [bool] Confirm([string]$question, [bool]$defaultNo) {
         $this.Orders.Add("confirm $question")
         return $this.ArchiveFirst
@@ -106,7 +112,7 @@ class FakeDeleteArchiveView {
     FakeDeleteArchiveView() { $this.Orders = [System.Collections.Generic.List[string]]::new() }
     [void] ShowNoName() { $this.Orders.Add("no-name") }
     [void] ShowDeleting([string]$name) { $this.Orders.Add("deleting $name") }
-    [void] Show([string]$name, [object]$response) { $this.Orders.Add("report $name") }
+    [void] Show([object]$response) { $this.Orders.Add("report $($response.ArchiveName)") }
 }
 
 class FakeRestoreView {
@@ -121,7 +127,7 @@ class FakeRestoreView {
     [object] AskArchive([object[]]$archives) { $this.Orders.Add("ask-archive"); return $this.Archive }
     [void] ShowRestoring([string]$archiveName) { $this.Orders.Add("restoring $archiveName") }
     [string] AskNewName() { $this.Orders.Add("ask-name"); return $this.Name }
-    [void] Show([string]$archiveName, [object]$response) { $this.Orders.Add("report $archiveName") }
+    [void] Show([object]$response) { $this.Orders.Add("report $($response.ArchiveName)") }
 }
 
 class FakeDuplicateView {
@@ -143,7 +149,7 @@ class FakeDuplicateView {
     [void] ShowDiskWarning([string]$source) { $this.Orders.Add("warning $source") }
     [void] ShowDuplicating([string]$source, [string]$copy) { $this.Orders.Add("duplicating $source $copy") }
     [void] ShowCancelled([string]$what) { $this.Orders.Add("cancelled $what") }
-    [void] Show([string]$source, [object]$response) { $this.Orders.Add("report $source $($response)") }
+    [void] Show([object]$response) { $this.Orders.Add("report $($response.SourceName) $($response.CopyName)") }
     [bool] Confirm([string]$question, [bool]$defaultNo) {
         $this.Orders.Add("confirm $question")
         return $this.Continue
@@ -245,7 +251,7 @@ try {
     Check "remove with the exact name goes" "$($result.Status)/$($result.Message)" "Ok/Remove : $Instance"
     Check "  ... the breath after the gate" ($removeView.Orders -contains "gate-opened") $true
     Check "  ... stop before unregister" (($fake.Called.IndexOf("--terminate $Instance")) -lt ($fake.Called.IndexOf("--unregister $Instance"))) $true
-    Check "  ... and the report" ($removeView.Orders -contains "report $Instance") $true
+    Check "  ... and the report" ($removeView.Orders -contains "report") $true
 
     # 3. Archive first: the export comes before anything is destroyed.
     Reset-World
@@ -278,7 +284,7 @@ try {
     Check "delete_archive with a name goes" "$($result.Status)/$($result.Message)" "Ok/DeleteArchive : $($Instance)_archive"
     Check "  ... and the archive is gone for good" (Test-Path (Join-Path $Root "archives\$($Instance)_archive")) $false
 
-    # ---- shrink (compact) --------------------------------------------------
+    # ---- compact (compact) --------------------------------------------------
 
     Reset-World
     $compactView = [FakeCompactView]::new()
@@ -294,17 +300,21 @@ try {
     $fake.Running = @()
     $fake.Called.Clear()
     $result = $presenter.Run("")
-    Check "shrink with no copy compacts and nothing else" "$($result.Status)/$($result.Message)" "Ok/Compact : $Instance"
-    Check "  ... the no-archive line, then the avis" (($compactView.Orders -join " | ") -like "breath | confirm Archive it first? | no-archive | compacting $Instance archive=False | report $Instance restarted=False") $true
+    Check "compact with no copy compacts and nothing else" "$($result.Status)/$($result.Message)" "Ok/Compact : $Instance"
+    Check "  ... the no-archive line, then the avis" (($compactView.Orders -join " | ") -like "breath | confirm Archive it first? | no-archive | compacting $Instance archive=False | report $Instance restarted=False gained=0") $true
     Check "  ... one compact, and no start" (($fake.Called -join " | ")) "--manage $Instance --compact"
 
-    # 5. A running instance comes back, and the line says so.
+    # 5. A running instance comes back, and the line says so — the sizes are
+    # the service's, and the space surrendered is really counted: the scene's
+    # disk compacts under the compact.
     Reset-World
     $fake.Running = @($Instance)
+    $fake.TruncateVhdx = Join-Path $FakeFolder "ext4.vhdx"
     $fake.Called.Clear()
     $compactView.Orders.Clear()
     $result = $presenter.Run("")
-    Check "a running one is started again, said" ($compactView.Orders -contains "report $Instance restarted=True") $true
+    Check "a running one is started again, said" ($compactView.Orders -contains "report $Instance restarted=True gained=8") $true
+    $fake.TruncateVhdx = ""
     Check "  ... the compact before the start" (($fake.Called.IndexOf("--manage $Instance --compact")) -lt ($fake.Called.IndexOf("-d $Instance --exec /bin/true"))) $true
 
     # ---- restore -----------------------------------------------------------

@@ -52,7 +52,7 @@ assets/packs/<name>/         # seeded from src/distro/packs/
 | `PACK_REQUIRES` | the packs it is installed on top of |
 | `PACK_VISIBLE` | `no` keeps it out of every list: nobody chooses it |
 | `PACK_FAMILY` | the distribution family the pack's packages come from — a pack is only offered on a machine of the same one (default: `debian`) |
-| `PACK_PACKAGES` | the system packages it installs — named once, read by both scripts, and by a neighbour's removal |
+| `PACK_PACKAGES` | the system packages it installs — named once, read by the install and by a neighbour's removal; what the install really added is noted beside it for its own removal |
 | `PACK_OUTSIDE_APT` | the tools it installs outside apt (a binary in `~/.local`) — named for the same reason, and read the same way |
 | `PACK_IDENTIFYING_VARS` | the variables refused in a shared `.env.global` |
 | `PACK_WELCOME` | the line `build` prints on a fresh instance, when this pack is among the chosen ones |
@@ -172,6 +172,16 @@ removing a package, its `remove.sh` looks for that name in the declarations of
 the packs still installed — `pack.conf`, and `install.sh` as well for a pack
 written before `PACK_PACKAGES` existed. A claimed package is left where it is,
 and the last pack to want it takes it away with it.
+
+What a removal takes back is what its own install **added**: `install_root.sh`
+notes the packages the machine was missing into `installed-by-pack.txt`, beside
+the pack, and `remove.sh` reads that note. On the built image every declared
+package is already there, the note is empty, and a removal touches no package
+at all — the foundations (`sudo`, `tar`, `gzip`) are never on the table. A pack
+folder from before the note takes nothing back: the folder leaves alone. And
+when the catalogue still carries the pack, `remove_pack` runs the catalogue's
+current `remove.sh` — the instance's copy is a snapshot of its install, and a
+removal blocked by yesterday's script would have no way out.
 
 What apt never sees goes through the same question. A tool a pack installs
 itself — a binary under `~/.local`, outside dpkg's graph — is declared in

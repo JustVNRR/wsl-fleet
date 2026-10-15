@@ -8,7 +8,10 @@
 #     a file under Views\cli (the Instance folder, the Fleet folder, their
 #     shared ones) - a renamed view file is the same kind of silence;
 #   - the menu of Start-Cli.ps1 shows each gesture word it routes, and the
-#     way-in menu of wsl.ps1 its own two.
+#     way-in menu of wsl.ps1 its own two;
+#   - no cli view exits or judges: no exit, no StopCancelled, no Abort - a
+#     view paints and reads, and the only way out is the gesture's
+#     ActionResult, at the entry.
 #
 # It reads, it never runs anything: no instance, no console, no Docker.
 #
@@ -78,6 +81,16 @@ foreach ($name in $lookers.Keys) {
     }
 }
 Write-Host "the presenters' view lookups: read."
+
+# 4. No cli view exits or judges - a view that cut the course would hide its
+# presenter, and the guards are the presenter's alone.
+foreach ($view in @(Get-ChildItem (Join-Path $Windows "Views\cli") -Recurse -Filter *.psm1)) {
+    $text = Get-Content $view.FullName -Raw
+    if ($text -match '(?m)^\s*exit\b') { Fail "$($view.Name) exits - a view paints and reads only" }
+    if ($text -match 'StopCancelled') { Fail "$($view.Name) cancels on its own - the presenter decides" }
+    if ($text -match '(?<![A-Za-z])Abort\(') { Fail "$($view.Name) aborts - a view paints and reads only" }
+}
+Write-Host "the views' exits and judgements: read."
 
 # 3. The menu shows each routed word, and the way-in its own two.
 $menuWords = [regex]::Matches($startCli, '\$menu = \$menu\.Add\("([a-z_]+)",\s*"([^"]*)"') | ForEach-Object { $_.Groups[1].Value }

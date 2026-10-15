@@ -37,7 +37,7 @@ try {
     $dto = [DuplicateDto]::new()
     $dto.SourceName = $Name
     $dto.CopyName = $Arg1
-    $copy = $service.Duplicate($dto)
+    $copy = $service.Duplicate($dto).CopyName
     Write-Stamp ("RESULT OK " + $copy + ": duplicated from '" + $Name + "'")
     exit 0
 } catch {

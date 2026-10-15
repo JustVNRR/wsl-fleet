@@ -70,7 +70,7 @@ class AddPackPresenter : BasePresenter {
             $this.ShowFailure($_.Exception.Message)
             return [ActionResult]::Nok("AddPack : $($dto.InstanceName) - $($_.Exception.Message)")
         }
-        $view.Show($dto.InstanceName, $response)
+        $view.Show($response)
         return [ActionResult]::Ok("AddPack : $($dto.InstanceName)")
     }
 }

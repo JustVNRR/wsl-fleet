@@ -4,9 +4,10 @@
 # ==============================================================================
 # Run by the engine as WSL's own root, before install.sh - no password asked.
 # The packages, the sections and the two third-party repositories they
-# install from, and the system-side touches the settings need; what it
-# installs is read from pack.conf, beside this file - the same line remove.sh
-# reads. Every step asks before it acts: on the built image everything here is
+# install from, and the system-side touches the settings need; the list is
+# read from pack.conf, beside this file, and what this install really ADDS is
+# written beside it too - remove.sh reads that note, not the declaration.
+# Every step asks before it acts: on the built image everything here is
 # already in place and the whole script is a quiet no-op.
 
 set -euo pipefail
@@ -52,6 +53,14 @@ missing=""
 for package in "${packages[@]}"; do
     dpkg-query -W -f '${Status}' "$package" 2>/dev/null | grep -q 'install ok installed' || missing="$missing $package"
 done
+
+# What this install really ADDS, noted beside this file for remove.sh: the
+# packages the machine was missing. On the built image the note is empty -
+# every name is already there - and a removal then touches no package at
+# all: what the image brought is not this pack's to take.
+for added in $missing; do
+    echo "$added"
+done > "$here/installed-by-pack.txt"
 
 if [ -z "$missing" ]; then
     echo "Every declared package is already installed - nothing to fetch."

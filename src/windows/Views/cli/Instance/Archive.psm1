@@ -31,10 +31,10 @@ class CliArchiveView : BaseViewCli {
 
     # Le rapport : la bannière, le look gardé à côté du tar, ce que Docker
     # Desktop savait, les chemins, et l'état rendu à l'instance.
-    [void] Show([string]$name, [object]$response) {
+    [void] Show([object]$response) {
         Write-Host ""
         Write-Host "============================================================" -ForegroundColor $this.Colour("success")
-        Write-Host "       Backup of '$name' written" -ForegroundColor $this.Colour("success")
+        Write-Host "       Backup of '$($response.InstanceName)' written" -ForegroundColor $this.Colour("success")
         Write-Host "============================================================" -ForegroundColor $this.Colour("success")
         Write-Host ""
         Write-Host "  * Look             : font '$($response.LookFont)', colours '$($response.LookColourScheme)'" -ForegroundColor $this.Colour("muted")
@@ -48,9 +48,9 @@ class CliArchiveView : BaseViewCli {
         Write-Host "------------------------------------------------------------" -ForegroundColor $this.Colour("muted")
         Write-Host ""
         if ($response.Stopped) {
-            Write-Host "'$name' is running again." -ForegroundColor $this.Colour("success")
+            Write-Host "'$($response.InstanceName)' is running again." -ForegroundColor $this.Colour("success")
         } else {
-            Write-Host "'$name' is left stopped." -ForegroundColor $this.Colour("muted")
+            Write-Host "'$($response.InstanceName)' is left stopped." -ForegroundColor $this.Colour("muted")
         }
         Write-Host ""
     }

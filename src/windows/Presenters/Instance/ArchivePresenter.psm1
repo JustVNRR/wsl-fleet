@@ -72,7 +72,7 @@ class ArchivePresenter : BasePresenter {
             $this.ShowFailure($_.Exception.Message)
             return [ActionResult]::Nok("Archive : $name - $($_.Exception.Message)")
         }
-        $view.Show($name, $response)
+        $view.Show($response)
         return [ActionResult]::Ok("Archive : $name")
     }
 }

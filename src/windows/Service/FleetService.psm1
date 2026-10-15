@@ -123,12 +123,15 @@ class FleetService {
     # Le ~/.wslconfig : son gabarit écrit quand il manque — un fichier à
     # quelqu'un n'est jamais touché — puis ouvert, l'éditeur par défaut, et
     # son chemin rendu, la naissance comprise.
-    [object] WslConfig() {
+    [WslConfigResponseDto] WslConfig() {
         $path = Join-Path $env:USERPROFILE ".wslconfig"
         $created = -not (Test-Path $path)
         $path = $this.Config.EnsureWslConfig()
         Start-Process -FilePath $path
-        return [PSCustomObject]@{ Path = $path; Created = $created }
+        $response = [WslConfigResponseDto]::new()
+        $response.Path = $path
+        $response.Created = $created
+        return $response
     }
 
     [MigrateResponseDto] Migrate([string]$target) {

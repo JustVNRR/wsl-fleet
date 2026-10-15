@@ -3,6 +3,7 @@
 # ==============================================================================
 # Ce dont ce fichier nomme, déclaré ici : un module qu'il a tiré lui-même.
 using module ..\BaseViewCli.psm1
+using module ..\..\..\Tools\Helpers.psm1
 
 class CliCompactView : BaseViewCli {
     # La vue ne décide plus : la copie de sûreté est une question que le
@@ -35,19 +36,30 @@ class CliCompactView : BaseViewCli {
         Write-Host "==> Compacting the virtual disk..." -ForegroundColor $this.Colour("info")
     }
 
-    # Le rapport : la bannière, la copie d'abord quand elle a été prise, et
-    # le départ rendu quand l'instance était debout.
-    [void] Show([string]$name, [object]$response) {
+    # Le rapport : la bannière, les tailles mesurées par le service — ce que
+    # le disque pesait, ce qu'il pèse, ce qu'il a rendu —, la copie d'abord
+    # quand elle a été prise, et le départ rendu quand l'instance était
+    # debout.
+    [void] Show([object]$response) {
         Write-Host ""
         Write-Host "============================================================" -ForegroundColor $this.Colour("success")
-        Write-Host "       '$name' compacted" -ForegroundColor $this.Colour("success")
+        Write-Host "       '$($response.InstanceName)' compacted" -ForegroundColor $this.Colour("success")
         Write-Host "============================================================" -ForegroundColor $this.Colour("success")
         Write-Host ""
+        Write-Host "  * Disk file        : " -NoNewline
+        Write-Host "$(Format-Size $response.SizeBefore) -> $(Format-Size $response.SizeAfter)" -ForegroundColor $this.Colour("info")
+        if ($response.Gained -gt 0) {
+            Write-Host "  * Reclaimed        : " -NoNewline
+            Write-Host "$(Format-Size $response.Gained)" -ForegroundColor $this.Colour("success")
+        } else {
+            Write-Host "  * Reclaimed        : " -NoNewline
+            Write-Host "nothing - the disk held no space to give back" -ForegroundColor $this.Colour("muted")
+        }
         if ($response.Archived) {
             Write-Host "  * Safety archive   : " -NoNewline; Write-Host "taken before the compact" -ForegroundColor $this.Colour("success")
         }
         if ($response.Restarted) {
-            Write-Host "'$name' is running again." -ForegroundColor $this.Colour("success")
+            Write-Host "'$($response.InstanceName)' is running again." -ForegroundColor $this.Colour("success")
         }
         Write-Host ""
     }

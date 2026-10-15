@@ -62,7 +62,7 @@ class FakeArchiveView {
     [void] ShowReplacing([string]$archiveName) { $this.Orders.Add("replacing $archiveName") }
     [void] ShowBackingUp([string]$name) { $this.Orders.Add("backing-up $name") }
     [void] ShowCancelled([string]$what) { $this.Orders.Add("cancelled $what") }
-    [void] Show([string]$name, [object]$response) { $this.Orders.Add("report $name $($response.Tar)") }
+    [void] Show([object]$response) { $this.Orders.Add("report $($response.InstanceName) $($response.Tar)") }
     [bool] Confirm([string]$question, [bool]$defaultNo) {
         $this.Orders.Add("confirm $question")
         return $this.Continue

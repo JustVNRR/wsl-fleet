@@ -67,9 +67,10 @@ Before=$(tree_state)
 # read: a posix path never reaches the same folder twice.
 World=$(mktemp -d)
 mkdir -p "$World/LocalAppData/wsl-stack" "$World/AppData" "$World/User" "$World/WSL"
-export LOCALAPPDATA=$(cygpath -w "$World/LocalAppData")
-export APPDATA=$(cygpath -w "$World/AppData")
-export USERPROFILE=$(cygpath -w "$World/User")
+export LOCALAPPDATA APPDATA USERPROFILE
+LOCALAPPDATA=$(cygpath -w "$World/LocalAppData")
+APPDATA=$(cygpath -w "$World/AppData")
+USERPROFILE=$(cygpath -w "$World/User")
 printf '%s' "$(cygpath -w "$World/WSL")" > "$World/LocalAppData/wsl-stack/root.txt"
 
 # The world the questions need: a fresh checkout has the assets folders empty,
@@ -153,7 +154,7 @@ echo "--- one pack chosen (2 = the second in the list) and confirmed"
 # shows in the output. The Read-Host prompt itself cannot be asserted on -
 # the runner's pwsh does not write it to a captured stream, a Write-Host does.
 run_build "pack-qtest-3\n${DOCKERFILE_ROAD}\n2\nv\n\n1\nRoot\n_jean\nqtestuser\n\n\n"
-check "the checklist arrives after the name and the source" "$(before 'Name of the instance' "Packs for 'pack-qtest-3'")" "yes"
+check "the checklist arrives after the questions before it" "$(before 'Build from' "Packs for 'pack-qtest-3'")" "yes"
 check "the user name is asked after the checklist" "$(before "Packs for 'pack-qtest-3'" 'Lowercase letters, digits')" "yes"
 check "and a refused name is asked again" "$(contains 'Lowercase letters, digits')" "yes"
 check "both refused names come back to the question" "$(grep -ac 'Lowercase letters, digits' "$Out")" "2"

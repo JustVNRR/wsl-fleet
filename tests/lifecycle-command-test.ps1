@@ -143,6 +143,8 @@ try {
     # No WSL fragment is staged, so the bare console is the route. Nothing is
     # captured from the session: its code is handed back as it came.
     Remove-Item $Log -Force -ErrorAction SilentlyContinue
+    $Where = & $Engine -NoProfile -Command "(Get-Command wsl.exe -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1).Path"
+    Write-Output "note: the child resolves wsl.exe to '$Where'"
     $Out = Invoke-Child -Word "shell" -Answers @("$Pick")
     Check "shell opens a session on the instance picked" (@(Get-Calls | Where-Object { $_ -eq "-d $FakeName --cd ~" }).Count) 1
     # wsl.exe parses its own command line and does not strip quotes: a quoted
@@ -186,7 +188,10 @@ try {
     Check "list shows a running one as running" `
         (@($Out | Where-Object { "$_" -match [regex]::Escape($FakeName) -and "$_" -match "running" }).Count -gt 0) $true
 
+    # La cle ET le dossier : le dossier resterait un orphelin, et une
+    # machine qui ne porte qu'un orphelin est une machine vide pour la liste.
     Remove-Item $Key -Recurse -Force -ErrorAction SilentlyContinue
+    Remove-Item $FakeFolder -Recurse -Force -ErrorAction SilentlyContinue
     $Out = Invoke-Child -Word "list" -Answers @("")
     Check "an empty machine is said, not printed over" `
         (@($Out | Where-Object { "$_".Contains("No instance of this template is registered") }).Count -gt 0) $true

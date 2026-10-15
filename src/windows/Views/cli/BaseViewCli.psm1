@@ -187,8 +187,16 @@ class BaseViewCli {
 
     # --- les deux fins d'une question -----------------------------------------
 
-    # L'annulation partagée : une ligne vide, le mot de ce qui n'a PAS été
-    # touché, et la course s'arrête ici.
+    # L'annulation AFFICHÉE : le presenter a décidé, la vue dit les mots —
+    # mêmes phrases que StopCancelled, sans couper personne.
+    [void] ShowCancelled([string]$what) {
+        Write-Host ""
+        Write-Host "[ABORT] Operation cancelled by user. Nothing was $what." -ForegroundColor $this.Colour("success")
+    }
+
+    # L'annulation des vues pas encore migrées : elle coupe la course
+    # elle-même — la décision reviendra au presenter, et elle mourra avec la
+    # dernière vue migrée.
     [void] StopCancelled([string]$what) {
         Write-Host ""
         Write-Host "[ABORT] Operation cancelled by user. Nothing was $what." -ForegroundColor $this.Colour("success")

@@ -7,30 +7,26 @@ using module ..\BaseViewCli.psm1
 using module ..\..\..\Dto\InstanceDto.psm1
 
 class CliArchiveView : BaseViewCli {
-    # Les questions du geste : le nom est déjà choisi — l'avis du disque
-    # immobile, sans condition parce que rien ne lit qui tourne (la phrase
-    # couvre les deux cas), et la ligne de l'écrasement, lue de l'index reçu.
-    # Le nom de l'archive ne se demande pas : XX devient XX_archive. Le format
-    # reste celui du dépôt, tar.gz.
-    [object] Ask([string]$name, [object[]]$rows) {
+    # La vue ne décide plus : le presenter a ordonné chaque ligne, et la
+    # question qu'il pose est lue par lui. Ici, les phrases.
+
+    # L'avis du disque immobile — sans condition parce que rien ne lit qui
+    # tourne (la phrase couvre les deux cas) ; la question « Continue ? » se
+    # pose à la vue, mais c'est le presenter qui la pose.
+    [void] ShowStopWarning([string]$name) {
         Write-Host ""
         Write-Host "  If '$name' is running, this will stop it: an archive reads a still disk." -ForegroundColor $this.Colour("warning")
         Write-Host "  Save what you have open in there - stopping it loses anything unsaved." -ForegroundColor $this.Colour("warning")
-        if (-not $this.Confirm("Continue?", $false)) { $this.StopCancelled("modified") }
+    }
 
-        $existing = @($rows | Where-Object { $_.IsArchive -and $_.Name -eq "$($name)_archive" })
-        if ($existing.Count -gt 0) {
-            Write-Host "  '$($name)_archive' exists: replacing it." -ForegroundColor $this.Colour("warning")
-        }
+    # L'écrasement, dit — le presenter l'a lu de l'index.
+    [void] ShowReplacing([string]$archiveName) {
+        Write-Host "  '$archiveName' exists: replacing it." -ForegroundColor $this.Colour("warning")
+    }
 
+    [void] ShowBackingUp([string]$name) {
         Write-Host ""
         Write-Host "==> Backing up '$name'" -ForegroundColor $this.Colour("info")
-
-        $dto = [ArchiveDto]::new()
-        $dto.InstanceName = $name
-        $dto.Format = "tar.gz"
-        $dto.Permit = $true
-        return $dto
     }
 
     # Le rapport : la bannière, le look gardé à côté du tar, ce que Docker

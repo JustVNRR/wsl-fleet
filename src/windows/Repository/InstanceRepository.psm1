@@ -187,9 +187,11 @@ class InstanceRepository {
     # La place libre sur le disque d'un chemin — le refus d'un archivage ou
     # d'une copie se lit ici, avant que quoi que ce soit écrive.
     [long] GetFreeSpace([string]$path) {
+        # Le volume par sa racine : la lettre de lecteur n'existe que sur
+        # Windows, et un hôte qui n'en a pas jetait ici.
         $full = [System.IO.Path]::GetFullPath($path)
-        $drive = (Split-Path -Qualifier $full).TrimEnd(':')
-        return [long](Get-PSDrive -Name $drive).Free
+        $volume = New-Object System.IO.DriveInfo([System.IO.Path]::GetPathRoot($full))
+        return [long]$volume.AvailableFreeSpace
     }
 
     # La date de création : celle du dossier.

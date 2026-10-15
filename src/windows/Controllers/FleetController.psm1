@@ -3,7 +3,7 @@
 # ==============================================================================
 # Ce dont ce fichier nomme, déclaré ici : un module résout ce type qu'il a tiré
 # lui-même.
-using module .\ActionResult.psm1
+using module ..\Presenters\ActionResult.psm1
 using module .\BaseController.psm1
 using module ..\Service\FleetService.psm1
 using module ..\Service\InstanceService.psm1

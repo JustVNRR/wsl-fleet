@@ -5,8 +5,8 @@
 # « Build 'wagon' : ok », « Build 'wagon' : la phrase du refus », « Open :
 # cancelled » quand l'utilisateur a abandonné (rien n'a échoué). L'entrée du
 # cli en tire son code de sortie, la fenêtre sa ligne de trail ; le journal
-# viendra s'y brancher. Près du contrôleur : c'est la forme de sa porte, pas
-# une forme de service.
+# viendra s'y brancher. Près des presenters : c'est la forme de leur porte,
+# pas une forme de service.
 
 enum ActionResultStatus {
     Ok

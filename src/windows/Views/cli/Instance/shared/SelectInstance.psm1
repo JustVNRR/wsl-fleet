@@ -13,6 +13,29 @@ using module ..\..\..\..\Tools\Helpers.psm1
 # se reprend tel quel. Les lignes d'archives n'ont pas leur place ici : un
 # geste d'instance ne s'y applique pas.
 class CliSelectInstanceView : BaseViewCli {
+    # La question, en passive : le tri, le vide et l'abandon vivent chez le
+    # presenter ; ici, le menu seul — et rien quand on sort.
+    [object] AskOffered([object[]]$offered) {
+        $Menu = [MenuCli]::new("Our Instances")
+        foreach ($row in @($offered)) {
+            $null = $Menu.Add([MenuItemCli]::new(
+                ("{0,-30} {1,10}" -f $row.Name, (Format-Size ($row.Size))), $row.Name))
+        }
+        $Picked = $Menu.Prompt()
+        if ($null -eq $Picked) { return "" }
+        return $Picked.Value
+    }
+
+    # Rien à choisir : le refus, peint ici — le presenter a constaté le vide
+    # et sort en faute.
+    [void] ShowNoInstances() {
+        Write-Host ""
+        Write-Host "[ABORT] No instance of this template is registered on this machine." -ForegroundColor $this.Colour("error")
+        Write-Host "        Build one with  .\wsl.ps1 build" -ForegroundColor $this.Colour("hint")
+    }
+
+    # L'ancienne question : elle décide encore — les gestes pas encore migrés
+    # s'en servent ; elle mourra avec le dernier.
     [object] Ask([object[]]$instances, [string]$target) {
         if ($target) { return $target }
 

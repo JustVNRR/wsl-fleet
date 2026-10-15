@@ -3,7 +3,7 @@
 # ==============================================================================
 # Ce dont ce fichier nomme, déclaré ici : un module résout un type qu'il a tiré
 # lui-même.
-using module .\ActionResult.psm1
+using module ..\Presenters\ActionResult.psm1
 using module .\BaseController.psm1
 using module ..\Service\InstanceService.psm1
 using module ..\Dto\InstanceDto.psm1
@@ -334,23 +334,6 @@ class InstanceController : BaseController {
     # =========================================================================
     # L'ARCHIVE
     # =========================================================================
-
-    [ActionResult] Archive([string]$instanceName) {
-        $rows = @($this.Service.GetAll())
-        $name = $this.SelectInstance($instanceName, $rows)
-        if (-not $name) { return [ActionResult]::Ok("Archive : cancelled") }
-        $view = $this.GetView("Archive")
-        $dto = $view.Ask($name, $rows)
-        if ($null -eq $dto) { return [ActionResult]::Ok("Archive : cancelled") }
-        try {
-            $response = $this.Service.Archive($dto)
-        } catch {
-            $this.ShowFailure($_.Exception.Message)
-            return [ActionResult]::Nok("Archive : $($dto.InstanceName) - $($_.Exception.Message)")
-        }
-        $view.Show($dto.InstanceName, $response)
-        return [ActionResult]::Ok("Archive : $($dto.InstanceName)")
-    }
 
     # L'archive se choisit dans SA vue (la question des archives n'est pas
     # celle des instances) : l'index reçu la porte, une ligne déjà désignée se

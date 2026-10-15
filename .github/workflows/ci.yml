@@ -412,6 +412,11 @@ jobs:
         shell: bash
         run: pwsh -NoProfile -File tests/archive-command-test.ps1
 
+      - name: The archive traversal, driven by a fake view
+        if: always()
+        shell: bash
+        run: pwsh -NoProfile -File tests/archive-presenter-test.ps1
+
       - name: Removing an instance, with a stand-in wsl
         if: always()
         shell: bash

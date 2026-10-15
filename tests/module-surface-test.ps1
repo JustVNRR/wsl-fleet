@@ -33,16 +33,22 @@ foreach ($name in @("InstanceController", "FleetController")) {
 }
 
 # 1. Every gesture block calls a method its controller carries.
-$gestures = [regex]::Matches($startCli, '"([a-z_]+)"\s*=\s*\{\s*param\(\$Instance,\s*\$Fleet,\s*\$Name\)\s*\$(Instance|Fleet)\.([A-Za-z]+)\(')
+$gestures = [regex]::Matches($startCli, '"([a-z_]+)"\s*=\s*\{\s*param\(([^)]*)\)\s*\$(Instance|Fleet|Archive)\.([A-Za-z]+)\(')
 if ($gestures.Count -eq 0) { Fail "no gesture block found in Start-Cli.ps1 - this check read nothing" }
 $seen = @{}
 foreach ($m in $gestures) {
     $word = $m.Groups[1].Value
-    $owner = "$($m.Groups[2].Value)Controller"
-    $method = $m.Groups[3].Value
+    $owner = $m.Groups[3].Value
+    $method = $m.Groups[4].Value
     $seen[$word] = $true
-    if ($controllers[$owner] -notmatch "\[ActionResult\]\s+$method\(") {
-        Fail "gesture '$word' calls $owner.$method - no such method"
+    if ($owner -eq "Archive") {
+        # Le premier geste migré : son presenter porte la méthode.
+        $source = Get-Content (Join-Path $Windows "Presenters\Instance\ArchivePresenter.psm1") -Raw
+        if ($source -notmatch "\[ActionResult\]\s+$method\(") {
+            Fail "gesture '$word' calls ArchivePresenter.$method - no such method"
+        }
+    } elseif ($controllers["$($owner)Controller"] -notmatch "\[ActionResult\]\s+$method\(") {
+        Fail "gesture '$word' calls $($owner)Controller.$method - no such method"
     }
 }
 Write-Host "$($gestures.Count) gesture(s) read."
@@ -55,8 +61,13 @@ $viewFolders = @(
     (Join-Path (Join-Path $Windows "Views\cli\Fleet") "shared"),
     (Join-Path $Windows "Views\cli\shared")
 )
-foreach ($name in @("InstanceController", "FleetController")) {
-    $views = [regex]::Matches($controllers[$name], 'GetView\("([A-Za-z]+)"\)') | ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique
+$lookers = @{}
+foreach ($name in @("InstanceController", "FleetController")) { $lookers[$name] = $controllers[$name] }
+foreach ($presenter in @(Get-ChildItem (Join-Path $Windows "Presenters") -Recurse -Filter *.psm1)) {
+    $lookers[$presenter.Name] = Get-Content $presenter.FullName -Raw
+}
+foreach ($name in $lookers.Keys) {
+    $views = [regex]::Matches($lookers[$name], 'GetView\("([A-Za-z]+)"\)') | ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique
     foreach ($view in $views) {
         $found = $false
         foreach ($folder in $viewFolders) {
@@ -65,7 +76,7 @@ foreach ($name in @("InstanceController", "FleetController")) {
         if (-not $found) { Fail "$name looks up the view '$view' - no $view.psm1 under Views\cli" }
     }
 }
-Write-Host "the controllers' view lookups: read."
+Write-Host "the controllers' and presenters' view lookups: read."
 
 # 3. The menu shows each routed word, and the way-in its own two.
 $menuWords = [regex]::Matches($startCli, '\$menu = \$menu\.Add\("([a-z_]+)",\s*"([^"]*)"') | ForEach-Object { $_.Groups[1].Value }

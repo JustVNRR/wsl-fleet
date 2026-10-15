@@ -20,6 +20,7 @@
 using module .\Service\ServiceFactory.psm1
 using module .\Controllers\InstanceController.psm1
 using module .\Controllers\FleetController.psm1
+using module .\Presenters\Instance\ArchivePresenter.psm1
 using module .\Views\cli\MenuCli.psm1
 
 [CmdletBinding()]
@@ -51,6 +52,10 @@ $instanceService = [ServiceFactory]::CreateInstanceService($root, $Assets, $dist
 $instanceController = [InstanceController]::new($instanceService, $ViewsRoot, "cli")
 $fleetController = [FleetController]::new($fleetService, $ViewsRoot, "cli")
 
+# Les presenters migrés : un par vue, construits ici — objets légers, la vue
+# naît au premier geste.
+$archivePresenter = [ArchivePresenter]::new($instanceService, $ViewsRoot, "cli")
+
 # Le geste, un bloc par commande : le contrôleur et le nom arrivent en
 # paramètres, le bloc rend l'ActionResult du geste.
 $gestures = [ordered]@{
@@ -63,7 +68,7 @@ $gestures = [ordered]@{
     "manage_packs"   = { param($Instance, $Fleet, $Name) $Instance.ManagePacks($Name) }
     "theme"          = { param($Instance, $Fleet, $Name) $Instance.SetAppearance($Name) }
     "unregister"     = { param($Instance, $Fleet, $Name) $Instance.Remove($Name) }
-    "archive"        = { param($Instance, $Fleet, $Name) $Instance.Archive($Name) }
+    "archive"        = { param($Instance, $Fleet, $Name, $Archive) $Archive.Run($Name) }
     "restore"        = { param($Instance, $Fleet, $Name) $Instance.Restore($Name) }
     "duplicate"      = { param($Instance, $Fleet, $Name) $Instance.Duplicate($Name) }
     "shrink"         = { param($Instance, $Fleet, $Name) $Instance.Compact($Name) }
@@ -122,7 +127,7 @@ if ($Command) {
 # Le geste court — à ce cran, pas dans une méthode — et son ActionResult dit
 # le code de sortie : Nok échoue, Ok passe, l'abandon compris (rien n'a
 # échoué).
-$result = & $item.Action $instanceController $fleetController "$Name"
+$result = & $item.Action $instanceController $fleetController "$Name" $archivePresenter
 if ($null -eq $result) { exit 1 }
 if ("$($result.Status)" -eq "Nok") { exit 1 }
 exit 0

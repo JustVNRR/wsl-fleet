@@ -146,6 +146,9 @@ try {
     $Where = & $Engine -NoProfile -Command "(Get-Command wsl.exe -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1).Path"
     Write-Output "note: the child resolves wsl.exe to '$Where'"
     $Out = Invoke-Child -Word "shell" -Answers @("$Pick")
+    # The bare shell is LAUNCHED, not awaited - the child is gone before the
+    # window's process has written its call; a breath lets the stand-in speak.
+    Start-Sleep -Milliseconds 700
     Check "shell opens a session on the instance picked" (@(Get-Calls | Where-Object { $_ -eq "-d $FakeName --cd ~" }).Count) 1
     # wsl.exe parses its own command line and does not strip quotes: a quoted
     # name stops matching (seen on a real machine - the same name unquoted

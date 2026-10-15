@@ -196,6 +196,14 @@ check "the runs left the checkout exactly as it was" \
 for staged in "${Created[@]:-}"; do
     [ -n "$staged" ] && rm -rf "$staged"
 done
+# What the last run really said, when something failed: the scenes speak in
+# checks, and a check that fails on a run nobody can read sends nobody
+# anywhere. The log carries it only on failure.
+if [ "$Failures" -gt 0 ]; then
+    echo ""
+    echo "--- the last run's own words ---"
+    sed 's/^/    | /' "$Out" | head -60
+fi
 rm -f "$Out"
 echo ""
 echo "failures: $Failures"

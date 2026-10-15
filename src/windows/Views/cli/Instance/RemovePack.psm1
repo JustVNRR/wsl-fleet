@@ -4,43 +4,47 @@
 # Ce dont ce fichier nomme, déclaré ici : un module résout ce qu'il a tiré
 # lui-même.
 using module ..\BaseViewCli.psm1
-using module ..\..\..\Dto\InstanceDto.psm1
 
 class CliRemovePackView : BaseViewCli {
-    # La question du geste : le pack — les portés qu'un utilisateur choisit de
-    # retirer (un invisible part avec le dernier qui le requiert, il n'est
-    # jamais offert). Les listes viennent du contrôleur.
-    [object] Ask([object]$packs, [string]$name) {
-        $Installed = @($packs.Installed)
-        if ($Installed.Count -eq 0) {
-            Write-Host ""
-            Write-Host "[OK] '$name' carries no pack - there is nothing to remove." -ForegroundColor $this.Colour("success")
-            return $null
-        }
+    # La vue ne décide plus : les listes lues au service, le vide constaté, le
+    # oui relu et le Dto bâti sont au presenter — ici, les lignes, la question
+    # et la porte.
 
-        $Offered = @($packs.Removable)
-        if ($Offered.Count -eq 0) {
-            Write-Host ""
-            Write-Host "[OK] '$name' carries no pack you choose or remove by hand." -ForegroundColor $this.Colour("success")
-            return $null
-        }
+    # Rien porté : la réponse, dite.
+    [void] ShowNoPacks([string]$name) {
+        Write-Host ""
+        Write-Host "[OK] '$name' carries no pack - there is nothing to remove." -ForegroundColor $this.Colour("success")
+    }
 
-        $PackName = $this.AskList("Packs installed in '$name':", $Offered, {
+    # Rien de retirable à la main : un invisible part avec le dernier qui le
+    # requiert, il n'est jamais offert — la réponse, dite.
+    [void] ShowNoRemovable([string]$name) {
+        Write-Host ""
+        Write-Host "[OK] '$name' carries no pack you choose or remove by hand." -ForegroundColor $this.Colour("success")
+    }
+
+    # Le pack, choisi : les retirables reçus, leurs lignes. Rien quand on sort
+    # — le presenter le lit comme un abandon.
+    [object] AskPack([string]$name, [object[]]$offered) {
+        $PackName = $this.AskList("Packs installed in '$name':", @($offered), {
             param($Entry)
             [string]$Entry
         }, "")
-        if (-not $PackName) { $this.StopCancelled("modified") }
+        if (-not $PackName) { return "" }
+        return "$PackName"
+    }
 
+    # La porte : le dernier moment, la ligne et la question. Ce que la réponse
+    # veut dire reste au presenter.
+    [bool] AskRemoval([string]$packName) {
         Write-Host ""
-        if (-not $this.Confirm("Remove '$PackName'?", $false)) { $this.StopCancelled("modified") }
+        return $this.Confirm("Remove '$packName'?", $false)
+    }
 
+    # Les avis du geste qui part.
+    [void] ShowRemoving([string]$packName, [string]$name) {
         Write-Host ""
-        Write-Host "==> Removing '$PackName' from '$name'..." -ForegroundColor $this.Colour("info")
-
-        $dto = [RemovePackDto]::new()
-        $dto.InstanceName = $name
-        $dto.PackName = $PackName
-        return $dto
+        Write-Host "==> Removing '$packName' from '$name'..." -ForegroundColor $this.Colour("info")
     }
 
     # Le rapport : le déroulé du service. Ce qui partait avec le pack, les

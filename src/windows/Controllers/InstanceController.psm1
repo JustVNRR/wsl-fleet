@@ -28,9 +28,11 @@ using module ..\Dto\InstanceDto.psm1
 # Une vue fait une chose. La question « quelle instance ? » a SA vue
 # (SelectInstance), la même pour tous les gestes qui en ont besoin : le
 # contrôleur l'affiche d'abord, puis — le nom en main — lit ce qu'il faut au
-# service et affiche la vue du geste, l'instance déjà là. Les gestes à deux
-# questions (les packs : l'instance, PUIS ses packs) suivent le même chemin :
-# SelectInstance, une lecture, puis la vue du geste.
+# service et affiche la vue du geste, l'instance déjà là.
+#
+# Les gestes migrés (archiver, retirer, compacter, restaurer, copier, la
+# corbeille d'archive, les packs, le look) n'ont plus de méthode ici : ils
+# vivent dans leurs presenters, un par vue.
 #
 # Ce qu'une vue porte, ses méthodes :
 #   Ask(...) — la question, préformatée, avec les données reçues ; elle rend
@@ -45,10 +47,9 @@ using module ..\Dto\InstanceDto.psm1
 # l'utilisateur a abandonné. L'entrée du cli en tire son code de sortie, la
 # fenêtre sa ligne de trail.
 #
-# Les longs gestes — la naissance, retirer, compacter, archiver, restaurer,
-# copier, la corbeille d'archive — se courent ICI, sur place : le cli est le
-# seul monde qui passe par ce contrôleur (le gui a ses ViewModels), et il n'a
-# pas de fenêtre à bloquer.
+# La naissance — le seul geste long qui reste ici — se court sur place : le
+# cli est le seul monde qui passe par ce contrôleur (le gui a ses ViewModels),
+# et il n'a pas de fenêtre à bloquer.
 class InstanceController : BaseController {
     hidden [InstanceService]$Service
 
@@ -156,148 +157,6 @@ class InstanceController : BaseController {
         $view.Show($name, $response)
         return [ActionResult]::Ok("Restart : $name")
     }
-
-
-    # =========================================================================
-    # LE LOOK
-    # =========================================================================
-
-    [ActionResult] GetAppearance([string]$instanceName) {
-        $name = $this.SelectInstance($instanceName, @())
-        if (-not $name) { return [ActionResult]::Ok("GetAppearance : cancelled") }
-        $view = $this.GetView("GetAppearance")
-        try {
-            $response = $this.Service.GetAppearance($name)
-        } catch {
-            $this.ShowFailure($_.Exception.Message)
-            return [ActionResult]::Nok("GetAppearance : $name - $($_.Exception.Message)")
-        }
-        $view.Show($name, $response)
-        return [ActionResult]::Ok("GetAppearance : $name")
-    }
-
-    # La visite du look : le contrôleur lit tout ce que ses questions
-    # affichent — le constat (le (current) et l'avertissement du fragment),
-    # les polices, les schémas, les paires de la tuile — puis la vue mène la
-    # conversation et rend le Dto entier.
-    [ActionResult] SetAppearance([string]$instanceName) {
-        $name = $this.SelectInstance($instanceName, @())
-        if (-not $name) { return [ActionResult]::Ok("SetAppearance : cancelled") }
-        $view = $this.GetView("SetAppearance")
-        try {
-            $appearance = $this.Service.GetAppearance($name)
-            $fonts = @($this.Service.GetFonts())
-            # La police en place s'offre toujours, quoi qu'elle porte : sans
-            # les glyphes elle est hors de la lecture des polices, et son nom
-            # n'aurait nulle part ou etre marque.
-            if ("$($appearance.Font)" -and $fonts -notcontains "$($appearance.Font)") {
-                $fonts += "$($appearance.Font)"
-            }
-            $schemes = @($this.Service.GetColorSchemes())
-            $pairs = @($this.Service.GetIconPairs())
-        } catch {
-            $this.ShowFailure($_.Exception.Message)
-            return [ActionResult]::Nok("SetAppearance : $name - $($_.Exception.Message)")
-        }
-        $dto = $view.Ask($name, $appearance, $fonts, $schemes, $pairs)
-        if ($null -eq $dto) { return [ActionResult]::Ok("SetAppearance : cancelled") }
-        try {
-            $response = $this.Service.SetAppearance($dto)
-        } catch {
-            $this.ShowFailure($_.Exception.Message)
-            return [ActionResult]::Nok("SetAppearance : $($dto.InstanceName) - $($_.Exception.Message)")
-        }
-        $view.Show($dto.InstanceName, $response)
-        return [ActionResult]::Ok("SetAppearance : $($dto.InstanceName)")
-    }
-
-    # =========================================================================
-    # LES PACKS
-    # =========================================================================
-
-    [ActionResult] GetPacks([string]$instanceName) {
-        $name = $this.SelectInstance($instanceName, @())
-        if (-not $name) { return [ActionResult]::Ok("GetPacks : cancelled") }
-        $view = $this.GetView("GetPacks")
-        try {
-            $response = $this.Service.GetPacks($name)
-        } catch {
-            $this.ShowFailure($_.Exception.Message)
-            return [ActionResult]::Nok("GetPacks : $name - $($_.Exception.Message)")
-        }
-        $view.Show($name, $response)
-        return [ActionResult]::Ok("GetPacks : $name")
-    }
-
-    [ActionResult] AddPack([string]$instanceName) {
-        $name = $this.SelectInstance($instanceName, @())
-        if (-not $name) { return [ActionResult]::Ok("AddPack : cancelled") }
-        $view = $this.GetView("AddPack")
-        try {
-            $packs = $this.Service.GetPacks($name)
-        } catch {
-            $this.ShowFailure($_.Exception.Message)
-            return [ActionResult]::Nok("AddPack : $name - $($_.Exception.Message)")
-        }
-        $dto = $view.Ask($packs, $name)
-        if ($null -eq $dto) { return [ActionResult]::Ok("AddPack : cancelled") }
-        try {
-            $response = $this.Service.AddPack($dto)
-        } catch {
-            $this.ShowFailure($_.Exception.Message)
-            return [ActionResult]::Nok("AddPack : $($dto.InstanceName) - $($_.Exception.Message)")
-        }
-        $view.Show($dto.InstanceName, $response)
-        return [ActionResult]::Ok("AddPack : $($dto.InstanceName)")
-    }
-
-    [ActionResult] RemovePack([string]$instanceName) {
-        $name = $this.SelectInstance($instanceName, @())
-        if (-not $name) { return [ActionResult]::Ok("RemovePack : cancelled") }
-        $view = $this.GetView("RemovePack")
-        try {
-            $packs = $this.Service.GetPacks($name)
-        } catch {
-            $this.ShowFailure($_.Exception.Message)
-            return [ActionResult]::Nok("RemovePack : $name - $($_.Exception.Message)")
-        }
-        $dto = $view.Ask($packs, $name)
-        if ($null -eq $dto) { return [ActionResult]::Ok("RemovePack : cancelled") }
-        try {
-            $response = $this.Service.RemovePack($dto)
-        } catch {
-            $this.ShowFailure($_.Exception.Message)
-            return [ActionResult]::Nok("RemovePack : $($dto.InstanceName) - $($_.Exception.Message)")
-        }
-        $view.Show($dto.InstanceName, $response)
-        return [ActionResult]::Ok("RemovePack : $($dto.InstanceName)")
-    }
-
-    [ActionResult] ManagePacks([string]$instanceName) {
-        $name = $this.SelectInstance($instanceName, @())
-        if (-not $name) { return [ActionResult]::Ok("ManagePacks : cancelled") }
-        $view = $this.GetView("ManagePacks")
-        try {
-            $packs = $this.Service.GetPacks($name)
-        } catch {
-            $this.ShowFailure($_.Exception.Message)
-            return [ActionResult]::Nok("ManagePacks : $name - $($_.Exception.Message)")
-        }
-        $dto = $view.Ask($packs, $name)
-        if ($null -eq $dto) { return [ActionResult]::Ok("ManagePacks : cancelled") }
-        try {
-            $response = $this.Service.ManagePacks($dto)
-        } catch {
-            $this.ShowFailure($_.Exception.Message)
-            return [ActionResult]::Nok("ManagePacks : $($dto.InstanceName) - $($_.Exception.Message)")
-        }
-        $view.Show($dto.InstanceName, $response)
-        return [ActionResult]::Ok("ManagePacks : $($dto.InstanceName)")
-    }
-
-    # =========================================================================
-    # L'ARCHIVE
-    # =========================================================================
 
 
     # =========================================================================

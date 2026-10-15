@@ -26,6 +26,10 @@ using module .\Presenters\Instance\DeleteArchivePresenter.psm1
 using module .\Presenters\Instance\CompactPresenter.psm1
 using module .\Presenters\Instance\RestorePresenter.psm1
 using module .\Presenters\Instance\DuplicatePresenter.psm1
+using module .\Presenters\Instance\AddPackPresenter.psm1
+using module .\Presenters\Instance\RemovePackPresenter.psm1
+using module .\Presenters\Instance\ManagePacksPresenter.psm1
+using module .\Presenters\Instance\SetAppearancePresenter.psm1
 using module .\Views\cli\MenuCli.psm1
 
 [CmdletBinding()]
@@ -66,6 +70,10 @@ $presenters = @{
     Compact       = [CompactPresenter]::new($instanceService, $ViewsRoot, "cli")
     Restore       = [RestorePresenter]::new($instanceService, $ViewsRoot, "cli")
     Duplicate     = [DuplicatePresenter]::new($instanceService, $ViewsRoot, "cli")
+    AddPack       = [AddPackPresenter]::new($instanceService, $ViewsRoot, "cli")
+    RemovePack    = [RemovePackPresenter]::new($instanceService, $ViewsRoot, "cli")
+    ManagePacks   = [ManagePacksPresenter]::new($instanceService, $ViewsRoot, "cli")
+    SetAppearance = [SetAppearancePresenter]::new($instanceService, $ViewsRoot, "cli")
 }
 
 # Le geste, un bloc par commande : le contrôleur et le nom arrivent en
@@ -75,10 +83,10 @@ $gestures = [ordered]@{
     "build"          = { param($Instance, $Fleet, $Name) $Instance.Build() }
     "restart"        = { param($Instance, $Fleet, $Name) $Instance.Restart($Name) }
     "shell"          = { param($Instance, $Fleet, $Name) $Instance.Open($Name) }
-    "add_pack"       = { param($Instance, $Fleet, $Name) $Instance.AddPack($Name) }
-    "remove_pack"    = { param($Instance, $Fleet, $Name) $Instance.RemovePack($Name) }
-    "manage_packs"   = { param($Instance, $Fleet, $Name) $Instance.ManagePacks($Name) }
-    "theme"          = { param($Instance, $Fleet, $Name) $Instance.SetAppearance($Name) }
+    "add_pack"       = { param($Instance, $Fleet, $Name, $Presenters) $Presenters.AddPack.Run($Name) }
+    "remove_pack"    = { param($Instance, $Fleet, $Name, $Presenters) $Presenters.RemovePack.Run($Name) }
+    "manage_packs"   = { param($Instance, $Fleet, $Name, $Presenters) $Presenters.ManagePacks.Run($Name) }
+    "theme"          = { param($Instance, $Fleet, $Name, $Presenters) $Presenters.SetAppearance.Run($Name) }
     "unregister"     = { param($Instance, $Fleet, $Name, $Presenters) $Presenters.Remove.Run($Name) }
     "archive"        = { param($Instance, $Fleet, $Name, $Presenters) $Presenters.Archive.Run($Name) }
     "restore"        = { param($Instance, $Fleet, $Name, $Presenters) $Presenters.Restore.Run($Name) }

@@ -4,66 +4,42 @@
 # Ce dont ce fichier nomme, déclaré ici : un module résout ce qu'il a tiré
 # lui-même.
 using module ..\BaseViewCli.psm1
-using module ..\..\..\Dto\InstanceDto.psm1
 
 class CliManagePacksView : BaseViewCli {
-    # La question du geste : la checklist — les offrables qui manquent
-    # (décochés) et les portés qu'un utilisateur choisit (cochés), les deux
-    # listes du service réunies en lignes par le contrôleur. Les requirements,
-    # les invisibles et les refus de retrait se résolvent au service.
-    [object] Ask([object]$packs, [string]$name) {
-        $Installed = @($packs.Installed)
+    # La vue ne décide plus : les listes lues au service, les lignes réunies,
+    # le choix coché relu, ce qui entre et ce qui sort calculés et le Dto bâti
+    # sont au presenter — ici, la checklist et les lignes.
 
-        $Rows = @()
-        $CheckedIndexes = @()
-        $taken = @{}
-        foreach ($pack in @($packs.Candidate)) {
-            $Rows += [PSCustomObject]@{ Name = $pack.Name; Description = $pack.Description }
-            $taken[$pack.Name] = $true
-        }
-        foreach ($removable in @($packs.Removable)) {
-            if ($taken.ContainsKey($removable)) { continue }
-            $CheckedIndexes += $Rows.Count
-            $Rows += [PSCustomObject]@{ Name = $removable; Description = "" }
-        }
+    # Rien à choisir et rien à ajouter : la réponse, dite.
+    [void] ShowNothingToChoose([string]$name) {
+        Write-Host ""
+        Write-Host "[OK] '$name' carries nothing to choose and this repository offers nothing to add." -ForegroundColor $this.Colour("success")
+    }
 
-        if ($Rows.Count -eq 0) {
-            Write-Host ""
-            Write-Host "[OK] '$name' carries nothing to choose and this repository offers nothing to add." -ForegroundColor $this.Colour("success")
-            return $null
-        }
-
-        $Chosen = $this.AskChecklist("Packs for '$name'", $Rows, {
+    # La checklist : les lignes reçues, les cases déjà cochées reçues. $null
+    # quand on sort — le presenter le lit comme un abandon.
+    [object[]] AskPacks([string]$name, [object[]]$rows, [int[]]$checkedIndexes) {
+        return $this.AskChecklist("Packs for '$name'", @($rows), {
             param($Row)
             "{0,-12} {1}" -f $Row.Name, $Row.Description
-        }, $CheckedIndexes, "")
+        }, @($checkedIndexes), "")
+    }
 
-        if ($null -eq $Chosen) { $this.StopCancelled("modified") }
-        $ticked = @($Chosen | ForEach-Object { $_.Name })
-
-        # Ticked and not installed goes in; carried and unticked comes out.
-        $ToAdd = @($ticked | Where-Object { $Installed -notcontains $_ })
-        $ToRemove = @($packs.Removable | Where-Object { $ticked -notcontains $_ })
-
-        if ($ToAdd.Count -eq 0 -and $ToRemove.Count -eq 0) {
-            Write-Host ""
-            Write-Host "[OK] Nothing to do: '$name' already has exactly that." -ForegroundColor $this.Colour("success")
-            return $null
-        }
-
+    # Rien à faire : l'état demandé est déjà l'état porté — la réponse, dite.
+    [void] ShowNothingToDo([string]$name) {
         Write-Host ""
-        if ($ToAdd.Count -gt 0) {
-            Write-Host "==> Installing: $($ToAdd -join ', ')" -ForegroundColor $this.Colour("info")
-        }
-        if ($ToRemove.Count -gt 0) {
-            Write-Host "==> Removing: $($ToRemove -join ', ')" -ForegroundColor $this.Colour("info")
-        }
+        Write-Host "[OK] Nothing to do: '$name' already has exactly that." -ForegroundColor $this.Colour("success")
+    }
 
-        $dto = [ManagePacksDto]::new()
-        $dto.InstanceName = $name
-        $dto.ToAdd = @($ToAdd)
-        $dto.ToRemove = @($ToRemove)
-        return $dto
+    # Ticked and not installed goes in; carried and unticked comes out.
+    [void] ShowPlan([string[]]$toAdd, [string[]]$toRemove) {
+        Write-Host ""
+        if (@($toAdd).Count -gt 0) {
+            Write-Host "==> Installing: $($toAdd -join ', ')" -ForegroundColor $this.Colour("info")
+        }
+        if (@($toRemove).Count -gt 0) {
+            Write-Host "==> Removing: $($toRemove -join ', ')" -ForegroundColor $this.Colour("info")
+        }
     }
 
     # Le rapport : ce qui a bougé, lu des deux listages du service. La liste

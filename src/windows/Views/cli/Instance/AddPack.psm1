@@ -4,40 +4,33 @@
 # Ce dont ce fichier nomme, déclaré ici : un module résout ce qu'il a tiré
 # lui-même.
 using module ..\BaseViewCli.psm1
-using module ..\..\..\Dto\InstanceDto.psm1
 
 class CliAddPackView : BaseViewCli {
-    # La question du geste : le pack — ce que le catalogue offre à cette
-    # famille et que l'instance n'a pas encore. Les listes viennent du
-    # contrôleur (il a lu les packs au service) ; ce qui est déjà là se dit,
-    # et une liste vide est déjà une réponse.
-    [object] Ask([object]$packs, [string]$name) {
-        $Installed = @($packs.Installed)
-        $Candidates = @($packs.Candidate)
+    # La vue ne décide plus : le catalogue lu au service, le vide constaté, le
+    # Dto bâti et l'Échap lu sont au presenter — ici, les lignes et la
+    # question.
 
-        if ($Candidates.Count -eq 0) {
-            Write-Host ""
-            Write-Host "[OK] '$name' already has every pack this repository offers." -ForegroundColor $this.Colour("success")
-            return $null
-        }
+    # Tout est déjà là : la réponse du catalogue, dite.
+    [void] ShowAlreadyComplete([string]$name) {
+        Write-Host ""
+        Write-Host "[OK] '$name' already has every pack this repository offers." -ForegroundColor $this.Colour("success")
+    }
 
-        # Said before the list, not after it: with the arrows the rows are
-        # drawn in place, and anything under them gets painted over.
-        if ($Installed.Count -gt 0) {
-            Write-Host ""
-            Write-Host ("       Already in '$name': {0}" -f ($Installed -join ", ")) -ForegroundColor $this.Colour("muted")
-        }
+    # Les portés, dits avant la liste — les flèches redessinent par-dessus.
+    [void] ShowAlreadyIn([string]$name, [object[]]$installed) {
+        Write-Host ""
+        Write-Host ("       Already in '$name': {0}" -f ($installed -join ", ")) -ForegroundColor $this.Colour("muted")
+    }
 
-        $Pack = $this.AskList("Packs available for '$name':", $Candidates, {
+    # Le pack, choisi : le catalogue reçu, ses lignes. Rien quand on sort — le
+    # presenter le lit comme un abandon.
+    [object] AskPack([string]$name, [object[]]$candidates) {
+        $Pack = $this.AskList("Packs available for '$name':", @($candidates), {
             param($Entry)
             "{0,-12} {1}" -f $Entry.Name, $Entry.Description
         }, "")
-        if (-not $Pack) { $this.StopCancelled("modified") }
-
-        $dto = [AddPackDto]::new()
-        $dto.InstanceName = $name
-        $dto.PackName = $Pack.Name
-        return $dto
+        if (-not $Pack) { return "" }
+        return $Pack
     }
 
     # Le rapport : le déroulé du service, mot pour mot — un pack qui décline

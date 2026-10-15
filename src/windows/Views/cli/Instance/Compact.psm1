@@ -51,6 +51,9 @@ class CliCompactView : BaseViewCli {
         if ($response.Archived) {
             Write-Host "  * Safety archive   : " -NoNewline; Write-Host "taken before the compact" -ForegroundColor $this.Colour("success")
         }
+        if ($response.Restarted) {
+            Write-Host "'$name' is running again." -ForegroundColor $this.Colour("success")
+        }
         Write-Host ""
     }
 }

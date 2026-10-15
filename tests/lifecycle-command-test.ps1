@@ -1,40 +1,57 @@
 # Drives the lifecycle commands - restart, shell, shrink, list - the way a
-# script would: the numbered prompt, answers on standard input, no console
-# anywhere, and a stand-in wsl.exe ahead on the PATH - built from
-# tests\fake-wsl\wsl.cs, logging every call and answering from its own log: a
-# distribution counts as running once a boot command has gone through.
+# script would: answers on standard input, no console anywhere, and a
+# stand-in wsl.exe ahead on the PATH - built from tests\fake-wsl\wsl.cs,
+# logging every call and answering from its own log: a distribution counts as
+# running once a boot command has gone through.
 #
-# The instance it works on exists for the length of the test: a registry key of
-# its own, a folder carrying the marker, and a name of its own. The key is
+# The instance it works on exists for the length of the test: a registry key
+# of its own, a folder carrying the marker, and a name of its own - all under
+# a working folder of the suite's, the one the commands will use: the
+# redirected profile keeps the root file (root.txt) pointing there. The key is
 # taken back out at the end. Nothing real is started or stopped: what is
 # checked is the command emitted, its order, and what is said.
+#
+# The children are the entry itself, wsl.ps1, run with the command word - the
+# same door a user's script goes through.
 #
 # What is checked: for `restart`, the stop comes before the boot; for
 # `shell`, the session is asked by name; for `shrink`, the compact, and
 # the restart only when it was running; for `list`, what the machine says -
-# stopped or running.
+# stopped or running, and an empty machine ending on one.
 #
 # It needs no instance, no console and no Docker Desktop.
 #
 # Usage:  pwsh -NoProfile -File tests\lifecycle-command-test.ps1
+using module ..\src\windows\Service\ServiceFactory.psm1
 
 $ErrorActionPreference = "Stop"
 
-# For Get-Distros and the marker test: the list the command itself builds.
-Import-Module (Join-Path $PSScriptRoot "..\src\windows\WslStack\WslStack.psd1") -Force
-
-$RestartScript = Join-Path $PSScriptRoot "..\src\windows\WslCommands\restart.ps1"
-$ShellScript = Join-Path $PSScriptRoot "..\src\windows\WslCommands\shell.ps1"
-$ShrinkScript = Join-Path $PSScriptRoot "..\src\windows\WslCommands\shrink.ps1"
-$ListScript = Join-Path $PSScriptRoot "..\src\windows\WslCommands\list.ps1"
-# Child processes follow the engine this suite runs under, so a pass under 7
-# tests the scripts under 7.
-$Engine = if ($PSVersionTable.PSEdition -eq "Core") { "pwsh" } else { "powershell" }
 $Tmp = Join-Path ([System.IO.Path]::GetTempPath()) ("lifecycle-command-test-" + [Guid]::NewGuid().ToString("N"))
 $FakeName = "lifecycle-command-test"
 $FakeFolder = Join-Path $Tmp "instance"
 $Key = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss\{2f9f0a4e-58b1-4a3c-9d2e-0c1b2a3d4e5f}"
 $Log = Join-Path $Tmp "wsl-calls.log"
+
+# The world of the suite: the redirected profile, and the root file pointing
+# under it - the working folder every run will use, the runs and this file
+# alike.
+$env:USERPROFILE = $Tmp
+$env:LOCALAPPDATA = Join-Path $Tmp "LocalAppData"
+$env:APPDATA = Join-Path $Tmp "AppData"
+New-Item -ItemType Directory -Path (Join-Path $env:LOCALAPPDATA "wsl-stack") -Force | Out-Null
+New-Item -ItemType Directory -Path $env:APPDATA -Force | Out-Null
+Set-Content -Path (Join-Path $env:LOCALAPPDATA "wsl-stack\root.txt") -Value $Tmp -Encoding ascii
+
+# The entry, spelled the way a user's script spells it.
+$Entry = Join-Path $PSScriptRoot "..\wsl.ps1"
+$RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+$Assets = Join-Path $RepoRoot "assets"
+$distroTree = Join-Path $RepoRoot "src\distro"
+if (-not (Test-Path $distroTree)) { $distroTree = "" }
+
+# Child processes follow the engine this suite runs under, so a pass under 7
+# tests the scripts under 7.
+$Engine = if ($PSVersionTable.PSEdition -eq "Core") { "pwsh" } else { "powershell" }
 
 # The stand-in, ahead of any wsl.exe for every child this suite starts: a real
 # binary of that name, compiled here from tests\fake-wsl\wsl.cs - the scripts
@@ -67,18 +84,15 @@ function Check {
 # The child's own exit code, beside its output: a refusal is a result too.
 $script:ChildExit = 0
 
-# The commands are driven through invoke-command.ps1: a fresh pwsh has nothing
-# loaded, and a command takes its manager as a parameter - the invoker loads
-# the module first, as wsl.ps1 does, and hands one over.
-$Invoker = Join-Path $PSScriptRoot "invoke-command.ps1"
-
+# One command of the entry, in a fresh process - the answers on its standard
+# input, as a script would feed them.
 function Invoke-Child {
-    param([string]$Script, [string[]]$Answers)
+    param([string]$Word, [string[]]$Answers)
 
     $Preference = $ErrorActionPreference
     $ErrorActionPreference = "Continue"
     try {
-        $Lines = $Answers | & $Engine -NoProfile -File $Invoker -Script $Script 2>&1
+        $Lines = $Answers | & $Engine -NoProfile -File $Entry $Word 2>&1
         $script:ChildExit = $LASTEXITCODE
     } finally {
         $ErrorActionPreference = $Preference
@@ -102,17 +116,21 @@ try {
     Set-ItemProperty -Path $Key -Name BasePath -Value $FakeFolder
 
     # Which number our instance is in the list the command draws - worked out
-    # with the same code, so the answer is right whatever else is installed.
-    $All = @(Get-Distros | Where-Object { Test-TemplateInstance -Folder $_.Path } | Sort-Object Name)
-    $Pick = [array]::IndexOf(@($All.Name), $FakeName) + 1
+    # with the same code the entry builds, so the answer is right whatever
+    # else is installed.
+    $root = [ServiceFactory]::ResolveRoot($Assets, $distroTree)
+    $service = [ServiceFactory]::CreateInstanceService($root, $Assets, $distroTree)
+    $rows = @($service.GetAll() | Where-Object { -not $_.IsArchive })
+    $Pick = [array]::IndexOf(@($rows.Name), $FakeName) + 1
     Check "the test's instance is in the list" ($Pick -ge 1) $true
 
     # 1. restart: the stop comes first, the boot after it, and the news last.
     # A boot in the log is what an earlier start would have left; the instance
-    # is one of the running ones, so it is there to pick.
+    # is one of the running ones, so it is there to pick. The empty answer
+    # takes the confirmation's default, which is yes.
     Remove-Item $Log -Force -ErrorAction SilentlyContinue
     Add-Content -Path $Log -Value "-d $FakeName --exec /bin/true"
-    $Out = Invoke-Child -Script $RestartScript -Answers @("$Pick", "")
+    $Out = Invoke-Child -Word "restart" -Answers @("$Pick", "")
     $Calls = Get-Calls
     Check "restart stops the instance first" (@($Calls | Where-Object { $_ -eq "--terminate $FakeName" }).Count) 1
     Check "and boots it after the stop" `
@@ -121,9 +139,10 @@ try {
     Check "and ends on zero" $script:ChildExit 0
 
     # 2. shell: the session is asked of WSL by name, from the instance's home.
-    # Nothing is captured from the session: its code is handed back as it came.
+    # No WSL fragment is staged, so the bare console is the route. Nothing is
+    # captured from the session: its code is handed back as it came.
     Remove-Item $Log -Force -ErrorAction SilentlyContinue
-    $Out = Invoke-Child -Script $ShellScript -Answers @("$Pick")
+    $Out = Invoke-Child -Word "shell" -Answers @("$Pick")
     Check "shell opens a session on the instance picked" (@(Get-Calls | Where-Object { $_ -eq "-d $FakeName --cd ~" }).Count) 1
     # wsl.exe parses its own command line and does not strip quotes: a quoted
     # name stops matching (seen on a real machine - the same name unquoted
@@ -138,7 +157,7 @@ try {
     # if it was up. The archive question is answered no: a yes takes the
     # archive path, another suite's country.
     Remove-Item $Log -Force -ErrorAction SilentlyContinue
-    $Out = Invoke-Child -Script $ShrinkScript -Answers @("$Pick", "n")
+    $Out = Invoke-Child -Word "shrink" -Answers @("$Pick", "n")
     Check "shrink compacts the instance picked" (@(Get-Calls | Where-Object { $_ -eq "--manage $FakeName --compact" }).Count) 1
     Check "and says it is compacted" (@($Out | Where-Object { "$_".Contains("'$FakeName' compacted") }).Count -gt 0) $true
     Check "and a stopped one is not started" (@(Get-Calls | Where-Object { $_ -like "*--exec*" }).Count) 0
@@ -146,7 +165,7 @@ try {
 
     Remove-Item $Log -Force -ErrorAction SilentlyContinue
     Add-Content -Path $Log -Value "-d $FakeName --exec /bin/true"
-    $Out = Invoke-Child -Script $ShrinkScript -Answers @("$Pick", "n")
+    $Out = Invoke-Child -Word "shrink" -Answers @("$Pick", "n")
     $Calls = Get-Calls
     Check "a running one is started again after the compact" `
         (([array]::IndexOf($Calls, "--manage $FakeName --compact")) -lt ([array]::LastIndexOf($Calls, "-d $FakeName --exec /bin/true"))) $true
@@ -155,19 +174,19 @@ try {
     # 4. list: the row says what the machine says, stopped or running - and an
     # empty machine is an answer with its own code, not a table over nothing.
     Remove-Item $Log -Force -ErrorAction SilentlyContinue
-    $Out = Invoke-Child -Script $ListScript -Answers @("")
+    $Out = Invoke-Child -Word "list" -Answers @("")
     Check "list shows the instance as stopped" `
         (@($Out | Where-Object { "$_" -match [regex]::Escape($FakeName) -and "$_" -match "stopped" }).Count -gt 0) $true
     Check "and ends on zero" $script:ChildExit 0
 
     Remove-Item $Log -Force -ErrorAction SilentlyContinue
     Add-Content -Path $Log -Value "-d $FakeName --exec /bin/true"
-    $Out = Invoke-Child -Script $ListScript -Answers @("")
+    $Out = Invoke-Child -Word "list" -Answers @("")
     Check "list shows a running one as running" `
         (@($Out | Where-Object { "$_" -match [regex]::Escape($FakeName) -and "$_" -match "running" }).Count -gt 0) $true
 
     Remove-Item $Key -Recurse -Force -ErrorAction SilentlyContinue
-    $Out = Invoke-Child -Script $ListScript -Answers @("")
+    $Out = Invoke-Child -Word "list" -Answers @("")
     Check "an empty machine is said, not printed over" `
         (@($Out | Where-Object { "$_".Contains("No instance of this template is registered") }).Count -gt 0) $true
     Check "and ends on one" $script:ChildExit 1

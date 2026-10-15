@@ -162,6 +162,7 @@ class CompactDto {
 class CompactResponseDto {
     [string]$InstanceName
     [bool]$Archived
+    [bool]$Restarted
 }
 
 # --- le look ------------------------------------------------------------------

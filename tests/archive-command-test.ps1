@@ -1,66 +1,68 @@
 # Drives the archive family - archive, restore, duplicate - the way a script
-# would: the numbered prompt, answers on standard input, no console anywhere,
-# and the same stand-in wsl.exe as the lifecycle suite - logging every call,
-# writing the file an export would write and the folder an import would create.
+# would: answers on standard input, no console anywhere, and the same
+# stand-in wsl.exe as the lifecycle suite - logging every call, writing the
+# file an export would write and the folder an import would create.
 #
-# The instance it works on exists for the length of the test: a registry key of
-# its own, a folder carrying the marker, the disk, the icon and the look
-# (instance.json, recipe included) a real instance would carry. The commands'
-# root is followed the way they compute it - D:\WSL when there is a D:, the
-# redirected profile otherwise - and only the suite's own paths are ever
+# The instance it works on exists for the length of the test: a registry key
+# of its own, a folder carrying the marker, the disk, the icon and the look
+# (instance.json, in the shape the tree reads and writes today) a real
+# instance would carry. Everything lives under a working folder of the
+# suite's, the one the commands will use: the redirected profile keeps the
+# root file (root.txt) pointing there. Only the suite's own paths are ever
 # written under it: names no real machine carries, all taken back out at the
 # end, and a run that finds one of them already there stops and says which.
 # The Windows Terminal fragments go to the redirected LOCALAPPDATA and APPDATA,
 # never the real ones.
 #
+# The children are the entry itself, wsl.ps1, run with the command word.
+#
 # What is checked: for `archive`, the export and its format, the tar written,
-# the look saved beside it - recipe included - a running instance stopped
-# before the export and left as it was found; for `restore`, the import at
-# version 2, the marker, the recipe and the icon coming back, the fragment
+# the look saved beside it, a running instance stopped before the export and
+# left running again, a same-name archive replaced; for `restore`, the import
+# at version 2, the marker, the recipe and the icon coming back, the fragment
 # re-applied under the guid WSL gave the instance; for `duplicate`, the export
-# to a temporary tar, the import at the source's own version, the temporary
-# removed, the marker, the look on the copy, and the source restarted only
-# when it was running.
+# to a temporary tar, the import at version 2, the temporary removed, the
+# marker, the look on the copy, and the source restarted only when it was
+# running.
 #
 # It needs no instance, no console and no Docker Desktop.
 #
 # Usage:  pwsh -NoProfile -File tests\archive-command-test.ps1
+using module ..\src\windows\Service\ServiceFactory.psm1
 
 $ErrorActionPreference = "Stop"
 
 $Tmp = Join-Path ([System.IO.Path]::GetTempPath()) ("archive-command-test-" + [Guid]::NewGuid().ToString("N"))
 $FakeName = "archive-command-test"
+$ArchiveName = "$($FakeName)_archive"
 $Key = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss\{4c1d2e3f-6a7b-4c8d-9e0f-1a2b3c4d5e6f}"
 $Log = Join-Path $Tmp "wsl-calls.log"
 
-# The commands work under one root: D:\WSL when there is a D:, the profile
-# otherwise - the rule the family follows, so the suite follows it too and its
-# expectations land where the children write. The root may already exist - a
-# runner's own, an earlier step's - so nothing but the suite's own paths below
-# is ever touched.
+# The world of the suite: the redirected profile, and the root file pointing
+# under it. The fake instance lives where a real one would - under the root,
+# so the paths the commands derive from its folder (the archives folder, a
+# copy's) land where a real machine would put them.
 $env:USERPROFILE = $Tmp
 $env:LOCALAPPDATA = Join-Path $Tmp "LocalAppData"
 $env:APPDATA = Join-Path $Tmp "AppData"
-New-Item -ItemType Directory -Path $env:LOCALAPPDATA -Force | Out-Null
+New-Item -ItemType Directory -Path (Join-Path $env:LOCALAPPDATA "wsl-stack") -Force | Out-Null
 New-Item -ItemType Directory -Path $env:APPDATA -Force | Out-Null
-$Root = if (Test-Path "D:\") { "D:\WSL" } else { Join-Path $Tmp "WSL" }
-# The fake instance lives where a real one would - under the root, so the
-# paths the commands derive from its folder (the archives folder, a copy's)
-# land where a real machine would put them.
+$Root = Join-Path $Tmp "WSL"
+Set-Content -Path (Join-Path $env:LOCALAPPDATA "wsl-stack\root.txt") -Value $Root -Encoding ascii
 $FakeFolder = Join-Path $Root $FakeName
 
 # The paths this suite writes, and takes back out in the end - names no real
 # machine carries. One of them already there means a run was stopped half way:
 # said, not cleaned - it is nobody else's to remove.
 $OurPaths = @(
+    (Join-Path $Root "copied-one"),
+    (Join-Path $Root "copied-two"),
     (Join-Path $Root "copied-one-export.tar.gz"),
     (Join-Path $Root "copied-two-export.tar.gz"),
     (Join-Path $Root $FakeName),
     (Join-Path $Root "restored-one"),
-    (Join-Path $Root "copied-one"),
-    (Join-Path $Root "copied-two"),
-    (Join-Path $Root "archives\$FakeName"),
-    (Join-Path $Root "archives\second-backup")
+    (Join-Path $Root "not a name!"),
+    (Join-Path $Root "archives\$ArchiveName")
 )
 $InTheWay = @($OurPaths | Where-Object { Test-Path $_ })
 if ($InTheWay.Count -gt 0) {
@@ -69,12 +71,13 @@ if ($InTheWay.Count -gt 0) {
     throw "a run of this suite was stopped half way - remove those paths, then run it again"
 }
 
-# For Get-Distros and the marker test: the list the commands themselves build.
-Import-Module (Join-Path $PSScriptRoot "..\src\windows\WslStack\WslStack.psd1") -Force
+# The entry, spelled the way a user's script spells it.
+$Entry = Join-Path $PSScriptRoot "..\wsl.ps1"
+$RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+$Assets = Join-Path $RepoRoot "assets"
+$distroTree = Join-Path $RepoRoot "src\distro"
+if (-not (Test-Path $distroTree)) { $distroTree = "" }
 
-$ArchiveScript = Join-Path $PSScriptRoot "..\src\windows\WslCommands\archive.ps1"
-$RestoreScript = Join-Path $PSScriptRoot "..\src\windows\WslCommands\restore.ps1"
-$DuplicateScript = Join-Path $PSScriptRoot "..\src\windows\WslCommands\duplicate.ps1"
 # Child processes follow the engine this suite runs under, so a pass under 7
 # tests the scripts under 7.
 $Engine = if ($PSVersionTable.PSEdition -eq "Core") { "pwsh" } else { "powershell" }
@@ -109,21 +112,15 @@ function Check {
 # The child's own exit code, beside its output: a refusal is a result too.
 $script:ChildExit = 0
 
-# The commands are driven through invoke-command.ps1: a fresh pwsh has nothing
-# loaded, and a command takes its manager as a parameter - the invoker loads
-# the module first, as wsl.ps1 does, and hands one over. For archive, restore
-# and duplicate, whose questions live in the console's conversation, the
-# invoker mounts the controller and asks it on standard input, then hands the
-# form - the entry's two roles.
-$Invoker = Join-Path $PSScriptRoot "invoke-command.ps1"
-
+# One command of the entry, in a fresh process - the answers on its standard
+# input, as a script would feed them.
 function Invoke-Child {
-    param([string]$Script, [string[]]$Answers)
+    param([string]$Word, [string[]]$Answers)
 
     $Preference = $ErrorActionPreference
     $ErrorActionPreference = "Continue"
     try {
-        $Lines = $Answers | & $Engine -NoProfile -File $Invoker -Script $Script 2>&1
+        $Lines = $Answers | & $Engine -NoProfile -File $Entry $Word 2>&1
         $script:ChildExit = $LASTEXITCODE
     } finally {
         $ErrorActionPreference = $Preference
@@ -147,23 +144,23 @@ function Get-FileText {
 }
 
 # The instance: a folder carrying the marker, the disk, the icon, and a look
-# with its recipe - the voyage items all start here.
+# in the shape the tree reads and writes - the Theme block of instance.json.
 New-Item -ItemType Directory -Path $FakeFolder -Force | Out-Null
 New-Item -ItemType File -Path (Join-Path $FakeFolder ".wsl-stack") -Force | Out-Null
 Set-Content -Path (Join-Path $FakeFolder "ext4.vhdx") -Value "fake-disk" -NoNewline
 Set-Content -Path (Join-Path $FakeFolder "terminal-icon.png") -Value "fake-icon" -NoNewline
 @{
-    Name          = $FakeName
-    Font          = "MesloLGS NF"
-    ColorScheme   = "One Half Dark"
-    IconFrom      = (Join-Path $FakeFolder "terminal-icon.png")
-    IconText      = "TR"
-    IconTop       = "#010203"
-    IconBottom    = "#040506"
-    IconTextColor = "#070809"
-    Dockerfile    = "D:\recipes\my-Dockerfile"
-    FirstBoot     = "D:\recipes\my-onboarding.sh"
-} | ConvertTo-Json | Set-Content -Path (Join-Path $FakeFolder "instance.json") -Encoding Utf8
+    DefaultUser = "qtest"
+    Theme       = @{
+        Font          = "MesloLGS NF"
+        ColorScheme   = "One Half Dark"
+        IconFrom      = (Join-Path $FakeFolder "terminal-icon.png")
+        IconText      = "TR"
+        IconTop       = "#010203"
+        IconBottom    = "#040506"
+        IconTextColor = "#070809"
+    }
+} | ConvertTo-Json -Depth 4 | Set-Content -Path (Join-Path $FakeFolder "instance.json") -Encoding Utf8
 
 # The WSL fragments a real import would leave behind: the guid Windows
 # Terminal knows a profile by. Without one the look is not re-applied, and
@@ -182,18 +179,18 @@ try {
     New-Item -Path $Key -Force | Out-Null
     Set-ItemProperty -Path $Key -Name DistributionName -Value $FakeName
     Set-ItemProperty -Path $Key -Name BasePath -Value $FakeFolder
-    # The WSL version the source runs as: the copy must import at it, so 1 -
-    # 2 would pass even if the code read nothing from the source.
-    Set-ItemProperty -Path $Key -Name Version -Value 1
 
     # Which number our instance is in the list the command draws - worked out
-    # with the same code, so the answer is right whatever else is installed.
-    $All = @(Get-Distros | Where-Object { Test-TemplateInstance -Folder $_.Path } | Sort-Object Name)
-    $Pick = [array]::IndexOf(@($All.Name), $FakeName) + 1
+    # with the same code the entry builds, so the answer is right whatever
+    # else is installed.
+    $root = [ServiceFactory]::ResolveRoot($Assets, $distroTree)
+    $service = [ServiceFactory]::CreateInstanceService($root, $Assets, $distroTree)
+    $rows = @($service.GetAll() | Where-Object { -not $_.IsArchive })
+    $Pick = [array]::IndexOf(@($rows.Name), $FakeName) + 1
     Check "the test's instance is in the list" ($Pick -ge 1) $true
 
-    $ArchiveDir = Join-Path $Root "archives\$FakeName"
-    $TarPath = Join-Path $ArchiveDir "$FakeName.tar.gz"
+    $ArchiveDir = Join-Path $Root "archives\$ArchiveName"
+    $TarPath = Join-Path $ArchiveDir "$ArchiveName.tar.gz"
     $Fragments = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-stack"
 
     # 0. restore with no archive anywhere: it says how to make one instead of
@@ -204,16 +201,16 @@ try {
     if ($ArchivesThere) {
         Write-Output "note: archives already under $ArchivesFolder - the empty-machine checks are skipped"
     } else {
-        $Out = Invoke-Child -Script $RestoreScript -Answers @("")
+        $Out = Invoke-Child -Word "restore" -Answers @("")
         Check "restore with no archives says what to do" (@($Out | Where-Object { "$_".Contains("Nothing to restore") }).Count -gt 0) $true
         Check "and ends on one" $script:ChildExit 1
     }
 
-    # 1. archive: the export is asked for by name and format, and the look is
-    # saved beside the tar, recipe included - a stopped instance is left
-    # stopped, the keep answer taking its default.
+    # 1. archive: the export is asked for by its own name - XX becomes
+    # XX_archive - and the look is saved beside the tar. A stopped instance is
+    # left stopped, the keep answer taking its default.
     Remove-Item $Log -Force -ErrorAction SilentlyContinue
-    $Out = Invoke-Child -Script $ArchiveScript -Answers @("$Pick", "", "")
+    $Out = Invoke-Child -Word "archive" -Answers @("$Pick", "")
     Check "archive exports the instance picked, as a tar.gz" (@(Get-Calls | Where-Object { $_ -eq "--export $FakeName $TarPath --format tar.gz" }).Count) 1
     Check "and says the backup is written" (@($Out | Where-Object { "$_".Contains("Backup of '$FakeName' written") }).Count -gt 0) $true
     Check "and leaves the instance stopped, the default of a stopped one" (@($Out | Where-Object { "$_".Contains("left stopped") }).Count -gt 0) $true
@@ -221,39 +218,33 @@ try {
 
     $Raw = Get-FileText (Join-Path $ArchiveDir "instance.json")
     $Saved = if ($Raw) { $Raw | ConvertFrom-Json } else { $null }
-    Check "the archive carries the icon recipe" "$($Saved.Recipe.Look.IconText)/$($Saved.Recipe.Look.IconTop)/$($Saved.Recipe.Look.IconBottom)/$($Saved.Recipe.Look.IconTextColor)" "TR/#010203/#040506/#070809"
-    Check "and names the archive after the instance" "$($Saved.Name)" $FakeName
-    Check "and the build recipe rides in too" "$($Saved.Recipe.BuildPath)/$($Saved.Recipe.FirstBoot)" "D:\recipes\my-Dockerfile/D:\recipes\my-onboarding.sh"
+    Check "the archive carries the look" "$($Saved.Theme.IconText)/$($Saved.Theme.IconTop)/$($Saved.Theme.IconBottom)/$($Saved.Theme.IconTextColor)" "TR/#010203/#040506/#070809"
     Check "and the icon itself waits beside the tar" (Test-Path (Join-Path $ArchiveDir "terminal-icon.png")) $true
 
-    # The same on a running instance: asked about, stopped only on the answer,
-    # the stop before the export, and back up after it - the instance puts
-    # itself back. The second archive's name is typed, not proposed.
+    # The same on a running instance: asked about, stopped on the answer, the
+    # stop before the export, and back up after it - the instance puts itself
+    # back. The same-name archive is replaced, and said.
     Remove-Item $Log -Force -ErrorAction SilentlyContinue
     Add-Content -Path $Log -Value "-d $FakeName --exec /bin/true"
-    $Out = Invoke-Child -Script $ArchiveScript -Answers @("$Pick", "", "second-backup", "")
+    $Out = Invoke-Child -Word "archive" -Answers @("$Pick", "")
     $Calls = Get-Calls
-    $SecondTar = Join-Path $Root "archives\second-backup\second-backup.tar.gz"
     Check "a running instance is stopped, on the answer" (@($Calls | Where-Object { $_ -eq "--terminate $FakeName" }).Count) 1
-    Check "and the stop comes before the export" ([array]::IndexOf($Calls, "--terminate $FakeName") -lt [array]::IndexOf($Calls, "--export $FakeName $SecondTar --format tar.gz")) $true
-    Check "and a typed name names the archive" (Test-Path $SecondTar) $true
-    Check "and it comes back up after the export" ([array]::IndexOf($Calls, "--export $FakeName $SecondTar --format tar.gz") -lt [array]::LastIndexOf($Calls, "-d $FakeName --exec /bin/true")) $true
+    Check "and the stop comes before the export" ([array]::IndexOf($Calls, "--terminate $FakeName") -lt [array]::IndexOf($Calls, "--export $FakeName $TarPath --format tar.gz")) $true
+    Check "and it comes back up after the export" ([array]::IndexOf($Calls, "--export $FakeName $TarPath --format tar.gz") -lt [array]::LastIndexOf($Calls, "-d $FakeName --exec /bin/true")) $true
+    Check "and the same-name archive is replaced, said" (@($Out | Where-Object { "$_".Contains("replacing") }).Count -gt 0) $true
     Check "and ends on zero" $script:ChildExit 0
 
     Remove-Item $Log -Force -ErrorAction SilentlyContinue
     Add-Content -Path $Log -Value "-d $FakeName --exec /bin/true"
-    $Out = Invoke-Child -Script $ArchiveScript -Answers @("$Pick", "n")
+    $Out = Invoke-Child -Word "archive" -Answers @("$Pick", "n")
     Check "answered n: nothing is exported" (@(Get-Calls | Where-Object { $_ -like "--export*" }).Count) 0
     Check "and nothing was modified" (@($Out | Where-Object { "$_".Contains("Operation cancelled by user") }).Count -gt 0) $true
 
-    # One archive left from here on: the restore scenarios pick a known one.
-    Remove-Item -Recurse -Force (Join-Path $Root "archives\second-backup") -ErrorAction SilentlyContinue
-
     # 2. restore: the tar goes in at version 2, the marker says who wrote it,
-    # and the look comes back - recipe, icon copied into the instance, fragment
+    # and the look comes back - icon copied into the instance, fragment
     # re-applied under the guid WSL gave the instance.
     Remove-Item $Log -Force -ErrorAction SilentlyContinue
-    $Out = Invoke-Child -Script $RestoreScript -Answers @("1", "restored-one")
+    $Out = Invoke-Child -Word "restore" -Answers @("1", "restored-one")
     $Install = Join-Path $Root "restored-one"
     Check "restore imports the tar it picked, as version 2" (@(Get-Calls | Where-Object { $_ -eq "--import restored-one $Install $TarPath --version 2" }).Count) 1
     Check "and says the instance came back" (@($Out | Where-Object { "$_".Contains("'restored-one' restored from an archive") }).Count -gt 0) $true
@@ -264,41 +255,42 @@ try {
 
     $Raw = Get-FileText (Join-Path $Install "instance.json")
     $Restored = if ($Raw) { $Raw | ConvertFrom-Json } else { $null }
-    Check "and the recipe comes back" "$($Restored.Recipe.Look.IconText)/$($Restored.Recipe.Look.IconTop)/$($Restored.Recipe.Look.IconBottom)/$($Restored.Recipe.Look.IconTextColor)" "TR/#010203/#040506/#070809"
-    Check "and the build recipe with it" "$($Restored.Recipe.BuildPath)/$($Restored.Recipe.FirstBoot)" "D:\recipes\my-Dockerfile/D:\recipes\my-onboarding.sh"
+    Check "and the recipe comes back" "$($Restored.Theme.IconText)/$($Restored.Theme.IconTop)/$($Restored.Theme.IconBottom)/$($Restored.Theme.IconTextColor)" "TR/#010203/#040506/#070809"
+    Check "and the default user with it" "$($Restored.DefaultUser)" "qtest"
     Check "and the icon is copied into the instance" (Test-Path (Join-Path $Install "terminal-icon.png")) $true
-    Check "and the file points at the instance's own icon" "$($Restored.Recipe.Look.IconFrom)" (Join-Path $Install "terminal-icon.png")
-    Check "and the look is reported re-applied" (@($Out | Where-Object { "$_".Contains("icon re-applied") }).Count -gt 0) $true
+    Check "and the file points at the instance's own icon" "$($Restored.Theme.IconFrom)" (Join-Path $Install "terminal-icon.png")
     Check "and the Terminal fragment carries the guid WSL gave it" ("$(Get-FileText (Join-Path $Fragments "restored-one.json"))".Contains("{11111111-2222-3333-4444-555555555555}")) $true
 
     # A name already registered, then a name whose folder exists: refused, said,
     # nothing imported. An empty answer cancels, an unusable name is refused.
-    $Out = Invoke-Child -Script $RestoreScript -Answers @("1", "$FakeName")
+    $Out = Invoke-Child -Word "restore" -Answers @("1", "$FakeName")
     Check "restore refuses a name already registered" (@($Out | Where-Object { "$_".Contains("already exists") }).Count -gt 0) $true
     Check "and ends on one" $script:ChildExit 1
 
-    $Out = Invoke-Child -Script $RestoreScript -Answers @("1", "restored-one")
+    $Out = Invoke-Child -Word "restore" -Answers @("1", "restored-one")
     Check "restore refuses a folder already taken" (@($Out | Where-Object { "$_".Contains("A folder with that name already exists") }).Count -gt 0) $true
     Check "and ends on one" $script:ChildExit 1
 
-    $Out = Invoke-Child -Script $RestoreScript -Answers @("1", "")
+    $Out = Invoke-Child -Word "restore" -Answers @("1", "")
     Check "an empty name cancels the restore" (@($Out | Where-Object { "$_".Contains("Operation cancelled by user") }).Count -gt 0) $true
     Check "and ends on zero" $script:ChildExit 0
 
-    $Out = Invoke-Child -Script $RestoreScript -Answers @("1", "not a name!")
+    # The name's rule is the model's and it speaks late: the refusal comes
+    # once the import has written the folder, which the end of the run takes
+    # back out.
+    $Out = Invoke-Child -Word "restore" -Answers @("1", "not a name!")
     Check "an unusable name is refused" (@($Out | Where-Object { "$_".Contains("not usable as an instance name") }).Count -gt 0) $true
     Check "and ends on one" $script:ChildExit 1
 
-    # 3. duplicate: an export to a temporary tar, an import of the copy at the
-    # source's own version, the temporary removed, and the look captured before
-    # the export landing on the copy.
+    # 3. duplicate: an export to a temporary tar, an import of the copy at
+    # version 2, the temporary removed, and the look landing on the copy.
     Remove-Item $Log -Force -ErrorAction SilentlyContinue
-    $Out = Invoke-Child -Script $DuplicateScript -Answers @("$Pick", "copied-one")
+    $Out = Invoke-Child -Word "duplicate" -Answers @("$Pick", "copied-one", "")
     $CopyDir = Join-Path $Root "copied-one"
     $TempTar = Join-Path $Root "copied-one-export.tar.gz"
     $Calls = Get-Calls
     Check "duplicate exports the source to a temporary tar" (@($Calls | Where-Object { $_ -eq "--export $FakeName $TempTar --format tar.gz" }).Count) 1
-    Check "and imports the copy at the source's own version" (@($Calls | Where-Object { $_ -eq "--import copied-one $CopyDir $TempTar --version 1" }).Count) 1
+    Check "and imports the copy, as version 2" (@($Calls | Where-Object { $_ -eq "--import copied-one $CopyDir $TempTar --version 2" }).Count) 1
     Check "and the temporary tar is removed" (Test-Path $TempTar) $false
     Check "and says what it made" (@($Out | Where-Object { "$_".Contains("'copied-one' is a copy of '$FakeName'") }).Count -gt 0) $true
     $Raw = Get-FileText (Join-Path $CopyDir ".wsl-stack")
@@ -308,33 +300,31 @@ try {
 
     $Raw = Get-FileText (Join-Path $CopyDir "instance.json")
     $Copy = if ($Raw) { $Raw | ConvertFrom-Json } else { $null }
-    Check "and the recipe travels to the copy" "$($Copy.Recipe.Look.IconText)/$($Copy.Recipe.Look.IconTop)/$($Copy.Recipe.Look.IconBottom)/$($Copy.Recipe.Look.IconTextColor)" "TR/#010203/#040506/#070809"
-    Check "and the build recipe with it" "$($Copy.Recipe.BuildPath)/$($Copy.Recipe.FirstBoot)" "D:\recipes\my-Dockerfile/D:\recipes\my-onboarding.sh"
-    Check "and the copy's icon points at its own folder" "$($Copy.Recipe.Look.IconFrom)" (Join-Path $CopyDir "terminal-icon.png")
+    Check "and the recipe travels to the copy" "$($Copy.Theme.IconText)/$($Copy.Theme.IconTop)/$($Copy.Theme.IconBottom)/$($Copy.Theme.IconTextColor)" "TR/#010203/#040506/#070809"
+    Check "and the copy's icon points at its own folder" "$($Copy.Theme.IconFrom)" (Join-Path $CopyDir "terminal-icon.png")
     Check "and the copy gets its own Terminal fragment" ("$(Get-FileText (Join-Path $Fragments "copied-one.json"))".Contains("{66666666-7777-8888-9999-000000000000}")) $true
 
     # A running source: asked, stopped on the answer, restarted once the copy
     # is registered - never before.
     Remove-Item $Log -Force -ErrorAction SilentlyContinue
     Add-Content -Path $Log -Value "-d $FakeName --exec /bin/true"
-    $Out = Invoke-Child -Script $DuplicateScript -Answers @("$Pick", "copied-two", "")
+    $Out = Invoke-Child -Word "duplicate" -Answers @("$Pick", "copied-two", "")
     $Calls = Get-Calls
     $Copy2Dir = Join-Path $Root "copied-two"
     $TempTar2 = Join-Path $Root "copied-two-export.tar.gz"
     Check "a running source is stopped, on the answer" (@($Calls | Where-Object { $_ -eq "--terminate $FakeName" }).Count) 1
     Check "and the stop comes before the export" ([array]::IndexOf($Calls, "--terminate $FakeName") -lt [array]::IndexOf($Calls, "--export $FakeName $TempTar2 --format tar.gz")) $true
-    Check "and the copy is registered once the source is read" (@($Calls | Where-Object { $_ -eq "--import copied-two $Copy2Dir $TempTar2 --version 1" }).Count) 1
-    Check "and the source comes back after that" ([array]::IndexOf($Calls, "--import copied-two $Copy2Dir $TempTar2 --version 1") -lt [array]::LastIndexOf($Calls, "-d $FakeName --exec /bin/true")) $true
-    Check "and says it is running again" (@($Out | Where-Object { "$_".Contains("'$FakeName' is running again") }).Count -gt 0) $true
+    Check "and the copy is registered once the source is read" (@($Calls | Where-Object { $_ -eq "--import copied-two $Copy2Dir $TempTar2 --version 2" }).Count) 1
+    Check "and the source comes back after that" ([array]::IndexOf($Calls, "--import copied-two $Copy2Dir $TempTar2 --version 2") -lt [array]::LastIndexOf($Calls, "-d $FakeName --exec /bin/true")) $true
     Check "and the second temporary tar is removed too" (Test-Path $TempTar2) $false
 
     Remove-Item $Log -Force -ErrorAction SilentlyContinue
     Add-Content -Path $Log -Value "-d $FakeName --exec /bin/true"
-    $Out = Invoke-Child -Script $DuplicateScript -Answers @("$Pick", "copied-three", "n")
+    $Out = Invoke-Child -Word "duplicate" -Answers @("$Pick", "copied-three", "n")
     Check "answered n: the source is not stopped" (@(Get-Calls | Where-Object { $_ -like "--terminate*" }).Count) 0
     Check "and nothing was modified" (@($Out | Where-Object { "$_".Contains("Operation cancelled by user") }).Count -gt 0) $true
 
-    $Out = Invoke-Child -Script $DuplicateScript -Answers @("$Pick", "$FakeName")
+    $Out = Invoke-Child -Word "duplicate" -Answers @("$Pick", "$FakeName", "")
     Check "duplicate refuses a name already taken" (@($Out | Where-Object { "$_".Contains("already exists") }).Count -gt 0) $true
     Check "and ends on one" $script:ChildExit 1
 } finally {

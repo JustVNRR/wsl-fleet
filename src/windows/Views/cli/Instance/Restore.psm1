@@ -8,6 +8,15 @@ using module ..\..\..\Dto\InstanceDto.psm1
 using module ..\..\..\Tools\Helpers.psm1
 
 class CliRestoreView : BaseViewCli {
+    # Rien à restaurer : le refus, peint ici une fois - le contrôleur l'a
+    # constaté avant d'ouvrir la question, et sort en faute.
+    [void] ShowNoArchives() {
+        Write-Host ""
+        Write-Host "[ABORT] There are no archives." -ForegroundColor $this.Colour("error")
+        Write-Host "        Nothing to restore:" -ForegroundColor $this.Colour("hint")
+        Write-Host "            - Create one with  .\wsl.ps1 archive" -ForegroundColor $this.Colour("hint")
+    }
+
     # Les questions du geste : l'archive (l'index reçu, ses lignes d'archives
     # d'abord — une ligne déjà désignée se reprend telle quelle), puis le nom
     # de l'instance rebâtie. Rien ne se pré-vérifie — un nom pris, un dossier
@@ -18,14 +27,6 @@ class CliRestoreView : BaseViewCli {
         $archiveName = $target
         if (-not $archiveName) {
             $Archives = @($rows | Where-Object { $_.IsArchive })
-            if ($Archives.Count -eq 0) {
-                Write-Host ""
-                Write-Host "[ABORT] There are no archives." -ForegroundColor $this.Colour("error")
-                Write-Host "        Nothing to restore:" -ForegroundColor $this.Colour("hint")
-                Write-Host "            - Create one with  .\wsl.ps1 archive" -ForegroundColor $this.Colour("hint")
-                return $null
-            }
-
             $Chosen = $this.AskList("Archives (most recent first):", $Archives, {
                 param($Entry)
                 "{0}  -  {1}" -f $Entry.Name, (Format-Size $Entry.Size)

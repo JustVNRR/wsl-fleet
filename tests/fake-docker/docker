@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Stand-in for docker, the sh spelling of docker.cmd beside it, for the hosts
+# where cmd does not run (the sandbox): the same answers, no network. build,
+# create, rm and rmi succeed; manifest refuses every name - the host-named
+# road of Test-RegistryImage; export writes a file that is not a tar, so the
+# import that follows fails on purpose.
+if [ "$1" = "manifest" ]; then
+    echo "no such manifest: $3"
+    exit 1
+fi
+if [ "$1" = "export" ]; then
+    # docker export -o <tar> <container>: the tar is the word after -o.
+    echo "not-a-tar" > "$3"
+    exit 0
+fi
+exit 0

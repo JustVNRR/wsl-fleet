@@ -337,12 +337,12 @@ jobs:
         shell: bash
         run: pwsh -NoProfile -File tests/parse-check.ps1
 
-      - name: The module's surface - every name a script calls is exported
+      - name: The CLI's surface - every gesture a method, every lookup a view
         if: always()
         shell: bash
         run: pwsh -NoProfile -File tests/module-surface-test.ps1
 
-      - name: The window's files - the XAML well-formed, the theme's keys, the runners pinned
+      - name: The window's files - the XAML, the theme's keys, every binding real, the runners pinned
         if: always()
         shell: bash
         run: pwsh -NoProfile -File tests/gui-test.ps1
@@ -357,15 +357,15 @@ jobs:
         shell: bash
         run: pwsh -NoProfile -File tests/menu-test.ps1 < tests/menu-test.answers
 
-      - name: The way in, driven by a scripted terminal
+      - name: The way in - the entry's two words, and the files behind them
         if: always()
         shell: bash
         run: pwsh -NoProfile -File tests/wslui-test.ps1
 
-      - name: The pack checklist, and what it applies
+      - name: The pack rules and moves, on a catalogue of the test's own
         if: always()
         shell: bash
-        run: pwsh -NoProfile -File tests/packs-select-test.ps1 < tests/packs-select-test.answers
+        run: pwsh -NoProfile -File tests/packs-select-test.ps1
 
       - name: build's questions, with a stand-in docker
         if: always()

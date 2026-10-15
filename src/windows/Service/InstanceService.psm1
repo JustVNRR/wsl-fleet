@@ -440,13 +440,15 @@ class InstanceService {
 
         $wasRunning = @($this.Wsl.GetRunningNames()) -contains $name
         $this.Wsl.Compact($name)
+        $restarted = $false
         if ($wasRunning) {
-            try { $this.Wsl.Start($name) } catch { }
+            try { $this.Wsl.Start($name); $restarted = $true } catch { }
         }
 
         $response = [CompactResponseDto]::new()
         $response.InstanceName = $name
         $response.Archived = $archived
+        $response.Restarted = $restarted
         return $response
     }
 
@@ -1176,6 +1178,9 @@ class InstanceService {
         # être.
         $code = $this.Wsl.CopyFolderIntoInstance($name, $this.Packs.GetFolder($pack.GetName()), $target)
         if ($code -ne 0) {
+            # Un dossier à moitié posé passerait pour une installation : il
+            # ressort, comme les autres échecs.
+            $null = $this.Wsl.RemoveFolderInInstance($name, $target)
             return [PSCustomObject]@{ Pack = $pack.GetName(); Step = "copy"; ExitCode = $code }
         }
 

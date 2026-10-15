@@ -53,7 +53,11 @@ class DockerRepository {
 
             $previousEAP = $global:ErrorActionPreference
             $global:ErrorActionPreference = "Continue"
-            $answer = @(& $curl.Path -s -o NUL -w "%{http_code}" -I $url 2>&1)
+            # The sink that says "this output is nothing": NUL on Windows,
+            # /dev/null elsewhere - the name a host without NUL would create
+            # as a file in the working folder.
+            $sink = if ("$env:OS" -eq "Windows_NT") { "NUL" } else { "/dev/null" }
+            $answer = @(& $curl.Path -s -o $sink -w "%{http_code}" -I $url 2>&1)
             $global:ErrorActionPreference = $previousEAP
             $http = "$($answer[-1])".Trim()
 

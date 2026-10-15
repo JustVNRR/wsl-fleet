@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Stand-in for curl, the sh spelling of curl.cmd beside it: the HEAD the Hub
+# door of Test-RegistryImage sends is answered here, with no network. One
+# reference is known - alpine:latest, which Hub keeps as library/alpine, tag
+# latest; anything else answers 404, the way Hub answers a name it does not
+# carry. Every other argument, -o and -w included, is ignored.
+url=""
+for a in "$@"; do
+    case "$a" in
+        *hub.docker.com/v2/repositories*) url="$a" ;;
+    esac
+done
+case "$url" in
+    *library/alpine/tags/latest*) echo "200" ;;
+    *) echo "404" ;;
+esac
+exit 0

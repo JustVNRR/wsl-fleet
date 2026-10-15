@@ -1,47 +1,112 @@
-# Drives the ask/apply pair - the checklist in the module's questions, the
-# applying in the module's pack moves - with no instance and no terminal.
+# Drives the pack machinery - the selection rules on the catalogue, the moves
+# on the service - with no instance and no terminal.
 #
-#   Select-Packs   is answered on standard input: with no console the numbered
-#                  prompt is what runs, and it reads its answers from there.
-#   ApplyPacks     has every move intercepted. The stand-in for
-#                  Invoke-InInstance is the one place where a pack touches the
-#                  instance - copy its folder in, run one of its scripts, take
-#                  the folder out, travel the cleanup - so recording the calls
-#                  there records the ORDER, which is the whole design: the
-#                  newcomer is installed BEFORE a remove.sh asks its question,
-#                  so a shared package is left where it is.
-#                  Get-InstanceHome is stubbed below, and inside the packs
-#                  and the model modules: the pack moves ask it directly, and
-#                  it would otherwise reach the machine.
+#   The catalogue   is asked directly: what a choice installs (a pack arrives
+#                   on top of what it requires, requirements first), what a
+#                   removal takes with it (an invisible pack follows its last
+#                   claimant), what it would break (a pack still required by a
+#                   standing one), and which family each pack is offered to.
+#                   The checklist question itself - the boxes, the numbered
+#                   answers, the console's refusal - lives in the views now;
+#                   the build's own checklist is driven end to end by
+#                   build-question-test.
+#   The service     is driven through ManagePacks with a stand-in WslRepository
+#                   recording every pack move - the one place a pack touches
+#                   the instance: copy its folder in, run a script behind the
+#                   door, take the folder out, travel the orphan cleanup. The
+#                   move names and their ORDER are the design: the newcomer is
+#                   placed BEFORE a remove.sh asks its question, so a shared
+#                   package is left where it is.
 #
-# Run it with tests\packs-select-test.answers on standard input: the answers,
-# one per line, in the order they are read - and in these exact counts, because
-# each scenario consumes its own:
-#   1, v, (empty)   one box ticked -> it and its requirement, requirement first
-#   3, v, (empty)   the installed box unticked -> one removal
-#   0               cancelled
-#   v               nothing checked, nothing installed: ONE answer, because
-#                   there is no list to confirm - which is the point of it
-#   1, v, n         the confirmation answered no
-#   v, (empty)      pre-checked, nothing installed
-#   v               a pack installed here that this checkout does not carry:
-#                   ONE answer, for the same reason as above
-#   2, v, (empty)   a requirement already installed -> only the ticked one travels
-#   2, v, (empty)   the claimant unticked -> it and the invisible one leave
-#   2, v, (empty)   a second claimant installed -> only the ticked one leaves
-#   v               an invisible pack among the pre-checked ones: ONE answer,
-#                   because it has no box and nothing else was ticked
-#   1, v            a visible pack unticked under a standing claimant - refused
-#   1, 2, v, (empty) both unticked -> the same answer goes through
-#   1, v, (empty)   the debian family: only the debian-family pack is shown
-#   1, v, (empty)   the fedora family: only the fedora-family pack is shown
+# No standard input is read any more: the old answers file is left alone.
 #
-#   powershell -File tests\packs-select-test.ps1 < tests\packs-select-test.answers
-#
-using module ..\src\windows\WslModel\WslModel.psd1
+# Usage:  pwsh -NoProfile -File tests\packs-select-test.ps1
+using module ..\src\windows\Model\WslPackCatalog.psm1
+using module ..\src\windows\Service\InstanceService.psm1
+using module ..\src\windows\Repository\WslRepository.psm1
+using module ..\src\windows\Repository\InstanceRepository.psm1
+using module ..\src\windows\Repository\PackCatalogRepository.psm1
+using module ..\src\windows\Dto\InstanceDto.psm1
 
-$ErrorActionPreference = "Stop"
-Import-Module (Join-Path $PSScriptRoot "..\src\windows\WslStack\WslStack.psd1") -Force
+# The instance's own side of the moves, faked whole: every pack move answers
+# here and is recorded here - the order of the record is what the scenes read.
+# The scripts' answers are scripted: $FailScript fails with $FailCode once
+# $FailAfter matching calls have gone through, and $HasRoot/$HasRemove say
+# whether the instance carries those files.
+class FakeWsl : WslRepository {
+    [System.Collections.Generic.List[string]]$Called
+    [string[]]$Installed = @()
+    [string]$Home = "/home/u"
+    [string]$FailScript = ""
+    [int]$FailCode = 1
+    [int]$FailAfter = 1
+    [int]$FailSeen = 0
+    [bool]$HasRoot = $true
+    [bool]$HasRemove = $true
+
+    FakeWsl() : base([System.IO.Path]::GetTempPath()) {
+        $this.Called = [System.Collections.Generic.List[string]]::new()
+    }
+
+    [string] GetHome([string]$instanceName) {
+        $this.Called.Add("home")
+        return $this.Home
+    }
+
+    [string[]] GetInstalledPacks([string]$instanceName, [string]$packsDirectory) {
+        $this.Called.Add("installed")
+        return @($this.Installed)
+    }
+
+    [int] CopyFolderIntoInstance([string]$instanceName, [string]$sourceFolder, [string]$target) {
+        $this.Called.Add("copy-to $target")
+        if ($this.FailScript -eq "copy") {
+            $this.FailSeen++
+            if ($this.FailSeen -ge $this.FailAfter) { return $this.FailCode }
+        }
+        $leaf = Split-Path -Leaf $target
+        if ($this.Installed -notcontains $leaf) { $this.Installed = @($this.Installed) + $leaf }
+        return 0
+    }
+
+    [bool] HasInInstance([string]$instanceName, [string]$path) {
+        $this.Called.Add("has $path")
+        if ($path -like "*install_root.sh") { return $this.HasRoot }
+        if ($path -like "*remove.sh") { return $this.HasRemove }
+        return $false
+    }
+
+    [int] RunScriptInInstance([string]$instanceName, [string]$workingDirectory, [string]$script, [bool]$asRoot, [string]$errorLog) {
+        $who = if ($asRoot) { "root" } else { "user" }
+        $this.Called.Add("script $workingDirectory $script $who")
+        if ($script -eq $this.FailScript) {
+            $this.FailSeen++
+            if ($this.FailSeen -ge $this.FailAfter) { return $this.FailCode }
+        }
+        return 0
+    }
+
+    [int] RemoveFolderInInstance([string]$instanceName, [string]$target) {
+        $this.Called.Add("rm-folder $target")
+        $leaf = Split-Path -Leaf $target
+        $this.Installed = @($this.Installed | Where-Object { $_ -ne $leaf })
+        return 0
+    }
+
+    [bool] OpenPackSudoWindow([string]$instanceName) {
+        $this.Called.Add("door-open")
+        return $true
+    }
+
+    [void] ClosePackSudoWindow([string]$instanceName) {
+        $this.Called.Add("door-close")
+    }
+
+    [bool] RunOrphanCleanup([string]$instanceName) {
+        $this.Called.Add("orphan-cleanup")
+        return $true
+    }
+}
 
 $Failures = 0
 function Check {
@@ -54,195 +119,139 @@ function Check {
     }
 }
 
+# The catalogue as the service builds it: the declarations are read from the
+# repository - the folder walk lives there - then posed on the rules.
+function New-Catalog {
+    param([string]$Root)
+    $catalog = [WslPackCatalog]::new()
+    $catalog.SetPacks(@([PackCatalogRepository]::new($Root).GetAllPacks()))
+    return $catalog
+}
+
+function New-PackRoot {
+    param([object[]]$Declarations)
+    $Root = Join-Path ([System.IO.Path]::GetTempPath()) ("packs-select-" + [Guid]::NewGuid().ToString("N"))
+    foreach ($Declaration in $Declarations) {
+        $Folder = Join-Path $Root $Declaration.Name
+        New-Item -ItemType Directory -Path $Folder -Force | Out-Null
+        $Conf = @("PACK_DESCRIPTION := $($Declaration.Description)")
+        if ($Declaration.Requires) { $Conf += "PACK_REQUIRES := $($Declaration.Requires)" }
+        if ($Declaration.Visible) { $Conf += "PACK_VISIBLE := $($Declaration.Visible)" }
+        if ($Declaration.Family) { $Conf += "PACK_FAMILY := $($Declaration.Family)" }
+        Set-Content -Path (Join-Path $Folder "pack.conf") -Value $Conf
+    }
+    return $Root
+}
+
 # The catalog, built from a packs folder of this test's own: five folders and
 # their declarations - gcp requires devops, python requires devops AND
 # scaffold - the two invisible ones, in no list, travelling with what requires
-# them. Their rows are absent from the checklist, which every numbered answer
-# below counts on: were one offered, the numbering would shift and every
-# scenario would answer about the wrong pack.
-#
-# Two of them, because a run can hold one and let the other go - and because
-# the requirements of one pack arrive in the order that pack names them. The
-# folder names sort the list, so the boxes are gcp, python, then vision.
-$PacksRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("packs-select-test-" + [Guid]::NewGuid().ToString("N"))
-$Declarations = @(
+# them. The folder names sort the list, so the boxes are gcp, python, vision.
+$PacksRoot = New-PackRoot @(
     @{ Name = "gcp";      Description = "Google Cloud CLI";    Requires = "devops" },
     @{ Name = "vision";   Description = "Image and OCR tools" },
     @{ Name = "python";   Description = "Python toolchain";    Requires = "devops scaffold" },
     @{ Name = "devops";   Description = "Project targets";     Visible = "no" },
     @{ Name = "scaffold"; Description = "Project scaffolding"; Visible = "no" }
 )
-foreach ($Declaration in $Declarations) {
-    $Folder = Join-Path $PacksRoot $Declaration.Name
-    New-Item -ItemType Directory -Path $Folder -Force | Out-Null
-    $Conf = @("PACK_DESCRIPTION := $($Declaration.Description)")
-    if ($Declaration.Requires) { $Conf += "PACK_REQUIRES := $($Declaration.Requires)" }
-    if ($Declaration.Visible) { $Conf += "PACK_VISIBLE := $($Declaration.Visible)" }
-    Set-Content -Path (Join-Path $Folder "pack.conf") -Value $Conf
-}
-$Catalog = [WslPackCatalog]::new($PacksRoot)
+$Catalog = New-Catalog $PacksRoot
 
-Write-Output "--- Select-Packs: what the checklist means ---"
+Write-Output "--- what the checkboxes mean ---"
 
 # 1. An installed pack arrives checked; ticking one more box adds it - with what
 #    it requires, and before it: gcp requires devops, and a pack is installed on
 #    top of what it needs.
-$Selection = Select-Packs -Title "T" -Catalog $Catalog -Installed @("vision")
 Check "one box ticked -> its requirement comes first, then it" `
-    ((($Selection.ToAdd | ForEach-Object { $_.Name }) -join ",") + " / " + ($Selection.ToRemove -join ",")) "devops,gcp / "
+    (($Catalog.ResolveSelection(@("gcp"), @("vision")) -join ",")) "devops,gcp"
 
 # 2. Unticking what is installed, with nothing else ticked, is a removal - and
-#    ONLY a removal. (The additions once came off the available packs instead of
-#    the ticked ones, so a run installed the pack nobody had asked for.)
-$Selection = Select-Packs -Title "T" -Catalog $Catalog -Installed @("vision")
+#    ONLY a removal.
 Check "unticking -> the pack leaves, the rest is NOT added" `
-    ((($Selection.ToAdd | ForEach-Object { $_.Name }) -join ",") + " / " + ($Selection.ToRemove -join ",")) " / vision"
+    ((($Catalog.ResolveSelection(@(), @("vision")) -join ",")) + " / " + ($Catalog.ResolveRemoval(@("vision"), @("vision"), @()) -join ",")) " / vision"
 
-# 3. Cancel is cancel.
-$Selection = Select-Packs -Title "T" -Catalog $Catalog -Installed @("vision")
-Check "cancelled -> nothing at all" ($null -eq $Selection) "True"
+# 3. Nothing checked and nothing installed is an ANSWER, not a cancellation:
+#    the two lists come back empty and the caller decides what that means.
+Check "an empty selection is empty, not a refusal" `
+    (($Catalog.ResolveSelection(@(), @()).Count + $Catalog.ResolveRemoval(@(), @(), @()).Count)) 0
 
-# 4. Nothing checked and nothing installed is an ANSWER, not a cancellation: the
-#    two lists come back empty and the caller decides what that means. (.Count
-#    answers 0 for $null too, so the $null test is the sharp one; the second
-#    check is what proves the list itself came back.)
-$Selection = Select-Packs -Title "T" -Catalog $Catalog -Installed @()
-Check "empty checklist is not a cancellation" ($null -eq $Selection) "False"
-Check "  ... and both lists are empty" `
-    ("$($Selection.ToAdd.Count)$($Selection.ToRemove.Count)") "00"
-
-# 5. "n" at the one confirmation is a cancellation too.
-$Selection = Select-Packs -Title "T" -Catalog $Catalog -Installed @("vision")
-Check "answered n -> nothing at all" ($null -eq $Selection) "True"
-
-# 6. Two different facts. What the instance HAS is not what arrives ticked: at
+# 4. Two different facts. What the instance HAS is not what arrives ticked: at
 #    build time the new instance has no pack yet (nothing can be removed), while
 #    the ticked boxes are the ones its predecessor carried.
-$Selection = Select-Packs -Title "T" -Catalog $Catalog -Installed @() -Checked @("vision")
 Check "pre-checked is not installed" `
-    ((($Selection.ToAdd | ForEach-Object { $_.Name }) -join ",") + " / " + ($Selection.ToRemove -join ",")) "vision / "
+    ((($Catalog.ResolveSelection(@("vision"), @()) -join ",")) + " / " + ($Catalog.ResolveRemoval(@(), @(), @()) -join ",")) "vision / "
 
-# 7. A pack installed in the instance that THIS checkout does not carry is not
+# 5. A pack installed in the instance that THIS checkout does not carry is not
 #    in the checklist, so nobody can have unchecked it - it must be left alone.
-#    (The first version read "installed and not ticked" and removed it without
-#    ever showing it.)
-$Selection = Select-Packs -Title "T" -Catalog $Catalog -Installed @("vision", "foreign")
-Check "a pack this checkout does not carry is left alone" ($Selection.ToRemove -join ",") ""
-Check "  ... and the answer is still an answer, not a cancellation" ($null -eq $Selection) "False"
+Check "a pack this checkout does not carry is left alone" `
+    (($Catalog.ResolveRemoval(@("vision", "foreign"), @(), @()) -join ",")) ""
 
 Write-Output ""
-Write-Output "--- Select-Packs: the packs nobody picks ---"
+Write-Output "--- the packs nobody picks ---"
 
-# 8. What the instance already carries is not installed a second time. devops is
+# 6. What the instance already carries is not installed a second time. devops is
 #    there, python is ticked, and the requirement already in place is not copied
 #    over itself - its install.sh does not run again. What is missing still
-#    arrives, and before the pack that requires it: scaffold, then python, in the
-#    order python's own declaration names them.
-$Selection = Select-Packs -Title "T" -Catalog $Catalog -Installed @("devops")
+#    arrives, and before the pack that requires it.
 Check "a requirement already installed is not installed again" `
-    ((($Selection.ToAdd | ForEach-Object { $_.Name }) -join ",") + " / " + ($Selection.ToRemove -join ",")) "scaffold,python / "
+    (($Catalog.ResolveSelection(@("python"), @("devops")) -join ",")) "scaffold,python"
 
-# 9. An invisible pack has no row, so nobody can untick it - it leaves when the
-#    last pack that requires it does, and in the same answer. python is the only
-#    claimant of the two it requires, so both follow it out.
-$Selection = Select-Packs -Title "T" -Catalog $Catalog -Installed @("python", "devops", "scaffold")
+# 7. An invisible pack has no box, so nobody can untick it - it leaves when the
+#    last pack that requires it does, and in the same answer.
 Check "the last claimant leaves -> the invisible ones go too" `
-    ((($Selection.ToAdd | ForEach-Object { $_.Name }) -join ",") + " / " + ($Selection.ToRemove -join ",")) " / python,devops,scaffold"
+    (($Catalog.ResolveRemoval(@("python", "devops", "scaffold"), @("python"), @()) -join ",")) "python,devops,scaffold"
 
-# 10. ... and one stays while an installed pack still requires it. That is the
-#     whole reason they are not offered: another claimant is there to hold it.
-#     gcp requires devops, and nothing requires scaffold: the same run holds one
-#     and lets the other go, which is what a single invisible pack cannot show.
-$Selection = Select-Packs -Title "T" -Catalog $Catalog -Installed @("python", "gcp", "devops", "scaffold")
+# 8. ... and one stays while an installed pack still requires it. That is the
+#    whole reason they are not offered: another claimant is there to hold it.
 Check "another claimant holds it -> it stays, and the other one goes" `
-    ((($Selection.ToAdd | ForEach-Object { $_.Name }) -join ",") + " / " + ($Selection.ToRemove -join ",")) " / python,scaffold"
-
-# 11. What an instance carried is not what the checklist shows: a predecessor
-#     that had an invisible pack must not bring it back through a tick nobody
-#     can see. It arrives with the pack that requires it, or not at all.
-$Selection = Select-Packs -Title "T" -Catalog $Catalog -Installed @() -Checked @("devops")
-Check "a checked invisible pack installs nothing" ($null -eq $Selection) "False"
-Check "  ... and both lists are empty" ("$($Selection.ToAdd.Count)$($Selection.ToRemove.Count)") "00"
+    (($Catalog.ResolveRemoval(@("python", "gcp", "devops", "scaffold"), @("python"), @()) -join ",")) "python,scaffold"
 
 Write-Output ""
-Write-Output "--- The refusal: a pack a standing pack requires does not leave ---"
+Write-Output "--- the refusal: a pack a standing pack requires does not leave ---"
 
 # A second catalog of its own: a shape the first one does not carry - a
 # VISIBLE pack that another visible one requires, which is what the guard is
-# about. The first catalog's scenarios answer by box number, so one more box
-# there would shift every answer; this root has its runs to itself.
-$PacksRoot2 = Join-Path ([System.IO.Path]::GetTempPath()) ("packs-select-guard-" + [Guid]::NewGuid().ToString("N"))
-$Declarations2 = @(
-    @{ Name = "oh_my_shell";    Description = "The shell" },
-    @{ Name = "python"; Description = "Python toolchain"; Requires = "oh_my_shell" },
-    @{ Name = "web";    Description = "Web tooling";      Requires = "oh_my_shell" }
+# about.
+$PacksRoot2 = New-PackRoot @(
+    @{ Name = "oh_my_shell"; Description = "The shell" },
+    @{ Name = "python";      Description = "Python toolchain"; Requires = "oh_my_shell" },
+    @{ Name = "web";         Description = "Web tooling";      Requires = "oh_my_shell" }
 )
-foreach ($Declaration in $Declarations2) {
-    $Folder = Join-Path $PacksRoot2 $Declaration.Name
-    New-Item -ItemType Directory -Path $Folder -Force | Out-Null
-    $Conf = @("PACK_DESCRIPTION := $($Declaration.Description)")
-    if ($Declaration.Requires) { $Conf += "PACK_REQUIRES := $($Declaration.Requires)" }
-    Set-Content -Path (Join-Path $Folder "pack.conf") -Value $Conf
-}
-$Guarded = [WslPackCatalog]::new($PacksRoot2)
+$Guarded = New-Catalog $PacksRoot2
 
 # The resolver reports what cannot leave, with the packs that hold it - and
 # the two directions at once: a standing claimant holds, one leaving with it
 # does not.
-$R = Resolve-PackSelection -Catalog $Guarded -Installed @("oh_my_shell", "python") -Kept @("python")
+$Conflicts = @($Guarded.GetRemovalConflicts(@("oh_my_shell", "python"), @("oh_my_shell"), @()))
 Check "a visible pack unticked under a standing claimant is a conflict" `
-    ("$($R.Conflicts.Name)/$($R.Conflicts.Blockers -join ',')") "oh_my_shell/python"
-Check "  ... and the rest of the selection still comes back" `
-    ("$($R.ToRemove -join ',')/$($R.ToAdd.Count)") "oh_my_shell/0"
+    ("$($Conflicts.Name)/$($Conflicts.Blockers -join ',')") "oh_my_shell/python"
 
-$R = Resolve-PackSelection -Catalog $Guarded -Installed @("oh_my_shell", "python") -Kept @()
-Check "both unticked -> both leave, nothing holds" ("$($R.Conflicts.Count)") "0"
+$Conflicts = @($Guarded.GetRemovalConflicts(@("oh_my_shell", "python"), @("oh_my_shell", "python"), @()))
+Check "both unticked -> both leave, nothing holds" ("$($Conflicts.Count)") "0"
 
-$R = Resolve-PackSelection -Catalog $Guarded -Installed @("oh_my_shell") -Kept @("web")
+$Conflicts = @($Guarded.GetRemovalConflicts(@("oh_my_shell"), @("oh_my_shell"), @("web")))
 Check "a claimant just arriving holds it too" `
-    ("$($R.Conflicts.Name)/$($R.Conflicts.Blockers -join ',')") "oh_my_shell/web"
+    ("$($Conflicts.Name)/$($Conflicts.Blockers -join ',')") "oh_my_shell/web"
 
 # The rule under the guard: a visible pack is NEVER taken along by the
 # cascade - only an invisible one leaves with the pack nothing requires any
 # more. Both sides of that line, on the same departure.
 Check "a visible pack is never cascaded out" `
-    (($Guarded.ResolveRemoval(@("oh_my_shell", "python"), @("python"), @())) -join ",") "python"
+    (($Guarded.ResolveRemoval(@("oh_my_shell", "python"), @("python"), @()) -join ",")) "python"
 Check "  ... where an invisible one follows its last claimant" `
     (($Catalog.ResolveRemoval(@("python", "devops"), @("python"), @())) -join ",") "python,devops"
 
-# The console's own refusal: the unticked box under a standing claimant
-# stops the question where it is instead of applying the rest of it.
-$Selection = Select-Packs -Title "T" -Catalog $Guarded -Installed @("oh_my_shell", "python")
-Check "the console refuses the answer" ($null -eq $Selection) "True"
-
-# ... and the same answer with the claimant unticked as well goes through:
-# the guard refuses a broken removal, never a removal.
-$Selection = Select-Packs -Title "T" -Catalog $Guarded -Installed @("oh_my_shell", "python")
-Check "both unticked -> the run goes through" `
-    ((($Selection.ToAdd | ForEach-Object { $_.Name }) -join ",") + " / " + ($Selection.ToRemove -join ",")) " / oh_my_shell,python"
-
 Write-Output ""
-Write-Output "--- The family: a pack is only offered where its apt lives ---"
+Write-Output "--- the family: a pack is only offered where its apt lives ---"
 
 # A third catalog, of three packs of two families: the filter reads
-# PACK_FAMILY (absent means debian), and the machine's own family - read from
-# its /etc/os-release - decides which one a question shows. Its shell pack is
-# Fedora's, so it is also what says the build's default stays unticked when
-# the shell is not the build's own family.
-$PacksRoot3 = Join-Path ([System.IO.Path]::GetTempPath()) ("packs-select-family-" + [Guid]::NewGuid().ToString("N"))
-$Declarations3 = @(
-    @{ Name = "alpha"; Description = "A Debian-family pack" },
-    @{ Name = "beta";  Description = "A Fedora-family pack"; Family = "fedora" },
-    @{ Name = "oh_my_shell";   Description = "A Fedora-family shell"; Family = "fedora" }
+# PACK_FAMILY (absent means debian), and the machine's own family decides
+# which one a question shows.
+$PacksRoot3 = New-PackRoot @(
+    @{ Name = "alpha";      Description = "A Debian-family pack" },
+    @{ Name = "beta";       Description = "A Fedora-family pack";   Family = "fedora" },
+    @{ Name = "oh_my_shell"; Description = "A Fedora-family shell"; Family = "fedora" }
 )
-foreach ($Declaration in $Declarations3) {
-    $Folder = Join-Path $PacksRoot3 $Declaration.Name
-    New-Item -ItemType Directory -Path $Folder -Force | Out-Null
-    $Conf = @("PACK_DESCRIPTION := $($Declaration.Description)")
-    if ($Declaration.Family) { $Conf += "PACK_FAMILY := $($Declaration.Family)" }
-    Set-Content -Path (Join-Path $Folder "pack.conf") -Value $Conf
-}
-$Familied = [WslPackCatalog]::new($PacksRoot3)
+$Familied = New-Catalog $PacksRoot3
 
 Check "a pack without PACK_FAMILY reads as debian" ($Familied.GetPack("alpha").Family) "debian"
 Check "a declared family is read" ($Familied.GetPack("beta").Family) "fedora"
@@ -253,219 +262,170 @@ Check "  ... and the fedora one the other" `
 Check "a machine that cannot say filters nothing" `
     (($Familied.OfferedFor("").Name) -join ",") "alpha,beta,oh_my_shell"
 
-# The build's default box: the shell pack every visible pack requires, and
-# only where its family is the build's own - a built image is Debian.
-Check "the build ticks the shell pack" ((Get-BuildDefaultPacks -Catalog $Guarded) -join ",") "oh_my_shell"
-Check "  ... and nothing when the shell is another family" ((Get-BuildDefaultPacks -Catalog $Familied) -join ",") ""
-Check "  ... or when the catalog carries no shell" ((Get-BuildDefaultPacks -Catalog $Catalog) -join ",") ""
-
-# What the checklist means on each family: the same boxes question, one pack
-# fewer - and a foreign-family pack, installed here or not, is in neither
-# list.
-$R = Resolve-PackSelection -Catalog $Familied -Installed @("beta") -Kept @() -Family "debian"
-Check "a foreign-family pack is not on the debian checklist" `
-    ("$($R.ToRemove -join ',')/$($R.ToAdd.Count)") "/0"
-
-$Selection = Select-Packs -Title "T" -Catalog $Familied -Installed @() -Family "debian"
-Check "the debian checklist offers the debian pack" `
-    (($Selection.ToAdd | ForEach-Object { $_.Name }) -join ",") "alpha"
-
-$Selection = Select-Packs -Title "T" -Catalog $Familied -Installed @() -Family "fedora"
-Check "the fedora checklist offers the fedora pack" `
-    (($Selection.ToAdd | ForEach-Object { $_.Name }) -join ",") "beta"
-
 Write-Output ""
-Write-Output "--- ApplyPacks: the order, and where a failure stops ---"
+Write-Output "--- the moves: the order, and where a failure stops ---"
 
-# The stand-in speaks on purpose: a returned value must not carry the output of
-# what was run to produce it - a pack's install once went silent into the
-# variable holding the answer. Every check that reads a returned value is
-# therefore also a check on where the output went.
-$script:Calls = @()
-$script:FailCommand = ""
-$script:FailCode = 1
-$script:FailAfter = 1
-$script:FailSeen = 0
-function Invoke-InInstance {
-    param([string]$DistroName, [string[]]$Command, [string]$WorkingDirectory, [ref]$ExitCode, [switch]$Quiet)
-    $Line = ($Command -join " ")
-    $Where = if ($WorkingDirectory) { $WorkingDirectory } else { "~" }
-    $script:Calls += "$Where :: $Line"
-    if (-not $Quiet) { Write-Output "INSTANCE-SAYS: $Line" }
-    if ($script:FailCommand -and $Line -like "$($script:FailCommand)*") {
-        $script:FailSeen++
-        if ($script:FailSeen -ge $script:FailAfter) { $ExitCode.Value = $script:FailCode } else { $ExitCode.Value = 0 }
-    } else { $ExitCode.Value = 0 }
-}
-# What the forced failure answers: 1 for a broken install, 2 for a pack that
-# asked and was told no - the first takes the pack back out as a failure, the
-# second as an answer, and the stand-in has to be able to say both. FailAfter:
-# the first (N-1) matching calls pass, so a pack before the failing one is
-# placed cleanly first.
-function Reset { $script:Calls = @(); $script:FailCommand = ""; $script:FailCode = 1; $script:FailAfter = 1; $script:FailSeen = 0 }
-function Commands { return @($script:Calls | ForEach-Object { ($_ -split " :: ", 2)[1] }) }
+# The catalog the moves read: fake-a and fake-b, nothing else.
+$ApplyRoot = New-PackRoot @(
+    @{ Name = "fake-a"; Description = "A fake pack" },
+    @{ Name = "fake-b"; Description = "Another fake pack" }
+)
 
-# The pack moves ask the instance for the user's home through wsl.exe directly
-# - outside the stand-in - and Enable-PackSudo reads the user name out of it.
-# Answered twice: here for whatever calls it from the script's side, and inside
-# the packs module, where the moves' own lookups start and this script's
-# functions are out of reach.
-function Get-InstanceHome { param([string]$DistroName) return "/home/u" }
-& ((Get-Module WslStack).NestedModules | Where-Object { $_.Name -eq 'WslStack.Packs' }) {
-    function Get-InstanceHome { param([string]$DistroName) return "/home/u" }
-}
-# The moves live on the instance now: its own lookups start inside the model
-# module, where this script's functions are out of reach just the same.
-& (Get-Module WslModel) {
-    function Get-InstanceHome { param([string]$DistroName) return "/home/u" }
+function New-Service {
+    param([FakeWsl]$Wsl)
+    $instances = [InstanceRepository]::new((Join-Path ([System.IO.Path]::GetTempPath()) ("packs-select-world-" + [Guid]::NewGuid().ToString("N"))))
+    New-Item -ItemType Directory -Path $instances.GetFolder("test") -Force | Out-Null
+    $packs = [PackCatalogRepository]::new($ApplyRoot)
+    return [InstanceService]::new($instances, $null, $Wsl, $null, $null, $packs, $null)
 }
 
-# The instance the moves act on: nothing but a name - no folder on disk,
-# so no error log is written, and the home it asks for is the stub's.
-$Inst = [WslInstance]::new()
-$Inst.SetName("test")
+function New-Dto {
+    param([string[]]$Add, [string[]]$Remove)
+    $dto = [ManagePacksDto]::new()
+    $dto.InstanceName = "test"
+    $dto.ToAdd = @($Add)
+    $dto.ToRemove = @($Remove)
+    return $dto
+}
 
-# The fake packs live on a drive letter of their own: the moves read their
-# source through the /mnt road, whose anchor is that letter. A machine that
-# already carries an X: keeps its own.
-if (-not (Test-Path "X:\")) { $null = New-PSDrive -Name X -PSProvider FileSystem -Root ([System.IO.Path]::GetTempPath()) }
-$Add = @([WslPack]::new("fake-a", "X:\packs\fake-a"))
 $Directory = "/home/u/.config/packs"
 
-Reset
-$Result = $Inst.ApplyPacks($Add, @("fake-b"))
+# The newcomer is placed BEFORE a removal asks its question, its install runs
+# BEFORE the removal, and the orphan cleanup travels LAST - the whole design
+# of a shared package left where it is.
+$Wsl = [FakeWsl]::new()
+$Wsl.Installed = @("fake-b")
+$Service = New-Service $Wsl
+$Result = $Service.ManagePacks((New-Dto -Add @("fake-a") -Remove @("fake-b")))
+$Calls = @($Wsl.Called)
 Check "the newcomer is placed BEFORE the removal asks its question" `
-    ($script:Calls.IndexOf("~ :: mkdir -p $Directory/fake-a") -lt
-     $script:Calls.IndexOf("~ :: test -f $Directory/fake-b/remove.sh")) "True"
+    ($Calls.IndexOf("copy-to $Directory/fake-a") -lt $Calls.IndexOf("has $Directory/fake-b/remove.sh")) $true
 Check "the install comes BEFORE the removal" `
-    ($script:Calls.IndexOf("$Directory/fake-a :: env LANG=C bash install.sh") -lt
-     $script:Calls.IndexOf("~ :: rm -rf $Directory/fake-b")) "True"
-Check "and the dependencies are taken back last" `
-    ((@($script:Calls[-3..-1] | ForEach-Object { ($_ -split " :: ", 2)[1] }) -join " | ")) `
-    "cp cleanup_orphans.sh /tmp/cleanup_orphans.sh | env LANG=C HOME=/home/u bash cleanup_orphans.sh | rm -f /tmp/cleanup_orphans.sh"
-Check "nothing failed" ($null -eq $Result) "True"
-Check "  ... and the instance's own words are not in the answer" ("$Result".Contains("INSTANCE-SAYS")) "False"
+    ($Calls.IndexOf("script $Directory/fake-a install.sh user") -lt $Calls.IndexOf("rm-folder $Directory/fake-b")) $true
+Check "and the orphan cleanup is taken last" `
+    ($Calls.IndexOf("rm-folder $Directory/fake-b") -lt $Calls.IndexOf("orphan-cleanup")) $true
+Check "and the run is ok" "$($Result.Outcome)" "ok"
+Check "  ... and the declared pair moved" "$(($Result.Installed -join ",") + "/" + ($Result.Removed -join ","))" "fake-a/fake-b"
 
-# The door the installs run behind: one rule, written through visudo's own
-# check, opened before them and removed after - and the rule names the user
-# the stub's home gives. The line carries a newline: printf writes whole lines.
-$DoorOpen = "bash -c printf '%s`n' 'u ALL=(ALL) NOPASSWD: ALL' > /tmp/wsl-stack-pack-sudo" +
-    " && chmod 0440 /tmp/wsl-stack-pack-sudo" +
-    " && visudo -cf /tmp/wsl-stack-pack-sudo > /dev/null" +
-    " && mv /tmp/wsl-stack-pack-sudo /etc/sudoers.d/90-wsl-stack-packs"
-$DoorClose = "rm -f /etc/sudoers.d/90-wsl-stack-packs"
-
-Reset
-$Result = $Inst.ApplyPacks($Add, @())
-Check "nothing to remove -> no removal, and no cleanup" `
-    ((Commands) -join " | ") "mkdir -p $Directory/fake-a | test -d /mnt/x/packs/fake-a | cp -r . $Directory/fake-a/ | sh -c find '$Directory/fake-a' -name '*.sh' -exec chmod +x {} + | test -f $Directory/fake-a/install_root.sh | env LANG=C HOME=/home/u bash install_root.sh | $DoorOpen | env LANG=C bash install.sh | $DoorClose"
-
-# The root half runs BEFORE the door, as WSL's own root: the door is a
-# sudoers rule, and the shell pack carries sudo itself - on a bare Debian its
-# root half must run where no door can open yet.
-Check "  ... and it ran before the door opened" `
-    ($script:Calls.IndexOf("$Directory/fake-a :: env LANG=C HOME=/home/u bash install_root.sh") -lt
-     $script:Calls.IndexOf("~ :: $DoorOpen")) "True"
+# The door the installs run behind: opened before the install, closed after -
+# and the root half runs BEFORE the door, where no door can open yet.
+$Wsl = [FakeWsl]::new()
+$Service = New-Service $Wsl
+$null = $Service.ManagePacks((New-Dto -Add @("fake-a") -Remove @()))
+$Calls = @($Wsl.Called)
+Check "the door opens before the install" ($Calls.IndexOf("door-open") -lt $Calls.IndexOf("script $Directory/fake-a install.sh user")) $true
+Check "and closes after it" ($Calls.IndexOf("script $Directory/fake-a install.sh user") -lt $Calls.IndexOf("door-close")) $true
+Check "  ... and the root half ran before the door opened" `
+    ($Calls.IndexOf("script $Directory/fake-a install_root.sh root") -lt $Calls.IndexOf("door-open")) $true
+Check "nothing to remove -> no removal, and no orphan cleanup" (@($Calls | Where-Object { $_ -eq "orphan-cleanup" }).Count) 0
 
 # A pack without a root half - claude is one - installs all the same.
-Reset
-$script:FailCommand = "test -f $Directory/fake-a/install_root.sh"
-$Result = $Inst.ApplyPacks($Add, @())
-Check "a pack without a root half skips it" `
-    (@($script:Calls | Where-Object { $_ -like "*install_root.sh*" }).Count) "1"
+$Wsl = [FakeWsl]::new()
+$Wsl.HasRoot = $false
+$Service = New-Service $Wsl
+$null = $Service.ManagePacks((New-Dto -Add @("fake-a") -Remove @()))
+$Calls = @($Wsl.Called)
+Check "a pack without a root half skips it" (@($Calls | Where-Object { $_ -like "*install_root.sh root" }).Count) 0
 Check "  ... and still runs its install behind the door" `
-    ($script:Calls.IndexOf("$Directory/fake-a :: env LANG=C bash install.sh") -gt
-     $script:Calls.IndexOf("~ :: $DoorOpen")) "True"
-Check "  ... nothing failed" ($null -eq $Result) "True"
+    ($Calls.IndexOf("script $Directory/fake-a install.sh user") -gt $Calls.IndexOf("door-open")) $true
 
 # A root half that fails stops everything before the door: no install.sh has
-# run, so every folder goes back out - and the door never opens.
-Reset
-$script:FailCommand = "env LANG=C HOME=/home/u bash install_root.sh"
-$Result = $Inst.ApplyPacks($Add, @())
-Check "a failed root half names the pack" "$($Result.Pack)/$($Result.ExitCode)" "fake-a/1"
-Check "  ... no install.sh ran" `
-    (@($script:Calls | Where-Object { $_ -like "*bash install.sh*" }).Count) "0"
-Check "  ... the door never opened" `
-    (@($script:Calls | Where-Object { $_ -like "*NOPASSWD*" }).Count) "0"
-Check "  ... and every folder went back out" `
-    (@($script:Calls | Where-Object { $_ -like "*rm -rf $Directory/fake-a*" }).Count) "1"
+# run, so the folder goes back out - and the door never opens.
+$Wsl = [FakeWsl]::new()
+$Wsl.FailScript = "install_root.sh"
+$Service = New-Service $Wsl
+$Result = $Service.ManagePacks((New-Dto -Add @("fake-a") -Remove @()))
+$Calls = @($Wsl.Called)
+Check "a failed root half names the pack" "$($Result.Failed)/$($Result.ExitCode)" "fake-a/1"
+Check "  ... no install.sh ran" (@($Calls | Where-Object { $_ -like "* install.sh user" }).Count) 0
+Check "  ... the door never opened" (@($Calls | Where-Object { $_ -eq "door-open" }).Count) 0
+Check "  ... and the folder went back out" (@($Calls | Where-Object { $_ -eq "rm-folder $Directory/fake-a" }).Count) 1
 
-Reset
-$script:FailCommand = "test -f"
-$Result = $Inst.ApplyPacks(@(), @("fake-b"))
+# A removal without a remove.sh: the folder leaves, no script runs, and the
+# cleanup travels all the same.
+$Wsl = [FakeWsl]::new()
+$Wsl.Installed = @("fake-b")
+$Wsl.HasRemove = $false
+$Service = New-Service $Wsl
+$null = $Service.ManagePacks((New-Dto -Add @() -Remove @("fake-b")))
+$Calls = @($Wsl.Called)
 Check "no remove.sh -> the folder leaves, no script runs" `
-    ((Commands) -join " | ") `
-    "test -f $Directory/fake-b/remove.sh | rm -rf $Directory/fake-b | cp cleanup_orphans.sh /tmp/cleanup_orphans.sh | env LANG=C HOME=/home/u bash cleanup_orphans.sh | rm -f /tmp/cleanup_orphans.sh"
+    ("$(($Calls | Where-Object { $_ -like "* remove.sh *" }).Count)/$(($Calls | Where-Object { $_ -eq 'rm-folder /home/u/.config/packs/fake-b' }).Count)/$(($Calls | Where-Object { $_ -eq 'orphan-cleanup' }).Count)") "0/1/1"
 
-Reset
-$script:FailCommand = "cp -r ."
-$Result = $Inst.ApplyPacks($Add, @("fake-b"))
-Check "a failed copy names the pack that stopped it" "$($Result.Pack)/$($Result.ExitCode)" "fake-a/1"
-Check "  ... and nothing else was touched" (@($script:Calls).Count) "4"
+# A failed copy names the pack that stopped it, and nothing else was touched.
+$Wsl = [FakeWsl]::new()
+$Wsl.Installed = @("fake-b")
+$Wsl.FailScript = "copy"
+$Service = New-Service $Wsl
+$Result = $Service.ManagePacks((New-Dto -Add @("fake-a") -Remove @("fake-b")))
+$Calls = @($Wsl.Called)
+Check "a failed copy names the pack that stopped it" "$($Result.Failed)/$($Result.ExitCode)" "fake-a/1"
+Check "  ... and nothing else was touched" (@($Calls | Where-Object { $_ -like "*fake-b*" }).Count) 0
 
-Reset
-$script:FailCommand = "env LANG=C bash install.sh"
-$Result = $Inst.ApplyPacks($Add, @())
-Check "a failed install takes the folder back out" "$($Result.Pack)/$($Result.ExitCode)" "fake-a/1"
-Check "  ... and the answer is one object, not that plus the output" (@($Result).Count) "1"
-Check "  ... after the failure, not before" `
-    ($script:Calls.IndexOf("~ :: rm -rf $Directory/fake-a") -gt
-     $script:Calls.IndexOf("$Directory/fake-a :: env LANG=C bash install.sh")) "True"
+# A failed install takes the folder back out - after the failure, not before.
+$Wsl = [FakeWsl]::new()
+$Wsl.FailScript = "install.sh"
+$Service = New-Service $Wsl
+$Result = $Service.ManagePacks((New-Dto -Add @("fake-a") -Remove @()))
+$Calls = @($Wsl.Called)
+Check "a failed install names the pack" "$($Result.Failed)/$($Result.ExitCode)" "fake-a/1"
+Check "  ... and its folder goes back out, after the failure" `
+    ($Calls.IndexOf("rm-folder $Directory/fake-a") -gt $Calls.IndexOf("script $Directory/fake-a install.sh user")) $true
 
 # Exit code 2 is a pack that asked a question and was told no, not a failure:
-# its folder goes back out (the menu reads the folder), but the run carries on -
-# no object naming a pack, no failure to explain, the other moves untouched.
-Reset
-$script:FailCommand = "env LANG=C bash install.sh"
-$script:FailCode = 2
-$Result = $Inst.ApplyPacks($Add, @())
-Check "a declined install is not a failure" ($null -eq $Result) "True"
-Check "  ... its folder goes back out" `
-    ($script:Calls.IndexOf("~ :: rm -rf $Directory/fake-a") -gt
-     $script:Calls.IndexOf("$Directory/fake-a :: env LANG=C bash install.sh")) "True"
+# its folder goes back out, but the run carries on - no failure to explain.
+$Wsl = [FakeWsl]::new()
+$Wsl.FailScript = "install.sh"
+$Wsl.FailCode = 2
+$Service = New-Service $Wsl
+$Result = $Service.ManagePacks((New-Dto -Add @("fake-a") -Remove @()))
+$Calls = @($Wsl.Called)
+Check "a declined install is not a failure" "$($Result.Outcome)/$(if (@($Result.Failed).Count -eq 0) { 'none' } else { $Result.Failed })" "ok/none"
+Check "  ... and its folder goes back out" `
+    ($Calls.IndexOf("rm-folder $Directory/fake-a") -gt $Calls.IndexOf("script $Directory/fake-a install.sh user")) $true
 
-Reset
-$script:FailCommand = "env LANG=C HOME=/home/u bash remove.sh"
-$Result = $Inst.ApplyPacks($Add, @("fake-b"))
-Check "a failed remove.sh names that pack" "$($Result.Pack)" "fake-b"
+# A failed remove.sh names that pack - and the newcomer was already installed,
+# the failure does not undo it, and both folders stay.
+$Wsl = [FakeWsl]::new()
+$Wsl.Installed = @("fake-b")
+$Wsl.FailScript = "remove.sh"
+$Service = New-Service $Wsl
+$Result = $Service.ManagePacks((New-Dto -Add @("fake-a") -Remove @("fake-b")))
+$Calls = @($Wsl.Called)
+Check "a failed remove.sh names that pack" "$($Result.Failed)" "fake-b"
 Check "  ... and the newcomer was already installed - the failure does not undo it" `
-    (@($script:Calls | Where-Object { $_ -like "*bash install.sh*" }).Count) "1"
-Check "  ... its folder stays, it is still installed" `
-    (@($script:Calls | Where-Object { $_ -like "*rm -rf $Directory/fake-b*" }).Count) "0"
-Check "  ... and it keeps its folder" `
-    (@($script:Calls | Where-Object { $_ -like "*rm -rf $Directory/fake-a*" }).Count) "0"
+    (@($Calls | Where-Object { $_ -eq "script $Directory/fake-a install.sh user" }).Count) 1
+Check "  ... and neither folder goes out" (@($Calls | Where-Object { $_ -like "rm-folder*" }).Count) 0
 
 # A failure stops the queue at its pack: the ones after it were never
 # touched - not even placed - so nothing of theirs is taken back, and the
 # failing pack's own folder is the only one that goes out.
-Reset
-$AddTwo = @(
-    [WslPack]::new("fake-a", "X:\packs\fake-a"),
-    [WslPack]::new("fake-b", "X:\packs\fake-b")
-)
-$script:FailCommand = "env LANG=C bash install.sh"
-$Result = $Inst.ApplyPacks($AddTwo, @())
+$Wsl = [FakeWsl]::new()
+$Wsl.Installed = @("fake-b")
+$Wsl.FailScript = "install.sh"
+$Service = New-Service $Wsl
+$Result = $Service.ManagePacks((New-Dto -Add @("fake-a", "fake-b") -Remove @("fake-b")))
+$Calls = @($Wsl.Called)
 Check "a failed install takes its own folder back out, and only it" `
-    ((@($script:Calls | Where-Object { $_ -like "*rm -rf*" }) | ForEach-Object { ($_ -split " :: ", 2)[1] }) -join " | ") `
-    "rm -rf $Directory/fake-a"
+    ((@($Calls | Where-Object { $_ -like "rm-folder*" }) -join " | ")) "rm-folder $Directory/fake-a"
 Check "  ... and the pack after it never ran" `
-    (@($script:Calls | Where-Object { $_ -like "*fake-b :: env LANG=C bash install.sh*" }).Count) "0"
-Check "  ... and the run names the pack that stopped it" "$($Result.Pack)/$($Result.ExitCode)" "fake-a/1"
+    (@($Calls | Where-Object { $_ -eq "script $Directory/fake-b install.sh user" }).Count) 0
+Check "  ... and the run names the pack that stopped it" "$($Result.Failed)/$($Result.ExitCode)" "fake-a/1"
 
 # A copy that fails takes its own half-done folder back out; the pack before
 # it is already installed and stays - a folder left behind, though, would
 # pass for an installation.
-Reset
-$script:FailCommand = "cp -r ."
-$script:FailAfter = 2
-$Result = $Inst.ApplyPacks($AddTwo, @())
+$Wsl = [FakeWsl]::new()
+$Wsl.FailScript = "copy"
+$Wsl.FailAfter = 2
+$Service = New-Service $Wsl
+$Result = $Service.ManagePacks((New-Dto -Add @("fake-a", "fake-b") -Remove @()))
+$Calls = @($Wsl.Called)
 Check "a failed copy takes its own folder back out, nothing before it" `
-    ((@($script:Calls | Where-Object { $_ -like "*rm -rf*" }) | ForEach-Object { ($_ -split " :: ", 2)[1] }) -join " | ") `
-    "rm -rf $Directory/fake-b"
-Check "  ... and the run names the pack that stopped it" "$($Result.Pack)/$($Result.ExitCode)" "fake-b/1"
+    ((@($Calls | Where-Object { $_ -like "rm-folder*" }) -join " | ")) "rm-folder $Directory/fake-b"
+Check "  ... and the run names the pack that stopped it" "$($Result.Failed)/$($Result.ExitCode)" "fake-b/1"
 
-Remove-Item -Recurse -Force $PacksRoot, $PacksRoot2, $PacksRoot3 -ErrorAction SilentlyContinue
+Remove-Item -Recurse -Force $PacksRoot, $PacksRoot2, $PacksRoot3, $ApplyRoot -ErrorAction SilentlyContinue
 
 Write-Output ""
 Write-Output ("failures: " + $Failures)

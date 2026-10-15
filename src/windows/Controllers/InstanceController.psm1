@@ -352,6 +352,12 @@ class InstanceController : BaseController {
     [ActionResult] Restore([string]$archiveName) {
         $rows = @($this.Service.GetAll())
         $view = $this.GetView("Restore")
+        # Rien à restaurer, et rien de nommé : le refus est un refus, pas une
+        # annulation - il sort en faute, comme celui de la liste vide.
+        if (-not $archiveName -and @($rows | Where-Object { $_.IsArchive }).Count -eq 0) {
+            $view.ShowNoArchives()
+            return [ActionResult]::Nok("Restore : there are no archives")
+        }
         $dto = $view.Ask($rows, $archiveName)
         if ($null -eq $dto) { return [ActionResult]::Ok("Restore : cancelled") }
         try {

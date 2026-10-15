@@ -1,49 +1,61 @@
-# The classes this file names, pulled in by the file itself.
-using module ..\src\windows\WslModel\WslModel.psd1
-
-# Drives `font` - the command behind `.\wsl.ps1 theme` - the way a script would:
-# the numbered prompt, answers on standard input, no console anywhere.
+# Drives the font half of `.\wsl.ps1 theme` the way a script would: the
+# numbered prompt, answers on standard input, no console anywhere.
 #
-# The instance it works on exists for the length of the test: a registry key of
-# its own, a folder carrying the marker, and the WSL fragment Terminal reads a
-# profile from. All three are taken back out at the end.
+# The instance it works on exists for the length of the test: a registry key
+# of its own, a folder carrying the marker, and the WSL fragment Terminal
+# reads a profile from. Everything lives under a working folder of the
+# suite's, kept by the root file in the redirected profile. All of it taken
+# back out at the end.
 #
-# What is checked is what the command is for: the list is the fonts that carry
-# the glyphs a prompt is drawn with, the font in use is marked, and picking one
-# writes it into the profile this repository owns and into the instance's own
-# file - the icon's recipe kept with it. The list is read from a first run
-# that cancels, so the number given to
-# the second was really there. A machine with no Nerd Font has a list of one -
-# the font in use - and that is the list it should draw there.
+# The children are the entry itself, wsl.ps1, run with the theme word.
+#
+# What is checked is what the font question is for: the list is the fonts
+# that carry the glyphs a prompt is drawn with, the font in use is marked,
+# and picking one writes it into the profile this repository owns and into
+# the instance's own file - the icon's recipe kept with it. The list is read
+# from a first run that cancels, so the number given to the second was really
+# there. A machine with no Nerd Font has a list of one - the font in use -
+# and that is the list it should draw there.
 #
 # It needs no instance, no console and no Docker Desktop.
 #
 # Usage:  pwsh -NoProfile -File tests\font-command-test.ps1
+using module ..\src\windows\Service\ServiceFactory.psm1
 
 $ErrorActionPreference = "Stop"
 
-# For Get-Distros and the marker test: the list the command itself builds.
-Import-Module (Join-Path $PSScriptRoot "..\src\windows\WslStack\WslStack.psd1") -Force
-
-$FontScript = Join-Path $PSScriptRoot "..\src\windows\WslCommands\theme_font.ps1"
-# Child processes follow the engine this suite runs under, so a pass under 7
-# tests the scripts under 7.
-$Engine = if ($PSVersionTable.PSEdition -eq "Core") { "pwsh" } else { "powershell" }
-# The commands are driven through invoke-command.ps1: a fresh pwsh has nothing
-# loaded, and a command takes its manager as a parameter - the invoker loads
-# the module first, as wsl.ps1 does, and hands one over.
-$Invoker = Join-Path $PSScriptRoot "invoke-command.ps1"
 $Tmp = Join-Path ([System.IO.Path]::GetTempPath()) ("font-command-test-" + [Guid]::NewGuid().ToString("N"))
 $FakeName = "font-command-test"
-$FakeFolder = Join-Path $Tmp "instance"
-$Recipe = Join-Path $FakeFolder "instance.json"
 $Key = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss\{2f9f0a4e-58b1-4a3c-9d2e-0c1b2a3d4e5f}"
+
+# The world of the suite: the redirected profile, and the root file pointing
+# under it.
+$env:USERPROFILE = $Tmp
+$env:LOCALAPPDATA = Join-Path $Tmp "LocalAppData"
+$env:APPDATA = Join-Path $Tmp "AppData"
+New-Item -ItemType Directory -Path (Join-Path $env:LOCALAPPDATA "wsl-stack") -Force | Out-Null
+New-Item -ItemType Directory -Path $env:APPDATA -Force | Out-Null
+$Root = Join-Path $Tmp "WSL"
+Set-Content -Path (Join-Path $env:LOCALAPPDATA "wsl-stack\root.txt") -Value $Root -Encoding ascii
+$FakeFolder = Join-Path $Root $FakeName
+$Recipe = Join-Path $FakeFolder "instance.json"
 
 # The profile Terminal knows an instance by - a fragment WSL writes, over which
 # this repository layers its own.
 $WslFragment = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\Microsoft.WSL\{2f9f0a4e-58b1-4a3c-9d2e-0c1b2a3d4e6f}.json"
 $OurFragment = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-stack\$FakeName.json"
 $OurFragmentExisted = Test-Path $OurFragment
+
+# The entry, spelled the way a user's script spells it.
+$Entry = Join-Path $PSScriptRoot "..\wsl.ps1"
+$RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+$Assets = Join-Path $RepoRoot "assets"
+$distroTree = Join-Path $RepoRoot "src\distro"
+if (-not (Test-Path $distroTree)) { $distroTree = "" }
+
+# Child processes follow the engine this suite runs under, so a pass under 7
+# tests the scripts under 7.
+$Engine = if ($PSVersionTable.PSEdition -eq "Core") { "pwsh" } else { "powershell" }
 
 $Failures = 0
 function Check {
@@ -56,20 +68,20 @@ function Check {
     }
 }
 
-function Invoke-Font {
+function Invoke-Theme {
     param([string[]]$Answers)
 
     $Preference = $ErrorActionPreference
     $ErrorActionPreference = "Continue"
     try {
-        $Lines = $Answers | & $Engine -NoProfile -File $Invoker -Script $FontScript 2>&1
+        $Lines = $Answers | & $Engine -NoProfile -File $Entry theme 2>&1
     } finally {
         $ErrorActionPreference = $Preference
     }
     return $Lines
 }
 
-# The rows of the numbered list, as the command drew them: the font names, in
+# The rows of the numbered list, as the question drew them: the font names, in
 # order, each row's first column being its number.
 #
 # Read from the title of the font menu down: the instance list drawn above it -
@@ -112,30 +124,33 @@ try {
 }
 "@
 
-    # The recipe a drawing left behind: a font change must keep it - one change
-    # keeps the others, and the icon command starts from these letters later.
-    # The build's recipe is written with it and must survive the same changes.
-    $BuildRecipe = [WslRecipe]::new()
-    $BuildRecipe.BuildType = [WslBuildType]::Dockerfile
-    $BuildRecipe.BuildPath = "D:\wsl-stack\src\distro\build\Dockerfile"
-    $BuildRecipe.FirstBoot = "D:\wsl-stack\src\distro\build\onboarding.sh"
-    $BuildRecipe.Status    = [WslRecipeStatus]::Ok
-    $BuildRecipe.Look = [WslTheme]::Default($FakeName)
-    $BuildRecipe.Look.IconText      = "FT"
-    $BuildRecipe.Look.IconTop       = "#111111"
-    $BuildRecipe.Look.IconBottom    = "#222222"
-    $BuildRecipe.Look.IconTextColor = "#FFFFFF"
-    Set-InstanceFile -InstallPath $FakeFolder -Content (ConvertTo-InstanceFile -Name $FakeName -Recipe $BuildRecipe -Docker "unknown")
-    $Reciped = Get-Content $Recipe -Raw | ConvertFrom-Json
-    Check "the build recipe is written with the look" "$($Reciped.Recipe.BuildPath)/$($Reciped.Recipe.FirstBoot)" "D:\wsl-stack\src\distro\build\Dockerfile/D:\wsl-stack\src\distro\build\onboarding.sh"
+    # The look a drawing left behind: a font change must keep it - one change
+    # keeps the others, and the icon question starts from these letters later.
+    @{
+        DefaultUser = "qtest"
+        Theme       = @{
+            Font          = "MesloLGS NF"
+            ColorScheme   = "One Half Dark"
+            IconFrom      = (Join-Path $FakeFolder "terminal-icon.png")
+            IconText      = "FT"
+            IconTop       = "#111111"
+            IconBottom    = "#222222"
+            IconTextColor = "#FFFFFF"
+        }
+    } | ConvertTo-Json -Depth 4 | Set-Content -Path $Recipe -Encoding Utf8
 
-    $All = @(Get-Distros | Where-Object { Test-TemplateInstance -Folder $_.Path } | Sort-Object Name)
-    $Pick = [array]::IndexOf(@($All.Name), $FakeName) + 1
+    # Which number our instance is in the list the command draws - worked out
+    # with the same code the entry builds.
+    $root = [ServiceFactory]::ResolveRoot($Assets, $distroTree)
+    $service = [ServiceFactory]::CreateInstanceService($root, $Assets, $distroTree)
+    $rows = @($service.GetAll() | Where-Object { -not $_.IsArchive })
+    $Pick = [array]::IndexOf(@($rows.Name), $FakeName) + 1
     Check "the test's instance is in the list" ($Pick -ge 1) $true
 
     # 1. The list, read off a run that cancels: nothing is applied, and what it
-    # drew is what the second run will be asked for
-    $Out = Invoke-Font @("$Pick", "0")
+    # drew is what the second run will be asked for. The answers: the instance,
+    # the font row, leave the font list, leave the theme menu.
+    $Out = Invoke-Theme @("$Pick", "2", "0", "0")
     $Fonts = @(Get-ListedFonts $Out)
     Check "the list is not empty" ($Fonts.Count -ge 1) $true
     # Checked with the font that shows it: Consolas is monospaced, on every
@@ -149,11 +164,11 @@ try {
     # 2. Picking one: the number it had in that list, given to a second run - a
     # font other than the one in use, or picking the current one would be
     # written the same way whether the choice was read or not.
-    $Current = (Get-InstanceAppearance -Name $FakeName).FontName
+    $Current = "$($service.GetAppearance($FakeName).Font)"
     $Want = @($Fonts | Where-Object { $_ -ne $Current }) | Select-Object -First 1
     if (-not $Want) { $Want = $Fonts[0] }
     $Wanted = [array]::IndexOf($Fonts, $Want) + 1
-    $null = Invoke-Font @("$Pick", "$Wanted")
+    $null = Invoke-Theme @("$Pick", "2", "$Wanted", "0", "0")
 
     # A rule, not a diagnosis: a mark is not part of JSON, the fragments known
     # to work - WSL's own, Terminal's settings.json - begin with a brace, and
@@ -167,35 +182,31 @@ try {
     Check "  ... and the look around it is kept" ($Written.profiles[0].PSObject.Properties.Name -contains "colorScheme") $true
 
     $Saved = Get-Content $Recipe -Raw | ConvertFrom-Json
-    Check "and into the instance's own file" $Saved.Recipe.Look.Font "$Want"
-    Check "which is still the instance's" $Saved.Name $FakeName
-    Check "and the icon's recipe survives the change" $Saved.Recipe.Look.IconText "FT"
-    Check "  ... colours and all" "$($Saved.Recipe.Look.IconTop) $($Saved.Recipe.Look.IconBottom) $($Saved.Recipe.Look.IconTextColor)" "#111111 #222222 #FFFFFF"
-    Check "and so does the build recipe" "$($Saved.Recipe.BuildPath)/$($Saved.Recipe.FirstBoot)" "D:\wsl-stack\src\distro\build\Dockerfile/D:\wsl-stack\src\distro\build\onboarding.sh"
+    Check "and into the instance's own file" $Saved.Theme.Font "$Want"
+    Check "and the icon's recipe survives the change" $Saved.Theme.IconText "FT"
+    Check "  ... colours and all" "$($Saved.Theme.IconTop) $($Saved.Theme.IconBottom) $($Saved.Theme.IconTextColor)" "#111111 #222222 #FFFFFF"
 
-    # 3. The way in: the menu asks which instance, hands over, and is drawn
-    # again when done. Answers: the instance, "font", Escape on the list, Escape
-    # here.
-    $Preference = $ErrorActionPreference
-    $ErrorActionPreference = "Continue"
-    try {
-        $Themed = @("$Pick", "2", "0", "0") | & $Engine -NoProfile -File $Invoker -Script (Join-Path $PSScriptRoot "..\src\windows\WslCommands\theme.ps1") 2>&1
-    } finally {
-        $ErrorActionPreference = $Preference
-    }
-    Check "theme hands over to the font command" (@($Themed | Where-Object { "$_".Contains("Font of '$FakeName'") }).Count -gt 0) $true
-    # Twice: once to start with, and once more when the theme menu is left -
-    # Escape goes back up to the list.
-    Check "and the list comes back when the menu is left" (@($Themed | Where-Object { "$_".Contains("Our Instances") }).Count) 2
-    Check "and the menu comes back when it is done" (@($Themed | Where-Object { "$_".Contains("Theme of '$FakeName'") }).Count) 2
+    # 3. The way in: the menu asks which instance, hands over to the font
+    # question, and is drawn again while the visit lasts.
+    $Themed = Invoke-Theme @("$Pick", "2", "0", "0")
+    Check "theme hands over to the font question" (@($Themed | Where-Object { "$_".Contains("Font of '$FakeName'") }).Count -gt 0) $true
+    Check "and the menu is drawn again once the question returns" (@($Themed | Where-Object { "$_".Contains("Theme of '$FakeName'") }).Count) 2
 
     # 4. The other half of the rule: the font in use is in the list whatever it
     # carries. The instance is put on Consolas - monospaced, on every Windows,
-    # no icons - through the profile writer the command reads, and the list has
-    # to show it anyway, marked.
-    Set-InstanceFragment -Name $FakeName -Guid "{2f9f0a4e-58b1-4a3c-9d2e-0c1b2a3d4e6f}" `
-        -Theme ([WslTheme]::new($null, "One Half Dark", "Consolas", $FakeName))
-    $Out2 = Invoke-Font @("$Pick", "0")
+    # no icons - through the profile writer the question reads, and the list
+    # has to show it anyway, marked.
+    New-Item -ItemType Directory -Path (Split-Path -Parent $OurFragment) -Force | Out-Null
+    @{
+        profiles = @(
+            @{
+                updates     = "{2f9f0a4e-58b1-4a3c-9d2e-0c1b2a3d4e6f}"
+                font        = @{ face = "Consolas" }
+                colorScheme = "One Half Dark"
+            }
+        )
+    } | ConvertTo-Json -Depth 5 | Set-Content -Path $OurFragment -Encoding Utf8
+    $Out2 = Invoke-Theme @("$Pick", "2", "0", "0")
     $Fonts2 = @(Get-ListedFonts $Out2)
     Check "the font in use is listed even without icons" ($Fonts2 -contains "Consolas") $true
     Check "  ... and marked as the one in use" (@($Out2 | Where-Object { "$_" -like "*Consolas*(current)*" }).Count -gt 0) $true

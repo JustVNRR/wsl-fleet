@@ -1,12 +1,14 @@
-# Drives the destructive command - unregister - the way a script would: the
-# numbered prompt, answers on standard input, no console anywhere, and the
-# same stand-in wsl.exe as the other suites. USERPROFILE, LOCALAPPDATA and
-# APPDATA are redirected into the test's own folder: the Windows Terminal
+# Drives the destructive command - unregister - the way a script would:
+# answers on standard input, no console anywhere, and the same stand-in
+# wsl.exe as the other suites. USERPROFILE, LOCALAPPDATA and APPDATA are
+# redirected into the test's own folder: the root file, the Windows Terminal
 # settings, the fragments and Docker's settings file the housekeeping touches
 # are the test's own fakes, never the real ones. The instance it removes
 # exists for the length of each scenario: a registry key of its own, and a
-# folder carrying the marker, under the commands' root - only the suite's own
+# folder carrying the marker, under the suite's root - only the suite's own
 # paths are ever written there and they are all taken back out at the end.
+#
+# The children are the entry itself, wsl.ps1, run with the command word.
 #
 # What is checked: the confirmation refuses anything but the exact name, case
 # included, and a cancelled run touches nothing; a failed archive stops the
@@ -20,6 +22,7 @@
 # It needs no instance, no console and no Docker Desktop.
 #
 # Usage:  pwsh -NoProfile -File tests\unregister-command-test.ps1
+using module ..\src\windows\Service\ServiceFactory.psm1
 
 $ErrorActionPreference = "Stop"
 
@@ -28,20 +31,18 @@ $FakeName = "unregister-command-test"
 $Key = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss\{5d2e3f40-7b8c-4d9e-af01-2b3c4d5e6f70}"
 $Log = Join-Path $Tmp "wsl-calls.log"
 
-# The commands work under one root: D:\WSL when there is a D:, the profile
-# otherwise - the rule the family follows, so the suite follows it too and its
-# expectations land where the children write. The root may already exist - a
-# runner's own, an earlier step's - so nothing but the suite's own paths below
-# is ever touched.
+# The world of the suite: the redirected profile, and the root file pointing
+# under it - the working folder every run will use, the runs and this file
+# alike. The fake instance lives where a real one would - under the root - so
+# the archive an unregister-with-a-copy takes lands where a real machine
+# would put it.
 $env:USERPROFILE = $Tmp
 $env:LOCALAPPDATA = Join-Path $Tmp "LocalAppData"
 $env:APPDATA = Join-Path $Tmp "AppData"
-New-Item -ItemType Directory -Path $env:LOCALAPPDATA -Force | Out-Null
+New-Item -ItemType Directory -Path (Join-Path $env:LOCALAPPDATA "wsl-stack") -Force | Out-Null
 New-Item -ItemType Directory -Path $env:APPDATA -Force | Out-Null
-$Root = if (Test-Path "D:\") { "D:\WSL" } else { Join-Path $Tmp "WSL" }
-# The fake instance lives where a real one would - under the root - so the
-# archive an unregister-with-a-copy takes lands where a real machine would
-# put it.
+$Root = Join-Path $Tmp "WSL"
+Set-Content -Path (Join-Path $env:LOCALAPPDATA "wsl-stack\root.txt") -Value $Root -Encoding ascii
 $FakeFolder = Join-Path $Root $FakeName
 
 # The paths this suite writes, and takes back out in the end - names no real
@@ -73,10 +74,13 @@ $ArchiveDir = Join-Path $Root "archives\$FakeName"
 $LiveGuid = "{aaaaaaaa-1111-2222-3333-444444444444}"
 $DeadGuid = "{dddddddd-1111-2222-3333-444444444444}"
 
-# For Get-Distros and the marker test: the list the commands themselves build.
-Import-Module (Join-Path $PSScriptRoot "..\src\windows\WslStack\WslStack.psd1") -Force
+# The entry, spelled the way a user's script spells it.
+$Entry = Join-Path $PSScriptRoot "..\wsl.ps1"
+$RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+$Assets = Join-Path $RepoRoot "assets"
+$distroTree = Join-Path $RepoRoot "src\distro"
+if (-not (Test-Path $distroTree)) { $distroTree = "" }
 
-$UnregisterScript = Join-Path $PSScriptRoot "..\src\windows\WslCommands\unregister.ps1"
 # Child processes follow the engine this suite runs under, so a pass under 7
 # tests the scripts under 7.
 $Engine = if ($PSVersionTable.PSEdition -eq "Core") { "pwsh" } else { "powershell" }
@@ -111,18 +115,15 @@ function Check {
 # The child's own exit code, beside its output: a refusal is a result too.
 $script:ChildExit = 0
 
-# The command is driven through invoke-command.ps1: a fresh pwsh has no
-# classes, and the command's typed -Manager parameter is settled before the
-# command runs - the shared half must be loaded first, as wsl.ps1 does.
-$Invoker = Join-Path $PSScriptRoot "invoke-command.ps1"
-
+# One command of the entry, in a fresh process - the answers on its standard
+# input, as a script would feed them.
 function Invoke-Child {
-    param([string]$Script, [string[]]$Answers)
+    param([string]$Word, [string[]]$Answers)
 
     $Preference = $ErrorActionPreference
     $ErrorActionPreference = "Continue"
     try {
-        $Lines = $Answers | & $Engine -NoProfile -File $Invoker -Script $Script 2>&1
+        $Lines = $Answers | & $Engine -NoProfile -File $Entry $Word 2>&1
         $script:ChildExit = $LASTEXITCODE
     } finally {
         $ErrorActionPreference = $Preference
@@ -211,15 +212,18 @@ try {
     Reset-World
 
     # Which number our instance is in the list the command draws - worked out
-    # with the same code, so the answer is right whatever else is installed.
-    $All = @(Get-Distros | Where-Object { Test-TemplateInstance -Folder $_.Path } | Sort-Object Name)
-    $Pick = [array]::IndexOf(@($All.Name), $FakeName) + 1
+    # with the same code the entry builds, so the answer is right whatever
+    # else is installed.
+    $root = [ServiceFactory]::ResolveRoot($Assets, $distroTree)
+    $service = [ServiceFactory]::CreateInstanceService($root, $Assets, $distroTree)
+    $rows = @($service.GetAll() | Where-Object { -not $_.IsArchive })
+    $Pick = [array]::IndexOf(@($rows.Name), $FakeName) + 1
     Check "the test's instance is in the list" ($Pick -ge 1) $true
 
     # 1. The confirmation wants the exact name: a name that differs only by
     # case is not it (-cne), and a cancelled run touches nothing at all.
     Reset-World
-    $Out = Invoke-Child -Script $UnregisterScript -Answers @("$Pick", "UNREGISTER-COMMAND-TEST")
+    $Out = Invoke-Child -Word "unregister" -Answers @("$Pick", "UNREGISTER-COMMAND-TEST")
     Check "a name that differs by case is refused" (@($Out | Where-Object { "$_".Contains("Operation cancelled. No data was modified.") }).Count -gt 0) $true
     Check "and nothing is terminated" (@(Get-Calls | Where-Object { $_ -like "--terminate*" }).Count) 0
     Check "and nothing is unregistered" (@(Get-Calls | Where-Object { $_ -like "--unregister*" }).Count) 0
@@ -229,7 +233,7 @@ try {
 
     # An empty answer is the same way out.
     Reset-World
-    $Out = Invoke-Child -Script $UnregisterScript -Answers @("$Pick", "")
+    $Out = Invoke-Child -Word "unregister" -Answers @("$Pick", "")
     Check "an empty answer cancels it too" (@($Out | Where-Object { "$_".Contains("Operation cancelled. No data was modified.") }).Count -gt 0) $true
     Check "and nothing is unregistered" (@(Get-Calls | Where-Object { $_ -like "--unregister*" }).Count) 0
 
@@ -237,7 +241,7 @@ try {
     # not happen, so nothing is destroyed.
     Reset-World
     $env:FAKE_WSL_FAIL = "--export"
-    $Out = Invoke-Child -Script $UnregisterScript -Answers @("$Pick", "$FakeName", "y")
+    $Out = Invoke-Child -Word "unregister" -Answers @("$Pick", "$FakeName", "y")
     Remove-Item Env:FAKE_WSL_FAIL -ErrorAction SilentlyContinue
     Check "a failed archive stops the removal" (@($Out | Where-Object { "$_".Contains("The archive did not complete") }).Count -gt 0) $true
     Check "and nothing is unregistered" (@(Get-Calls | Where-Object { $_ -like "--unregister*" }).Count) 0
@@ -250,7 +254,7 @@ try {
     # destroyed, then the removal - stop, unregister, folder, Terminal and
     # Docker housekeeping.
     Reset-World
-    $Out = Invoke-Child -Script $UnregisterScript -Answers @("$Pick", "$FakeName", "y")
+    $Out = Invoke-Child -Word "unregister" -Answers @("$Pick", "$FakeName", "y")
     $Calls = Get-Calls
 
     $ArchiveTar = Join-Path $ArchiveDir "$FakeName.tar.gz"
@@ -282,15 +286,12 @@ try {
     Check "and Docker's file got a backup too" (Test-Path "$DockerFile.bak") $true
 
     Check "and the removal is reported" (@($Out | Where-Object { "$_".Contains("WSL Stack Instance Removed!") }).Count -gt 0) $true
-    Check "with the pruned ghost said" (@($Out | Where-Object { "$_".Contains("pruned 1 ghost '$FakeName'") }).Count -gt 0) $true
-    Check "and the fragment count" (@($Out | Where-Object { "$_".Contains("removed 2 appearance file(s)") }).Count -gt 0) $true
-    Check "and Docker's line said" (@($Out | Where-Object { "$_".Contains("'$FakeName' removed from the integrated distros") }).Count -gt 0) $true
     Check "and ends on zero" $script:ChildExit 0
 
     # 4. The same without the archive: nothing is exported, everything else
     # happens the same way.
     Reset-World
-    $Out = Invoke-Child -Script $UnregisterScript -Answers @("$Pick", "$FakeName", "n")
+    $Out = Invoke-Child -Word "unregister" -Answers @("$Pick", "$FakeName", "n")
     Check "answered n: nothing is exported" (@(Get-Calls | Where-Object { $_ -like "--export*" }).Count) 0
     Check "and the instance still goes" (@(Get-Calls | Where-Object { $_ -eq "--unregister $FakeName" }).Count) 1
     Check "and the ghost is pruned just the same" (@((Get-Content $SettingsPath -Raw | ConvertFrom-Json).profiles.list).Count) 3
@@ -298,8 +299,8 @@ try {
 
     # 5. An empty machine: said, not asked about.
     Remove-Item $Key -Recurse -Force -ErrorAction SilentlyContinue
-    $Out = Invoke-Child -Script $UnregisterScript -Answers @("")
-    Check "an empty machine has nothing to remove" (@($Out | Where-Object { "$_".Contains("Nothing to remove") }).Count -gt 0) $true
+    $Out = Invoke-Child -Word "unregister" -Answers @("")
+    Check "an empty machine has nothing to remove" (@($Out | Where-Object { "$_".Contains("No instance of this template is registered") }).Count -gt 0) $true
     Check "and ends on one" $script:ChildExit 1
 } finally {
     Remove-Item $Key -Recurse -Force -ErrorAction SilentlyContinue

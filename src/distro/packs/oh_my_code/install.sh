@@ -41,7 +41,7 @@ else
         if read -r answer; then
             case "$answer" in
                 [nN]*)
-                    echo "Nothing was installed."
+                    echo "Installation cancelled."
                     exit 2
                     ;;
             esac

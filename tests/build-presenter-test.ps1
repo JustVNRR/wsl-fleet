@@ -139,8 +139,9 @@ class FakeBuildView {
             "dockerfile" { [WslBuildType]::Dockerfile }
             "image"      { [WslBuildType]::Image }
             "registry"   { [WslBuildType]::Registry }
+            "recipe"     { [WslBuildType]::Recipe }
         }
-        $label = if ($answer -eq "image") { "Docker image" } elseif ($answer -eq "registry") { "Docker registry" } else { "Dockerfile" }
+        $label = if ($answer -eq "image") { "Docker image" } elseif ($answer -eq "registry") { "Docker registry" } elseif ($answer -eq "recipe") { "Recipe" } else { "Dockerfile" }
         return [PSCustomObject]@{ Type = $type; Label = $label }
     }
 
@@ -174,8 +175,8 @@ class FakeBuildView {
         return $chosen
     }
 
-    [bool] AskRunOnboarding() {
-        $this.Orders.Add("onboarding-run")
+    [bool] AskRunOnboarding([bool]$defaultNo) {
+        $this.Orders.Add("onboarding-run default-no=$defaultNo")
         return $this.RunOnboarding
     }
 
@@ -383,7 +384,7 @@ try {
     Check "  ... a refused account is hinted, the empty takes the proposal" `
         (($view.Orders -join " | ").Contains("account-breath | user | hint-user | user | keep | register")) $true
     Check "  ... and the conversation in order" `
-        ($view.Orders -join " | ") "clear | name | clear | road dockerfile | source Dockerfile | clear | packs | onboarding-run | onboarding | account-breath | user | hint-user | user | keep | register"
+        ($view.Orders -join " | ") "clear | name | clear | road dockerfile | source Dockerfile | clear | packs | onboarding-run default-no=False | onboarding | account-breath | user | hint-user | user | keep | register"
     Check "  ... the builder called with the Dto's own shape" `
         (($docker.Called -join " | ") -like "running | build wsl-stack:bench-build*bench-b*") $true
     Check "  ... and the refusal painted" ($failureView.Orders -join " | ") "error the builder refused"
@@ -408,7 +409,79 @@ try {
     Check "  ... with the refusal's own words" `
         ($view.Orders -contains "abort No Docker image under 'assets\dockerimages'. / Upload one, or pick another road. / Nothing was modified.") $true
 
-    # 7. One row is the answer: no list is asked for it.
+    # 7. An empty assets folder brings the repository's own back: read from
+    # src\distro\build, returned by the questions, and written into the
+    # assets (the plain names, hash-less).
+    $EmptyAssets = Join-Path $World "empty-assets"
+    New-Item -ItemType Directory -Path $EmptyAssets -Force | Out-Null
+    $StagedDistro = Join-Path $World "staged-distro"
+    New-Item -ItemType Directory -Path (Join-Path $StagedDistro "build") -Force | Out-Null
+    Set-Content -Path (Join-Path $StagedDistro "build\Dockerfile") -Value "FROM debian:bookworm-slim"
+    Set-Content -Path (Join-Path $StagedDistro "build\Dockerfile.dockerignore") -Value "assets"
+    Set-Content -Path (Join-Path $StagedDistro "build\onboarding.sh") -Value "#!/bin/sh"
+    $SeedService = [InstanceService]::new($instances, $archives, $fake, $terminal, $docker, $packs, [ConfigRepository]::new($EmptyAssets, $StagedDistro))
+    $seed = [BuildPresenter]::new($SeedService, (New-ViewsRoot), "cli")
+    $seed.Views = @{ "Build" = $view; "Error" = $failureView }
+    Reset-BuildAnswers $view
+    $view.RoadAnswers = @("dockerfile")
+    $view.SourcePicks = @("Dockerfile")
+    $view.PackPicks = @("ESCAPE")
+    $view.RunOnboarding = $true
+    $view.BootPicks = @("onboarding")
+    $view.UserAnswers = @("bench-user")
+    $view.Orders.Clear()
+    $docker.Responsive = $false
+    $result = $seed.Run()
+    Check "an empty assets folder brings the repository's own back" `
+        ("$(Test-Path (Join-Path $EmptyAssets 'dockerfiles\Dockerfile\Dockerfile'))/$(Test-Path (Join-Path $EmptyAssets 'dockerfiles\Dockerfile\Dockerfile.dockerignore'))/$(Test-Path (Join-Path $EmptyAssets 'onboardings\onboarding\onboarding.sh'))") "True/True/True"
+    Check "  ... the onboarding question saw it" (($view.Orders -join " | ").Contains("onboarding")) $true
+    Check "  ... the single Dockerfile was taken without a question" (@($view.Orders | Where-Object { $_ -like "source*" }).Count) 0
+    Check "  ... the run went on to the docker gate" "$($result.Status)/$($result.Message)" "Nok/Build : Docker is not responding."
+    $index = $SeedService.GetBuildSources()
+    Check "  ... and the lists stay full on the next read" `
+        ("$(@($index.Dockerfiles).Count)/$(@($index.Onboardings).Count)") "1/1"
+
+    # 8. The recipe road: the folder is the context, its Dockerfile is what
+    # is built - and the onboarding is offered unchecked.
+    $RecipeAssets = Join-Path $World "recipe-assets"
+    $RecipeSlot = Join-Path $RecipeAssets "recipes\default-aaaa1111"
+    New-Item -ItemType Directory -Path $RecipeSlot -Force | Out-Null
+    Set-Content -Path (Join-Path $RecipeSlot "Dockerfile") -Value "FROM debian:bookworm-slim"
+    Set-Content -Path (Join-Path $RecipeSlot "resource.txt") -Value "sidecar"
+    New-Item -ItemType Directory -Path (Join-Path $RecipeAssets "onboardings\boot-aaaa") -Force | Out-Null
+    Set-Content -Path (Join-Path $RecipeAssets "onboardings\boot-aaaa\onboarding.sh") -Value "#!/bin/sh"
+    $RecipeService = [InstanceService]::new($instances, $archives, $fake, $terminal, $docker, $packs, [ConfigRepository]::new($RecipeAssets, ""))
+    $recipe = [BuildPresenter]::new($RecipeService, (New-ViewsRoot), "cli")
+    $recipe.Views = @{ "Build" = $view; "Error" = $failureView }
+    Reset-BuildAnswers $view
+    $view.RoadAnswers = @("recipe")
+    $view.SourcePicks = @("default")
+    $view.PackPicks = @("ESCAPE")
+    $view.RunOnboarding = $false
+    $view.Orders.Clear()
+    $docker.Called.Clear()
+    $docker.Responsive = $true
+    $result = $recipe.Run()
+    Check "the recipe road builds its Dockerfile with the folder as context" `
+        (($docker.Called -join " | ") -eq "running | build wsl-stack:bench-build $(Join-Path $RecipeSlot 'Dockerfile') $RecipeSlot") $true
+    Check "  ... the single recipe shown, not taken in silence" ($view.Orders -contains "source Recipe") $true
+    Check "  ... and the onboarding is offered unchecked" ($view.Orders -contains "onboarding-run default-no=True") $true
+    Check "  ... the keep question asked, the builder refusing" "$($result.Status)/$($result.Message)" "Nok/Build : bench-build - the builder refused"
+
+    # 9. A recipe without a Dockerfile is refused, said.
+    $EmptyRecipe = Join-Path $RecipeAssets "recipes\empty-feed1234"
+    New-Item -ItemType Directory -Path $EmptyRecipe -Force | Out-Null
+    Reset-BuildAnswers $view
+    $view.RoadAnswers = @("recipe")
+    $view.SourcePicks = @("empty")
+    $view.PackPicks = @("ESCAPE")
+    $view.Orders.Clear()
+    $failureView.Orders.Clear()
+    $result = $recipe.Run()
+    Check "a recipe without a Dockerfile is a fault" "$($result.Status)" "Nok"
+    Check "  ... said" (($failureView.Orders -join " | ") -like "*The recipe carries no Dockerfile*") $true
+
+    # 10. One row is the answer: no list is asked for it.
     $OneAssets = Join-Path $World "one-assets"
     New-Item -ItemType Directory -Path (Join-Path $OneAssets "dockerfiles\only-one") -Force | Out-Null
     Set-Content -Path (Join-Path $OneAssets "dockerfiles\only-one\Dockerfile") -Value "FROM debian:bookworm-slim"

@@ -11,14 +11,15 @@
                  les écritures au ViewModel (voir le .xaml.ps1). -->
             <TextBox Name="TxtName" Text="{Binding Name, Mode=OneWay}" Margin="0,6,0,0" Background="{DynamicResource AppInputBackgroundBrush}" Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="{DynamicResource AppBorderBrush}" Padding="4"/>
             <TextBlock Text="{Binding NameError}" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource AppDangerBrush}"/>
-            <TextBlock Name="LblUser" Margin="0,12,0,0" Text="User name:" IsEnabled="{Binding RunFirstBoot}"/>
-            <TextBox Name="TxtUser" Text="{Binding User, Mode=OneWay}" IsEnabled="{Binding RunFirstBoot}" Margin="0,6,0,0" Background="{DynamicResource AppInputBackgroundBrush}" Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="{DynamicResource AppBorderBrush}" Padding="4"/>
+            <TextBlock Name="LblUser" Margin="0,12,0,0" Text="User name:" IsEnabled="{Binding RunOnboarding}"/>
+            <TextBox Name="TxtUser" Text="{Binding User, Mode=OneWay}" IsEnabled="{Binding RunOnboarding}" Margin="0,6,0,0" Background="{DynamicResource AppInputBackgroundBrush}" Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="{DynamicResource AppBorderBrush}" Padding="4"/>
             <TextBlock Text="{Binding UserError}" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource AppDangerBrush}"/>
             <TextBlock Margin="0,12,0,0" Text="Build from:"/>
             <ComboBox Name="CmbRoad" SelectedIndex="{Binding RoadIndex, Mode=OneWay}" Margin="0,6,0,0">
                 <ComboBoxItem Content="Dockerfile"/>
                 <ComboBoxItem Content="Docker image"/>
                 <ComboBoxItem Content="Docker registry"/>
+                <ComboBoxItem Content="Recipe"/>
             </ComboBox>
             <StackPanel Name="BoxDockerfile">
                 <StackPanel.Style>
@@ -38,13 +39,15 @@
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <ComboBox Name="CmbDockerfile" ItemsSource="{Binding DockerfileNames}" SelectedIndex="{Binding DockerfileIndex, Mode=OneWay}" Grid.Column="0"/>
                     <Button Name="BtnDockerfileUpload" Grid.Column="1" Content="&#xF093;" FontFamily="{DynamicResource IconFace}" Margin="8,0,0,0" ToolTip="Upload a Dockerfile..."/>
                     <!-- IsEnabled lie directement : un Style incruste remplacerait
                          le style du theme (chrome Windows — mesure). -->
                     <Button Name="BtnDockerfileDownload" Grid.Column="2" Content="&#xF019;" FontFamily="{DynamicResource IconFace}" Margin="8,0,0,0" IsEnabled="{Binding CanDownloadDockerfile}" ToolTip="Save the selected Dockerfile..."/>
-                    <Button Name="BtnDockerfileDelete" Grid.Column="3" Content="&#xF1F8;" FontFamily="{DynamicResource IconFace}" Margin="8,0,0,0" IsEnabled="{Binding CanTrashDockerfile}" ToolTip="Delete the selected uploaded file"/>
+                    <Button Name="BtnDockerfileEdit" Grid.Column="3" Content="&#xF040;" FontFamily="{DynamicResource IconFace}" Margin="8,0,0,0" ToolTip="Edit the selected Dockerfile in the code editor"/>
+                    <Button Name="BtnDockerfileDelete" Grid.Column="4" Content="&#xF1F8;" FontFamily="{DynamicResource IconFace}" Margin="8,0,0,0" IsEnabled="{Binding CanTrashDockerfile}" ToolTip="Delete the selected uploaded file"/>
                 </Grid>
                 <CheckBox Name="ChkSaveImage" IsChecked="{Binding SaveImage, Mode=OneWay}" Margin="0,10,0,0" Content="Save image locally" Foreground="{DynamicResource AppForegroundBrush}"/>
             </StackPanel>
@@ -87,13 +90,20 @@
                 </StackPanel.Style>
                 <TextBlock Margin="0,10,0,0" Text="Registry image:"/>
                 <TextBox Name="TxtRegistry" Text="{Binding RegistryRef, Mode=OneWay}" Margin="0,6,0,0" Background="{DynamicResource AppInputBackgroundBrush}" Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="{DynamicResource AppBorderBrush}" Padding="4"/>
-                <TextBlock Margin="0,4,0,0" Text="e.g. alpine:latest - pulled by the build when the store does not carry it." Foreground="{DynamicResource AppMutedBrush}"/>
                 <TextBlock Text="{Binding RegistryError}" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource AppDangerBrush}"/>
             </StackPanel>
-            <CheckBox Name="ChkRegisterDocker" IsChecked="{Binding RegisterDocker, Mode=OneWay}" Margin="0,12,0,0" Content="Add to Docker Desktop (it will be restarted)" Foreground="{DynamicResource AppForegroundBrush}"/>
-            <CheckBox Name="ChkRunFirstBoot" IsChecked="{Binding RunFirstBoot, Mode=OneWay}" Margin="0,12,0,0" Content="Run onboarding shell" Foreground="{DynamicResource AppForegroundBrush}"/>
-            <StackPanel Name="BoxFirstBoot" IsEnabled="{Binding RunFirstBoot}">
-                <TextBlock Margin="0,10,0,0" Text="Onboarding:"/>
+            <StackPanel Name="BoxRecipe">
+                <StackPanel.Style>
+                    <Style TargetType="StackPanel">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding ShowRecipe}" Value="True">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </StackPanel.Style>
+                <TextBlock Margin="0,10,0,0" Text="Recipe:"/>
                 <Grid Margin="0,6,0,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
@@ -101,10 +111,31 @@
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    <ComboBox Name="CmbFirstBoot" ItemsSource="{Binding OnboardingNames}" SelectedIndex="{Binding OnboardingIndex, Mode=OneWay}" Grid.Column="0"/>
-                    <Button Name="BtnFirstBootUpload" Grid.Column="1" Content="&#xF093;" FontFamily="{DynamicResource IconFace}" Margin="8,0,0,0" ToolTip="Upload onboarding shell..."/>
-                    <Button Name="BtnFirstBootDownload" Grid.Column="2" Content="&#xF019;" FontFamily="{DynamicResource IconFace}" Margin="8,0,0,0" IsEnabled="{Binding CanDownloadOnboarding}" ToolTip="Save the selected onboarding shell..."/>
-                    <Button Name="BtnFirstBootDelete" Grid.Column="3" Content="&#xF1F8;" FontFamily="{DynamicResource IconFace}" Margin="8,0,0,0" IsEnabled="{Binding CanTrashOnboarding}" ToolTip="Delete the selected uploaded file"/>
+                    <ComboBox Name="CmbRecipe" ItemsSource="{Binding RecipeNames}" SelectedIndex="{Binding RecipeIndex, Mode=OneWay}" Grid.Column="0"/>
+                    <Button Name="BtnRecipeNew" Grid.Column="1" Content="&#xF067;" FontFamily="{DynamicResource IconFace}" Margin="8,0,0,0" ToolTip="Create a recipe..."/>
+                    <Button Name="BtnRecipeEdit" Grid.Column="2" Content="&#xF040;" FontFamily="{DynamicResource IconFace}" Margin="8,0,0,0" ToolTip="Open the recipe's folder in the code editor"/>
+                    <Button Name="BtnRecipeDelete" Grid.Column="3" Content="&#xF1F8;" FontFamily="{DynamicResource IconFace}" Margin="8,0,0,0" IsEnabled="{Binding CanTrashRecipe}" ToolTip="Delete the selected recipe"/>
+                </Grid>
+                <TextBlock Text="{Binding RecipeError}" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource AppDangerBrush}"/>
+                <CheckBox Name="ChkSaveImageRecipe" IsChecked="{Binding SaveImage, Mode=OneWay}" Margin="0,10,0,0" Content="Save image locally" Foreground="{DynamicResource AppForegroundBrush}"/>
+            </StackPanel>
+            <CheckBox Name="ChkRegisterDocker" IsChecked="{Binding RegisterDocker, Mode=OneWay}" Margin="0,12,0,0" Content="Add to Docker Desktop (it will be restarted)" Foreground="{DynamicResource AppForegroundBrush}"/>
+            <CheckBox Name="ChkRunOnboarding" IsChecked="{Binding RunOnboarding, Mode=OneWay}" Margin="0,12,0,0" Content="Run onboarding shell" Foreground="{DynamicResource AppForegroundBrush}"/>
+            <StackPanel Name="BoxOnboarding" IsEnabled="{Binding RunOnboarding}">
+                <TextBlock Margin="0,10,0,0" Text="Onboarding:"/>
+                <Grid Margin="0,6,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <ComboBox Name="CmbOnboarding" ItemsSource="{Binding OnboardingNames}" SelectedIndex="{Binding OnboardingIndex, Mode=OneWay}" Grid.Column="0"/>
+                    <Button Name="BtnOnboardingUpload" Grid.Column="1" Content="&#xF093;" FontFamily="{DynamicResource IconFace}" Margin="8,0,0,0" ToolTip="Upload onboarding shell..."/>
+                    <Button Name="BtnOnboardingDownload" Grid.Column="2" Content="&#xF019;" FontFamily="{DynamicResource IconFace}" Margin="8,0,0,0" IsEnabled="{Binding CanDownloadOnboarding}" ToolTip="Save the selected onboarding shell..."/>
+                    <Button Name="BtnOnboardingEdit" Grid.Column="3" Content="&#xF040;" FontFamily="{DynamicResource IconFace}" Margin="8,0,0,0" ToolTip="Edit the selected onboarding shell in the code editor"/>
+                    <Button Name="BtnOnboardingDelete" Grid.Column="4" Content="&#xF1F8;" FontFamily="{DynamicResource IconFace}" Margin="8,0,0,0" IsEnabled="{Binding CanTrashOnboarding}" ToolTip="Delete the selected uploaded file"/>
                 </Grid>
             </StackPanel>
         </StackPanel>

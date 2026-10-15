@@ -28,7 +28,8 @@ class CliBuildView : BaseViewCli {
         $roads = @(
             [PSCustomObject]@{ Type = [WslBuildType]::Dockerfile; Label = "Dockerfile" },
             [PSCustomObject]@{ Type = [WslBuildType]::Image;      Label = "Docker image" },
-            [PSCustomObject]@{ Type = [WslBuildType]::Registry;   Label = "Docker registry" }
+            [PSCustomObject]@{ Type = [WslBuildType]::Registry;   Label = "Docker registry" },
+            [PSCustomObject]@{ Type = [WslBuildType]::Recipe;     Label = "Recipe" }
         )
         $road = $this.AskList("Build from", $roads, { param($row) $row.Label }, "")
         if ($null -eq $road) { return "" }
@@ -91,10 +92,11 @@ class CliBuildView : BaseViewCli {
     }
 
     # L'onboarding : le oui d'abord, la liste ensuite — le blank et la porte
-    # ensemble, comme l'ancienne.
-    [bool] AskRunOnboarding() {
+    # ensemble, comme l'ancienne. Le défaut vient de la route : une recette
+    # arrive décochée (le onzième, le formulaire de la fenêtre en décide).
+    [bool] AskRunOnboarding([bool]$defaultNo) {
         Write-Host ""
-        return $this.Confirm("Run the onboarding shell?", $false)
+        return $this.Confirm("Run the onboarding shell?", $defaultNo)
     }
 
     [object] AskOnboarding([object[]]$boots) {

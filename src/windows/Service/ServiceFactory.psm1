@@ -20,7 +20,7 @@ class ServiceFactory {
             [TerminalRepository]::new($assets),
             [DockerRepository]::new($assets),
             [PackCatalogRepository]::new((Join-Path $assets "packs")),
-            [ConfigRepository]::new($assets)
+            [ConfigRepository]::new($assets, $distroTree)
         )
     }
 
@@ -40,7 +40,7 @@ class ServiceFactory {
         $instances = [InstanceRepository]::new($root)
         $archives = [ArchiveRepository]::new((Join-Path $root "archives"))
         $wsl = [WslRepository]::new($distroTree)
-        $config = [ConfigRepository]::new($assets)
+        $config = [ConfigRepository]::new($assets, $distroTree)
         $service = [InstanceService]::new(
             $instances, $archives, $wsl,
             [TerminalRepository]::new($assets),

@@ -164,7 +164,34 @@ class InstanceService {
         $response = [GetBuildSourcesResponseDto]::new()
         $response.Dockerfiles = @($this.FormatSourceRows(@($this.Config.GetDockerfiles())))
         $response.Onboardings = @($this.FormatSourceRows(@($this.Config.GetOnboardings())))
+        $response.Recipes = @($this.FormatSourceRows(@($this.Config.GetRecipes())))
         return $response
+    }
+
+    # A fresh recipe folder, created under the chosen name and returned as a
+    # list row - the same shape every other list carries.
+    [WslBuildSourceDto] CreateRecipe([NewRecipeDto]$dto) {
+        $target = $this.Config.CreateRecipe("$($dto.Name)".Trim())
+        $row = [PSCustomObject]@{
+            Name     = (Split-Path -Leaf $target)
+            Path     = $target
+            Modified = (Get-Item -LiteralPath $target).LastWriteTime
+            Family   = ""
+        }
+        return @($this.FormatSourceRows(@($row)))[0]
+    }
+
+    # A path opened in the code editor - the default one when it is on the
+    # PATH, the system default otherwise. A recipe hands its folder, the file
+    # lists their file. Nothing is read or written: what the user does in
+    # there is theirs.
+    [void] OpenInEditor([string]$path) {
+        $code = Get-Command code -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($code) {
+            Start-Process -FilePath $code.Path -ArgumentList "`"$path`""
+            return
+        }
+        Start-Process -FilePath $path
     }
 
     # Les lignes d'une liste de sources, mises en forme : le nom sans son hash
@@ -260,7 +287,12 @@ class InstanceService {
         # telle quelle.
         $tag = "wsl-stack:$name"
         $imageRef = $dto.BuildPath
-        if ($dto.BuildType -eq [WslBuildType]::Dockerfile) {
+        if ($dto.BuildType -in @([WslBuildType]::Dockerfile, [WslBuildType]::Recipe)) {
+            # A recipe is a Dockerfile build like the other road: the file
+            # inside the folder, the folder itself as the context.
+            if ($dto.BuildType -eq [WslBuildType]::Recipe -and -not (Test-Path -LiteralPath $dto.BuildPath -PathType Leaf)) {
+                throw "The recipe carries no Dockerfile: '$($dto.Context)'."
+            }
             $this.Docker.Build($tag, $dto.BuildPath, $dto.Context)
             $imageRef = $tag
         } elseif ($dto.BuildType -eq [WslBuildType]::Image) {
@@ -301,8 +333,8 @@ class InstanceService {
         # ouverture lise le compte qu'il a fait. Sans lui, l'image se garde
         # telle quelle : qui ouvre l'instance est ce que son /etc/wsl.conf dit.
         if ($dto.Onboarding) {
-            $this.Wsl.SaveFirstBootScript($name, $dto.Onboarding)
-            $this.Wsl.RunFirstBoot($name, $user)
+            $this.Wsl.SaveOnboardingScript($name, $dto.Onboarding)
+            $this.Wsl.RunOnboarding($name, $user)
             $this.Wsl.Terminate($name)
         } else {
             $imageUser = ""

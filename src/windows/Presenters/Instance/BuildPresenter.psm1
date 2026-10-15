@@ -71,28 +71,43 @@ class BuildPresenter : BasePresenter {
                 $view.ShowUnknownRegistry($reference, "$($verdict.Why)")
             }
         } else {
-            $rows = if ($road.Type -eq [WslBuildType]::Image) { @($images) } else { @($sources.Dockerfiles) }
+            $rows = if ($road.Type -eq [WslBuildType]::Image) { @($images) }
+                    elseif ($road.Type -eq [WslBuildType]::Recipe) { @($sources.Recipes) }
+                    else { @($sources.Dockerfiles) }
             if ($rows.Count -eq 0) {
                 if ($road.Type -eq [WslBuildType]::Image) {
                     $view.ShowAbort(@("No Docker image under 'assets\dockerimages'.", "Upload one, or pick another road.", "Nothing was modified."))
                     return [ActionResult]::Nok("Build : no Docker image")
                 }
+                if ($road.Type -eq [WslBuildType]::Recipe) {
+                    $view.ShowAbort(@("No recipe under 'assets\recipes'.", "Create one with the window's + button.", "Nothing was modified."))
+                    return [ActionResult]::Nok("Build : no recipe")
+                }
                 $view.ShowAbort(@("No Dockerfile under 'assets\dockerfiles'.", "Upload one, or delete that folder to get the repository's own back.", "Nothing was modified."))
                 return [ActionResult]::Nok("Build : no Dockerfile")
             }
 
-            # Une seule ligne est la réponse : demander laquelle d'une, c'est du bruit.
-            $picked = if ($rows.Count -eq 1) { $rows[0] } else { $view.AskSource("$($road.Label)", $rows) }
+            # One row is the answer on the two file roads; the recipe road
+            # shows its menu even for a single row - the name and the date it
+            # carries are what the user came to see.
+            $picked = if ($rows.Count -eq 1 -and $road.Type -ne [WslBuildType]::Recipe) { $rows[0] } else { $view.AskSource("$($road.Label)", $rows) }
             if (-not $picked) {
                 $view.ShowCancelled("modified")
                 return [ActionResult]::Ok("Build : cancelled")
             }
 
             $view.ClearScreen()
-            $buildPath = "$($picked.Path)"
-            if ($road.Type -eq [WslBuildType]::Dockerfile) {
-                $context = Split-Path -Parent $buildPath
+            if ($road.Type -eq [WslBuildType]::Recipe) {
+                # The folder is the context; its Dockerfile is what is built.
+                $context = "$($picked.Path)"
+                $buildPath = Join-Path $context "Dockerfile"
                 $family = "$($picked.Family)"
+            } else {
+                $buildPath = "$($picked.Path)"
+                if ($road.Type -eq [WslBuildType]::Dockerfile) {
+                    $context = Split-Path -Parent $buildPath
+                    $family = "$($picked.Family)"
+                }
             }
         }
 
@@ -119,25 +134,25 @@ class BuildPresenter : BasePresenter {
 
         # 4. L'onboarding — le premier des assets est proposé, la liste
         # choisit lequel ; sans aucun, c'est dit et la naissance continue.
-        $firstBoot = ""
+        $onboarding = ""
         $boots = @($sources.Onboardings)
         if ($boots.Count -eq 0) {
             $view.ShowNoOnboarding()
         } else {
-            if ($view.AskRunOnboarding()) {
+            if ($view.AskRunOnboarding($road.Type -eq [WslBuildType]::Recipe)) {
                 $picked = $view.AskOnboarding($boots)
                 if (-not $picked) {
                     $view.ShowCancelled("modified")
                     return [ActionResult]::Ok("Build : cancelled")
                 }
-                $firstBoot = "$($picked.Path)"
+                $onboarding = "$($picked.Path)"
             }
         }
 
         # 5. Le compte : l'onboarding le crée, donc il ne se demande qu'avec
         # un onboarding — le nom Windows est proposé quand il se nettoie en un.
         $user = ""
-        if ($firstBoot) {
+        if ($onboarding) {
             $proposal = "$env:USERNAME".ToLower()
             $proposal = $proposal.Normalize([Text.NormalizationForm]::FormD) -replace '\p{Mn}', ''
             $proposal = $proposal -replace '[^a-z0-9_-]+', '-'
@@ -160,7 +175,7 @@ class BuildPresenter : BasePresenter {
         # 6. Les deux dernières, tout en bas : ce que l'image de travail
         # devient (la route Dockerfile seule en a une), et Docker Desktop.
         $keep = $false
-        if ($road.Type -eq [WslBuildType]::Dockerfile) {
+        if ($road.Type -in @([WslBuildType]::Dockerfile, [WslBuildType]::Recipe)) {
             $keep = $view.AskKeepImage()
         }
         $register = $view.AskRegisterDocker($name)
@@ -173,7 +188,7 @@ class BuildPresenter : BasePresenter {
         $dto.BuildType = $road.Type
         $dto.BuildPath = $buildPath
         $dto.Context = $context
-        $dto.Onboarding = $firstBoot
+        $dto.Onboarding = $onboarding
         $dto.Packs = @($packNames)
         $dto.KeepImage = $keep
         $dto.RegisterDocker = $register

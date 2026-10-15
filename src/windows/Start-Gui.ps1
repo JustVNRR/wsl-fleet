@@ -98,7 +98,9 @@ $vm.Load()
 # racine, sain. La porte ensuite ne fait que chercher le type au guet,
 # comme la vue de base : son nom n'existe pas ici.
 Get-ChildItem -Path $WpfViews -Recurse -Filter "*.xaml.ps1" -File | ForEach-Object {
-    try { $null = Import-Module $_.FullName } catch {
+    # -ErrorAction Stop: without it, a failed import is a non-terminating
+    # error - the catch never fires and the view is missing in silence.
+    try { $null = Import-Module $_.FullName -ErrorAction Stop } catch {
         Write-Host "[WARN] The view '$($_.Name)' did not load: $($_.Exception.Message)" -ForegroundColor DarkYellow
     }
 }

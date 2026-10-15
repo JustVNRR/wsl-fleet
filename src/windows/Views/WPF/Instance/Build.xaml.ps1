@@ -70,7 +70,7 @@ class WpfBuildView : BaseViewWpf {
             if ($picked -ne $true) { return }
             $self.Vm.AddDockerfile($dialog.FileName)
         })
-        $this.Find("BtnFirstBootUpload").Add_Click({
+        $this.Find("BtnOnboardingUpload").Add_Click({
             $dialog = New-Object Microsoft.Win32.OpenFileDialog
             $dialog.Title = "An onboarding script for the build"
             $dialog.Filter = "Shell scripts (*.sh)|*.sh|All files (*.*)|*.*"
@@ -92,14 +92,24 @@ class WpfBuildView : BaseViewWpf {
         # Télécharger : le nom proposé par le ViewModel (celui du
         # téléversement), où l'utilisateur pointe.
         $this.Find("BtnDockerfileDownload").Add_Click({ $self.SaveOut("Dockerfiles") })
-        $this.Find("BtnFirstBootDownload").Add_Click({ $self.SaveOut("Onboardings") })
+        $this.Find("BtnOnboardingDownload").Add_Click({ $self.SaveOut("Onboardings") })
         $this.Find("BtnDockerImageDownload").Add_Click({ $self.SaveOut("DockerImages") })
+
+        # The edit buttons: the selected file, opened in the code editor.
+        $this.Find("BtnDockerfileEdit").Add_Click({ $self.Vm.EditSource("Dockerfiles") })
+        $this.Find("BtnOnboardingEdit").Add_Click({ $self.Vm.EditSource("Onboardings") })
 
         # La corbeille : la porte rouge d'abord (le graphisme demande), le
         # ViewModel retire ensuite, la liste suit.
         $this.Find("BtnDockerfileDelete").Add_Click({ $self.Trash("Dockerfiles", "Delete Dockerfile", "Dockerfiles") })
-        $this.Find("BtnFirstBootDelete").Add_Click({ $self.Trash("Onboardings", "Delete onboarding shell", "onboarding shells") })
+        $this.Find("BtnOnboardingDelete").Add_Click({ $self.Trash("Onboardings", "Delete onboarding shell", "onboarding shells") })
         $this.Find("BtnDockerImageDelete").Add_Click({ $self.Trash("DockerImages", "Delete Docker image", "Docker images") })
+
+        # The recipe: the + opens the name popup, the editor opens the folder,
+        # the trash goes through the same red door.
+        $this.Find("BtnRecipeNew").Add_Click({ $self.Vm.NewRecipe() })
+        $this.Find("BtnRecipeEdit").Add_Click({ $self.Vm.EditSource("Recipes") })
+        $this.Find("BtnRecipeDelete").Add_Click({ $self.Trash("Recipes", "Delete recipe", "recipes") })
 
         # Les saisies : les liens sont à sens unique — WPF lit ; les
         # écritures passent par ici, relayées aux méthodes du ViewModel qui
@@ -109,14 +119,17 @@ class WpfBuildView : BaseViewWpf {
         $this.Find("TxtRegistry").Add_TextChanged({ param($source, $e) $self.Vm.SetRegistryRef("$($source.Text)") })
         $this.Find("CmbRoad").Add_SelectionChanged({ param($source, $e) $self.Vm.SetRoad([int]$source.SelectedIndex) })
         $this.Find("CmbDockerfile").Add_SelectionChanged({ param($source, $e) $self.Vm.SetDockerfileIndex([int]$source.SelectedIndex) })
-        $this.Find("CmbFirstBoot").Add_SelectionChanged({ param($source, $e) $self.Vm.SetOnboardingIndex([int]$source.SelectedIndex) })
+        $this.Find("CmbOnboarding").Add_SelectionChanged({ param($source, $e) $self.Vm.SetOnboardingIndex([int]$source.SelectedIndex) })
         $this.Find("CmbDockerImage").Add_SelectionChanged({ param($source, $e) $self.Vm.SetImageIndex([int]$source.SelectedIndex) })
+        $this.Find("CmbRecipe").Add_SelectionChanged({ param($source, $e) $self.Vm.SetRecipeIndex([int]$source.SelectedIndex) })
         $this.Find("ChkSaveImage").Add_Checked({ param($source, $e) $self.Vm.SetSaveImage([bool]$source.IsChecked) })
         $this.Find("ChkSaveImage").Add_Unchecked({ param($source, $e) $self.Vm.SetSaveImage([bool]$source.IsChecked) })
+        $this.Find("ChkSaveImageRecipe").Add_Checked({ param($source, $e) $self.Vm.SetSaveImage([bool]$source.IsChecked) })
+        $this.Find("ChkSaveImageRecipe").Add_Unchecked({ param($source, $e) $self.Vm.SetSaveImage([bool]$source.IsChecked) })
         $this.Find("ChkRegisterDocker").Add_Checked({ param($source, $e) $self.Vm.SetRegisterDocker([bool]$source.IsChecked) })
         $this.Find("ChkRegisterDocker").Add_Unchecked({ param($source, $e) $self.Vm.SetRegisterDocker([bool]$source.IsChecked) })
-        $this.Find("ChkRunFirstBoot").Add_Checked({ param($source, $e) $self.Vm.SetRunFirstBoot([bool]$source.IsChecked) })
-        $this.Find("ChkRunFirstBoot").Add_Unchecked({ param($source, $e) $self.Vm.SetRunFirstBoot([bool]$source.IsChecked) })
+        $this.Find("ChkRunOnboarding").Add_Checked({ param($source, $e) $self.Vm.SetRunOnboarding([bool]$source.IsChecked) })
+        $this.Find("ChkRunOnboarding").Add_Unchecked({ param($source, $e) $self.Vm.SetRunOnboarding([bool]$source.IsChecked) })
 
         $this.Find("BtnAddCancel").Add_Click({ $self.Close() })
 

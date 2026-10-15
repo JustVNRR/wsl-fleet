@@ -14,6 +14,7 @@ using module ..\BaseViewWpf.psm1
 # viendra avec les packs ; son contrat, lui, ne bougera pas.
 class WpfBuildPacksView : BaseViewWpf {
     [object] Ask([string]$name, [string]$family, [object[]]$packs) {
+        $self = $this
         $this.Title = "Packs for the build"
         $this.SizeToContent = [System.Windows.SizeToContent]::WidthAndHeight
         $this.WindowStartupLocation = [System.Windows.WindowStartupLocation]::CenterScreen
@@ -50,11 +51,11 @@ class WpfBuildPacksView : BaseViewWpf {
         }
         & $Refresh
 
-        $this.Find("BtnPickCancel").Add_Click({ $this.Close() })
+        $this.Find("BtnPickCancel").Add_Click({ $self.Close() })
         $this.Find("BtnPickApply").Add_Click({
             $names = @($entries | Where-Object { $_.Check.IsChecked } | ForEach-Object { "$($_.Pack.Name)" })
-            $this.Result = @($names)
-            $this.Close()
+            $self.Result = @($names)
+            $self.Close()
         })
 
         $this.FitToContent($null)

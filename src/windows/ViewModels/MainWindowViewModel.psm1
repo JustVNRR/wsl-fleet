@@ -375,7 +375,7 @@ class MainWindowViewModel : BaseViewModel {
             $this.SetBusy($false, "")
             $this.ReRoot()
             $this.Load()
-            $this.SetStatus("Done - the fleet was reread.", $false)
+            $this.SetStatus("Done - the fleet was refreshed.", $false)
         }
     }
 

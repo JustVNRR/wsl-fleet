@@ -102,7 +102,10 @@ fi
 # is folded into the state file the settings name, so the commands you
 # already typed keep their history.
 if [ -e "$HOME/.zshrc" ]; then
-    if head -1 "$HOME/.zshrc" | grep -q '^# The shell starts bare'; then
+    # An empty file is the repository's stub as much as the old marker line
+    # was - both go, without the move and its note. The marker check stays
+    # for instances built before the stub went bare.
+    if [ ! -s "$HOME/.zshrc" ] || head -1 "$HOME/.zshrc" | grep -q '^# The shell starts bare'; then
         rm -f "$HOME/.zshrc"
     else
         mv -f "$HOME/.zshrc" "$HOME/.zshrc.before-zsh-pack"

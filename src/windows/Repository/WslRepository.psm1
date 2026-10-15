@@ -238,7 +238,7 @@ class WslRepository {
     # d'exécution, la ligne du .bashrc en dernier ; un shell root ouvert
     # entre-temps ne doit pas lancer un onboarding qui n'est pas encore
     # entier. Les chemins D:\... deviennent /mnt/d/... : la route des packs.
-    [void] SaveFirstBootScript([string]$instanceName, [string]$source) {
+    [void] SaveOnboardingScript([string]$instanceName, [string]$source) {
         $throughTheDrives = "/mnt/" + $source.Substring(0, 1).ToLower() + ($source.Substring(2) -replace "\\", "/")
         $exitCode = $this.RunInInstance($instanceName, "root", @(
             "sh", "-c",
@@ -256,7 +256,7 @@ class WslRepository {
     # attendrait aussi l'aide de WSL qu'une session laisse derrière. env
     # LANG=C pour la raison des scripts de packs : WSL tend la locale de
     # Windows, et l'onboarding installe ses propres outils dessous.
-    [void] RunFirstBoot([string]$instanceName, [string]$asUser) {
+    [void] RunOnboarding([string]$instanceName, [string]$asUser) {
         $arguments = '-d {0} -u root env LANG=C /root/onboarding.sh {1}' -f $instanceName, $asUser
         $process = Start-Process wsl.exe -ArgumentList $arguments -NoNewWindow -PassThru
         $process.WaitForExit()

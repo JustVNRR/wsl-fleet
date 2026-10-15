@@ -16,8 +16,18 @@ using module ..\Model\WpfTheme.psm1
 class ConfigRepository {
     hidden [string]$AssetsDir
 
+    # The distro tree, when this repository may seed from it: an empty
+    # build-recipe list falls back on the repository's own.
+    hidden [string]$DistroTree
+
     ConfigRepository([string]$assetsDir) {
         $this.AssetsDir = $assetsDir
+        $this.DistroTree = ""
+    }
+
+    ConfigRepository([string]$assetsDir, [string]$distroTree) {
+        $this.AssetsDir = $assetsDir
+        $this.DistroTree = $distroTree
     }
 
     # Les thèmes que la fenêtre peut porter : les fichiers sous assets\themes,
@@ -75,6 +85,17 @@ class ConfigRepository {
     # qui décide quels packs la checklist offre) ; la mise en forme d'écran se
     # fait au service.
     [object[]] GetDockerfiles() {
+        $rows = @($this.ReadDockerfileRows())
+        if ($rows.Count -eq 0) {
+            # An empty list brings the repository's own back: read from
+            # src\distro\build, written into the assets, returned.
+            $null = $this.WriteSeedRecipe("dockerfiles", "Dockerfile", "Dockerfile", "Dockerfile.dockerignore")
+            $rows = @($this.ReadDockerfileRows())
+        }
+        return @($rows)
+    }
+
+    hidden [object[]] ReadDockerfileRows() {
         $rows = @()
         foreach ($row in @($this.ReadSourceRows("dockerfiles", "Dockerfile"))) {
             $rows += [PSCustomObject]@{
@@ -111,9 +132,72 @@ class ConfigRepository {
         return $name
     }
 
-    # Les onboardings de même : assets\onboardings\<dossier>\onboarding.sh.
+    # Les onboardings de même : assets\onboardings\<dossier>\onboarding.sh —
+    # et une liste vide ramène celui du dépôt, lu de src\distro\build.
     [object[]] GetOnboardings() {
-        return @($this.ReadSourceRows("onboardings", "onboarding.sh"))
+        $rows = @($this.ReadSourceRows("onboardings", "onboarding.sh"))
+        if ($rows.Count -eq 0) {
+            $null = $this.WriteSeedRecipe("onboardings", "onboarding", "onboarding.sh", "")
+            $rows = @($this.ReadSourceRows("onboardings", "onboarding.sh"))
+        }
+        return @($rows)
+    }
+
+    # The recipes: one folder each under assets\recipes - the folder IS the
+    # context a recipe builds in, and its Dockerfile is what is built. A
+    # folder without a Dockerfile is still listed: the user builds it in
+    # place, and the build refuses it when the file is missing. The family,
+    # when a Dockerfile is there, filters the packs like a Dockerfile's own.
+    [object[]] GetRecipes() {
+        $root = Join-Path $this.AssetsDir "recipes"
+        if (-not (Test-Path $root)) { return @() }
+        $rows = @()
+        foreach ($slot in @(Get-ChildItem $root -Directory)) {
+            $rows += [PSCustomObject]@{
+                Name     = $slot.Name
+                Path     = $slot.FullName
+                Modified = $slot.LastWriteTime
+                Family   = $this.ReadRecipeFamily((Join-Path $slot.FullName "Dockerfile"))
+            }
+        }
+        return @($rows)
+    }
+
+    # A fresh recipe folder, created under the chosen name - the name plus a
+    # fingerprint of the moment, so two recipes of a name never collide. The
+    # folder comes back empty: the user fills it (the + popup only asks the
+    # name).
+    [string] CreateRecipe([string]$name) {
+        $fingerprint = [Guid]::NewGuid().ToString("N").Substring(0, 8)
+        $slot = Join-Path (Join-Path $this.AssetsDir "recipes") "$name-$fingerprint"
+        $null = New-Item -ItemType Directory -Path $slot -Force
+        return $slot
+    }
+
+    # The repository's own recipe, written into the assets when a list stood
+    # empty: the source file's plain name, hash-less, the slot a fresh
+    # checkout opens on. Nothing when the distro tree or the source is
+    # missing.
+    hidden [void] WriteSeedRecipe([string]$kind, [string]$slot, [string]$fileName, [string]$sibling) {
+        if (-not $this.DistroTree) { return }
+        $source = Join-Path $this.DistroTree "build\$fileName"
+        if (-not (Test-Path -LiteralPath $source)) { return }
+
+        $targetDir = Join-Path (Join-Path $this.AssetsDir $kind) $slot
+        $null = New-Item -ItemType Directory -Path $targetDir -Force
+        Copy-Item -LiteralPath $source -Destination (Join-Path $targetDir $fileName) -Force
+        # Stamped with now, like an upload: the list shows when the
+        # repository's own entered it.
+        (Get-Item -LiteralPath (Join-Path $targetDir $fileName)).LastWriteTime = Get-Date
+
+        # The Dockerfile's ignore file rides along, under the very name a
+        # builder reads beside a -f Dockerfile.
+        if ($sibling) {
+            $beside = Join-Path (Split-Path $source -Parent) $sibling
+            if (Test-Path -LiteralPath $beside) {
+                Copy-Item -LiteralPath $beside -Destination (Join-Path $targetDir $sibling) -Force
+            }
+        }
     }
 
     # Les lignes d'un dossier de sources — une par sous-dossier qui porte son
@@ -147,6 +231,9 @@ class ConfigRepository {
         $null = New-Item -ItemType Directory -Path $slot -Force
         $target = Join-Path $slot $fileName
         Copy-Item -LiteralPath $source -Destination $target -Force
+        # A copy carries the source file's date; the list shows when a
+        # recipe entered it - stamp the copy with now.
+        (Get-Item -LiteralPath $target).LastWriteTime = Get-Date
         if ($fileName -eq "Dockerfile") {
             $sibling = Join-Path ([IO.Path]::GetDirectoryName($source)) ".dockerignore"
             if (Test-Path $sibling) {
@@ -160,10 +247,15 @@ class ConfigRepository {
     # Le chemin doit vivre sous les dossiers des recettes : un chemin venu
     # d'ailleurs jette — on n'efface pas un dossier quelconque.
     [void] RemoveRecipe([string]$path) {
-        $slot = [System.IO.Path]::GetFullPath((Split-Path -Path $path -Parent))
+        # The path is a file inside the slot (a recipe, an uploaded file) or
+        # the slot itself (a recipe folder): both name the folder that goes.
+        $slot = [System.IO.Path]::GetFullPath($path)
+        if (-not (Test-Path -LiteralPath $slot -PathType Container)) {
+            $slot = [System.IO.Path]::GetFullPath((Split-Path -Path $path -Parent))
+        }
         $sep = [IO.Path]::DirectorySeparatorChar
         $under = $false
-        foreach ($kind in @("dockerfiles", "onboardings", "dockerimages")) {
+        foreach ($kind in @("dockerfiles", "onboardings", "dockerimages", "recipes")) {
             $root = [System.IO.Path]::GetFullPath((Join-Path $this.AssetsDir $kind))
             if ($slot.StartsWith($root.TrimEnd($sep) + $sep)) { $under = $true; break }
         }

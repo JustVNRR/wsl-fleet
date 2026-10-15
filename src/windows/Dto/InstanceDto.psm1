@@ -71,12 +71,18 @@ class WslBuildPackDto {
 class GetBuildSourcesResponseDto {
     [WslBuildSourceDto[]]$Dockerfiles = @()
     [WslBuildSourceDto[]]$Onboardings = @()
+    [WslBuildSourceDto[]]$Recipes = @()
 }
 
 # Une recette téléversée : quoi (le dossier des recettes), d'où vient le
 # fichier choisi, et sous quel nom dedans (Dockerfile, onboarding.sh, le tar
 # tel quel). UploadRecipe rend la ligne — nom d'écran, chemin, famille —
 # prête à poser dans la liste de la fenêtre.
+# The + button's payload: the name a fresh recipe folder is created under.
+class NewRecipeDto {
+    [string]$Name
+}
+
 class UploadRecipeDto {
     [string]$Kind
     [string]$Source
@@ -109,6 +115,7 @@ enum WslBuildType {
     Dockerfile
     Image
     Registry
+    Recipe
 }
 
 # La tambouille de la naissance : tout ce qu'il faut pour construire, rien du

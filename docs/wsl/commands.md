@@ -243,27 +243,26 @@ Folders left behind by an instance that is gone:
 
 ## `build`
 
-Builds a new instance from the rootfs image, asks for the user the instance
-will open as, walks you through the first-boot onboarding (password or
-passwordless sudo — the timezone comes from Windows), applies the Windows
-Terminal profile, and opens the fresh instance in a window of its own — look
-included; the build's console closes with the run.
+Builds a new instance from the rootfs image, walks you through the questions —
+the name, the road and its source, the packs the instance should start with,
+the onboarding and the account — closes on the two last ticks, applies the
+Windows Terminal profile, and opens the fresh instance in a shell of its own;
+the console's gesture ends with the run.
 
 ```powershell
 .\wsl.ps1 build
 ```
 
-It asks for the name, for the folder, for the user the instance will open as,
-and — when this checkout carries packs — which of them the instance should
-start with. Options name the **recipe** — a Dockerfile, an uploaded
-Docker image, *or* a registry name, plus the first_boot — and without them
-the road is asked, each road then offering what it has (the window's form,
-`gui`, offers the same three behind its toggle):
+The console takes no options: everything is asked. The window's form (`gui`)
+answers the same questions, the three roads behind its toggle and the same
+lists beneath it.
 
-```powershell
-.\wsl.ps1 build -Dockerfile <path> -FirstBoot <path>
-.\wsl.ps1 build -Image <path-to.tar> -FirstBoot <path>
-.\wsl.ps1 build -Registry alpine:latest -FirstBoot <path>
+```text
+Name of the instance (CTRL+C to abort): ubuntu-ml-dev
+Build from
+  > 1. Dockerfile
+    2. Docker image
+    3. Docker registry
 ```
 
 The **Dockerfile** is what the image is built from: `docker build -f` with
@@ -284,20 +283,18 @@ Docker put it.
 The **registry** name is the third road: any image a registry knows,
 `alpine:latest` or `debian:12`, pulled by the build itself when the local
 store does not carry it (`docker create` fetches it). The name is checked
-against the registry before anything else is asked — a name that carries no
+against the registry as it is typed — a name that carries no
 host (`alpine:latest`) is answered by Docker Hub's own API in a fraction of
 a second, a name that carries one (`ghcr.io/...`) by the daemon's manifest
 call; nothing is pulled either way — so an unknown one comes back to the
-question, or stops the run when it was
-given on the command line. Nothing is rebuilt and
+question. Nothing is rebuilt and
 nothing is taken back afterwards — the image is the registry's, not the
 run's — and, like the uploaded-image road, no Keep question is asked.
 
-The **first_boot** is the onboarding script, common to all roads. It is
+The **onboarding** script, common to all roads, is
 placed in the instance *after* the import — `/root/onboarding.sh`,
-executable, armed in root's `.bashrc` — and then run as step 6 below. The
-image carries none: changing the first_boot never rebuilds the image. A path
-that names no file stops the build before anything is asked or destroyed.
+executable, armed in root's `.bashrc` — and then run. The
+image carries none: changing the onboarding never rebuilds the image.
 
 The onboarding is **optional**: the window's **Run onboarding shell** box
 (ticked by default) and the console's own question skip it — for an image
@@ -311,37 +308,13 @@ What was used is recorded on the instance (`instance.json`, the file an
 archive carries): a copy, an archive and a restore keep it, so what an
 instance was built with is never guessed.
 
-In console, the build asks **Build from** before anything else: a
-Dockerfile (the Dockerfiles under `assets\dockerfiles\`, the repository's
-own first), an uploaded image, or a registry name typed by hand — the
-window answers the same question with its toggle and is asked nothing
-twice.
+The name is checked as it is typed (letters, digits, `.`, `_`, `-`), and a
+name an instance already carries — or a folder already there — is refused
+before anything is created. The red warning and the typed name live on
+`unregister`, where the erasing is.
 
-```text
-==> Creating a new instance
-Name of the instance (CTRL+C to abort): ubuntu-ml-dev
-Create [D:\WSL\ubuntu-ml-dev]? [Y/n]
-```
-
-The name is checked as it is typed (letters, digits, `.`, `_`, `-`), then the
-location is shown and confirmed — Enter accepts it, and it is the folder every
-other command writes to. Answer `n` to put the disk somewhere else: the folder
-question follows.
-
-An answer that cannot be used comes back with the reason, and the question is
-asked again:
-
-- the folder is, or holds, the folder of another instance — erasing it would
-  take that instance with it;
-- the folder already exists — choose another location.
-
-Docker Desktop must be running: the script checks before asking anything.
-
-One build at a time: started while another build is still working, it stops
-before asking anything and says so.
-
-If an instance already carries the name, it shows the red warning and asks you
-to **type the exact name**: a rebuild erases that instance and everything in it.
+Docker Desktop must answer before the making: the questions come first, then
+the probe — a refusal stops the run there, said, with the words to fix it.
 
 The packs are asked before anything is created:
 
@@ -362,26 +335,28 @@ brackets (`oh_my_shell [debian] …`), and a family that cannot be read is said
 above the checklist — a pack from another world is spotted before it is
 ticked,
 not after it failed. Escape, or an empty checklist, is a
-real answer: no pack, and the build goes on. A rebuild arrives with the boxes
-ticked for what the instance being replaced carries, so its packs come back
-without being chosen again. What is ticked is summarised and confirmed as in
-`manage_packs` — one question for the whole list.
+real answer: no pack, and the build goes on. What is ticked is summarised
+and confirmed as in `manage_packs` — one question for the whole list.
 
 They are installed **once the instance exists** — after the deployment, and the
 `* Packs` line of the screen that announces it carries the outcome. A pack that
 fails to install does not fail the build: the instance is built, the pack's
 files are taken back out, and the build names the pack and points at
-`.\wsl.ps1 manage_packs`. The shell that opens repeats the same news.
+`.\wsl.ps1 manage_packs`.
 
-The last question is the user the instance will open as — a lowercase letter
+The user the instance will open as follows — a lowercase letter
 first, then lowercase letters, digits, `_` and `-`. The Windows account's
 name is offered in brackets (`[jean-dupont]`) when it cleans into a usable
 one, and Enter takes it. It is asked with the rest, so the instance is born with it
-and the first-boot onboarding does not ask again. The name is checked against
-the image's own accounts just before the import; a name the image already
-carries is asked again there, before anything is created — or skip the
+and the onboarding does not ask again — or skip the
 onboarding to open the instance as the image's own account. When the
 onboarding is skipped, this question is not asked at all.
+
+The two last ticks close the questionnaire: on the Dockerfile road only,
+whether the working image is kept (`Keep Docker image?` — no lets the next
+build start over); and always, whether the instance is added to Docker
+Desktop (`Add '<name>' to Docker Desktop? (it will be restarted)`). Both
+default to no.
 
 ---
 

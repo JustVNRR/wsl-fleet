@@ -223,6 +223,12 @@ class InstanceController : BaseController {
         try {
             $appearance = $this.Service.GetAppearance($name)
             $fonts = @($this.Service.GetFonts())
+            # La police en place s'offre toujours, quoi qu'elle porte : sans
+            # les glyphes elle est hors de la lecture des polices, et son nom
+            # n'aurait nulle part ou etre marque.
+            if ("$($appearance.Font)" -and $fonts -notcontains "$($appearance.Font)") {
+                $fonts += "$($appearance.Font)"
+            }
             $schemes = @($this.Service.GetColorSchemes())
             $pairs = @($this.Service.GetIconPairs())
         } catch {

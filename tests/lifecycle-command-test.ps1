@@ -28,7 +28,6 @@ $ErrorActionPreference = "Stop"
 
 $Tmp = Join-Path ([System.IO.Path]::GetTempPath()) ("lifecycle-command-test-" + [Guid]::NewGuid().ToString("N"))
 $FakeName = "lifecycle-command-test"
-$FakeFolder = Join-Path $Tmp "instance"
 $Key = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss\{2f9f0a4e-58b1-4a3c-9d2e-0c1b2a3d4e5f}"
 $Log = Join-Path $Tmp "wsl-calls.log"
 
@@ -41,6 +40,8 @@ $env:APPDATA = Join-Path $Tmp "AppData"
 New-Item -ItemType Directory -Path (Join-Path $env:LOCALAPPDATA "wsl-stack") -Force | Out-Null
 New-Item -ItemType Directory -Path $env:APPDATA -Force | Out-Null
 Set-Content -Path (Join-Path $env:LOCALAPPDATA "wsl-stack\root.txt") -Value $Tmp -Encoding ascii
+# L'instance vit ou le repertoire la cherche : sous la racine, par son nom.
+$FakeFolder = Join-Path $Tmp $FakeName
 
 # The entry, spelled the way a user's script spells it.
 $Entry = Join-Path $PSScriptRoot "..\wsl.ps1"

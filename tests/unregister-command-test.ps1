@@ -28,6 +28,7 @@ $ErrorActionPreference = "Stop"
 
 $Tmp = Join-Path ([System.IO.Path]::GetTempPath()) ("unregister-command-test-" + [Guid]::NewGuid().ToString("N"))
 $FakeName = "unregister-command-test"
+$ArchiveName = "$($FakeName)_archive"
 $Key = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss\{5d2e3f40-7b8c-4d9e-af01-2b3c4d5e6f70}"
 $Log = Join-Path $Tmp "wsl-calls.log"
 
@@ -50,7 +51,7 @@ $FakeFolder = Join-Path $Root $FakeName
 # said, not cleaned - it is nobody else's to remove.
 $OurPaths = @(
     (Join-Path $Root $FakeName),
-    (Join-Path $Root "archives\$FakeName")
+    (Join-Path $Root "archives\$ArchiveName")
 )
 $InTheWay = @($OurPaths | Where-Object { Test-Path $_ })
 if ($InTheWay.Count -gt 0) {
@@ -66,7 +67,7 @@ $SettingsPath = Join-Path $env:LOCALAPPDATA "Packages\Microsoft.WindowsTerminal_
 $WslFragmentDir = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\Microsoft.WSL"
 $OurFragmentDir = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-stack"
 $DockerFile = Join-Path $env:APPDATA "Docker\settings-store.json"
-$ArchiveDir = Join-Path $Root "archives\$FakeName"
+$ArchiveDir = Join-Path $Root "archives\$ArchiveName"
 
 # Two guids: one a live distro still carries (its fragment is on disk), one of
 # a distro that is gone - the settings entry and our fragment carrying it are
@@ -257,7 +258,7 @@ try {
     $Out = Invoke-Child -Word "unregister" -Answers @("$Pick", "$FakeName", "y")
     $Calls = Get-Calls
 
-    $ArchiveTar = Join-Path $ArchiveDir "$FakeName.tar.gz"
+    $ArchiveTar = Join-Path $ArchiveDir "$ArchiveName.tar.gz"
     Check "the archive is written first, where the family puts them" (@($Calls | Where-Object { $_ -eq "--export $FakeName $ArchiveTar --format tar.gz" }).Count) 1
     Check "and the export comes before the unregister" ([array]::IndexOf($Calls, "--export $FakeName $ArchiveTar --format tar.gz") -lt [array]::IndexOf($Calls, "--unregister $FakeName")) $true
     Check "and the archive carries the look" (Test-Path (Join-Path $ArchiveDir "instance.json")) $true

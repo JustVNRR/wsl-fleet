@@ -60,6 +60,27 @@ tree_state() {
 }
 Before=$(tree_state)
 
+# The world the questions need: a fresh checkout has the assets folders empty,
+# so the suite stages its own slots - two Dockerfiles of the Debian family (a
+# list of one is taken without a question, and the scenes always answer one,
+# so two), one onboarding, and the packs the checklist shows. Nothing already
+# there is ever touched: the user's tree carries real ones, and only what this
+# suite created is taken back out.
+Assets="$RepoTemplate/assets"
+Created=()
+ensure_dir() { if [ ! -d "$1" ]; then mkdir -p "$1"; Created+=("$1"); fi; }
+ensure_file() { if [ ! -f "$1" ]; then printf '%s\n' "$2" > "$1"; Created+=("$1"); fi; }
+ensure_dir  "$Assets/dockerfiles/question-test-a"
+ensure_file "$Assets/dockerfiles/question-test-a/Dockerfile" "FROM debian:bookworm-slim"
+ensure_dir  "$Assets/dockerfiles/question-test-b"
+ensure_file "$Assets/dockerfiles/question-test-b/Dockerfile" "FROM debian:bookworm-slim"
+ensure_dir  "$Assets/onboardings/question-test"
+ensure_file "$Assets/onboardings/question-test/onboarding.sh" "#!/bin/sh"
+ensure_dir  "$Assets/packs/oh_my_shell"
+ensure_file "$Assets/packs/oh_my_shell/pack.conf" "PACK_DESCRIPTION := The shell"
+ensure_dir  "$Assets/packs/question-a"
+ensure_file "$Assets/packs/question-a/pack.conf" "PACK_DESCRIPTION := A question test pack"
+
 run_build() {
     printf '%b' "$1" | $PS -NoProfile -ExecutionPolicy Bypass -File "$Run" build > "$Out" 2>&1
     Code=$?
@@ -85,10 +106,15 @@ before() {
     if [ -n "$a" ] && [ -n "$b" ] && [ "$a" -lt "$b" ]; then echo yes; else echo no; fi
 }
 
-# The road and its source, in answers: Dockerfile, then the first row of the
-# list whatever else the checkout carries. The reads that follow are the
-# checklist, the onboarding, the account, and the two closing ticks.
-DOCKERFILE_ROAD='1\n1'
+# The road and its source, in answers: Dockerfile, then the row of OUR staged
+# Dockerfile - read from a run that cancels, whatever else the checkout
+# carries, so the family the checklist pre-ticks is the staged one's. The
+# reads that follow are the checklist, the onboarding, the account, and the
+# two closing ticks.
+run_build 'qtest-read\n1\n0\n'
+DockerfilePick=$(printf '%s' "$(sed -n '/^Dockerfile$/,/^   0\./p' "$Out" | grep 'question-test' | head -1 | sed -E 's/^ *([0-9]+)\..*/\1/')")
+if [ -z "$DockerfilePick" ]; then DockerfilePick=1; fi
+DOCKERFILE_ROAD="1\n$DockerfilePick"
 
 echo "--- cancelled at the checklist (answer 0)"
 # The user name is left empty: the proposed Windows name must be taken - the
@@ -167,6 +193,9 @@ echo "--- and the checkout is untouched by the runs"
 check "the runs left the checkout exactly as it was" \
     "$([ "$Before" = "$(tree_state)" ] && echo yes || echo no)" "yes"
 
+for staged in "${Created[@]:-}"; do
+    [ -n "$staged" ] && rm -rf "$staged"
+done
 rm -f "$Out"
 echo ""
 echo "failures: $Failures"

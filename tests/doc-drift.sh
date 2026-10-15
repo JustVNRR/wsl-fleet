@@ -24,6 +24,7 @@ drift=0
 # gesture that answers the word from the $gestures table.
 names=$( {
     printf '%s\n' "$entry" | sed -n 's/^ *Add("\([a-z_]*\)".*/\1/p'
+    # shellcheck disable=SC2016 - the pattern is the menu's own text, not a shell expansion.
     printf '%s\n' "$console" | sed -n 's/^$menu = $menu\.Add("\([a-z_]*\)".*/\1/p'
 } | while read -r name; do
     if [ "$name" = "gui" ]; then

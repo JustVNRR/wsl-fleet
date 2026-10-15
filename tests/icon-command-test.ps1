@@ -202,7 +202,7 @@ try {
 
     Check "theme offers its three questions" (@($Out | Where-Object { "$_".Contains("what the whole terminal is written in") }).Count -gt 0) $true
     Check "hands over to the icon question" (@($Out | Where-Object { "$_".Contains("Icon of '$FakeName'") }).Count -gt 0) $true
-    Check "and the menu is drawn again once the question returns" (@($Out | Where-Object { "$_".Contains("Theme of '$FakeName'") }).Count) 2
+    Check "and the menu is drawn again once the question returns" (@($Out | Where-Object { "$_" -eq "Theme of '$FakeName'" }).Count) 2
     Check "and Terminal was asked to look again" ((Get-Item $Settings).LastWriteTime -gt $Before) $true
 } finally {
     Remove-Item $Key -Recurse -Force -ErrorAction SilentlyContinue

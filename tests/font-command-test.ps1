@@ -190,7 +190,7 @@ try {
     # question, and is drawn again while the visit lasts.
     $Themed = Invoke-Theme @("$Pick", "2", "0", "0")
     Check "theme hands over to the font question" (@($Themed | Where-Object { "$_".Contains("Font of '$FakeName'") }).Count -gt 0) $true
-    Check "and the menu is drawn again once the question returns" (@($Themed | Where-Object { "$_".Contains("Theme of '$FakeName'") }).Count) 2
+    Check "and the menu is drawn again once the question returns" (@($Themed | Where-Object { "$_" -eq "Theme of '$FakeName'" }).Count) 2
 
     # 4. The other half of the rule: the font in use is in the list whatever it
     # carries. The instance is put on Consolas - monospaced, on every Windows,

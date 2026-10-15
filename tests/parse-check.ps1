@@ -18,7 +18,7 @@ $bad = 0
 $Root = (Get-Item (Join-Path $PSScriptRoot "..")).FullName
 
 $WpfLoaded = $true
-foreach ($assembly in "PresentationFramework", "PresentationCore", "WindowsBase") {
+foreach ($assembly in "PresentationFramework", "PresentationCore", "WindowsBase", "System.Windows.Forms") {
     try { Add-Type -AssemblyName $assembly -ErrorAction Stop } catch { $WpfLoaded = $false }
 }
 if (-not $WpfLoaded) {

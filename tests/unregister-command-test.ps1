@@ -319,4 +319,10 @@ try {
 
 Write-Output ""
 Write-Output ("failures: " + $Failures)
+
+if ($Failures -gt 0) {
+    Write-Output ""
+    Write-Output "--- the last run's own words ---"
+    foreach ($Line in @($Out)) { Write-Output "    | $Line" }
+}
 exit $Failures

@@ -60,6 +60,18 @@ tree_state() {
 }
 Before=$(tree_state)
 
+# The world of the runs: a folder of the suite's own, kept by root.txt in a
+# redirected profile - the runner's own LOCALAPPDATA may hold a saved root
+# (D:\WSL on a machine with a D:), and a root nobody created is a run that
+# dies before its first question. The Windows forms are what the children
+# read: a posix path never reaches the same folder twice.
+World=$(mktemp -d)
+mkdir -p "$World/LocalAppData/wsl-stack" "$World/AppData" "$World/User" "$World/WSL"
+export LOCALAPPDATA=$(cygpath -w "$World/LocalAppData")
+export APPDATA=$(cygpath -w "$World/AppData")
+export USERPROFILE=$(cygpath -w "$World/User")
+printf '%s' "$(cygpath -w "$World/WSL")" > "$World/LocalAppData/wsl-stack/root.txt"
+
 # The world the questions need: a fresh checkout has the assets folders empty,
 # so the suite stages its own slots - two Dockerfiles of the Debian family (a
 # list of one is taken without a question, and the scenes always answer one,
@@ -196,6 +208,7 @@ check "the runs left the checkout exactly as it was" \
 for staged in "${Created[@]:-}"; do
     [ -n "$staged" ] && rm -rf "$staged"
 done
+rm -rf "$World"
 # What the last run really said, when something failed: the scenes speak in
 # checks, and a check that fails on a run nobody can read sends nobody
 # anywhere. The log carries it only on failure.

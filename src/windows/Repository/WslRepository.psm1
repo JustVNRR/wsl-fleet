@@ -156,7 +156,8 @@ class WslRepository {
     # retire pas, un nom cité cesse de correspondre ; le ~ voyage dans la
     # chaîne, où rien ne l'étend.
     [void] OpenBareShell([string]$instanceName) {
-        $null = Start-Process wsl.exe -ArgumentList ('-d {0} --cd ~' -f $instanceName) -PassThru
+        $wsl = (Get-Command wsl.exe -CommandType Application -ErrorAction Stop | Select-Object -First 1).Path
+        $null = Start-Process $wsl -ArgumentList ('-d {0} --cd ~' -f $instanceName) -PassThru
     }
 
     # =========================================================================

@@ -153,7 +153,7 @@ name the new instance takes (the archive's own, prefilled - an empty name
 cancels), then imports through the same engine `restore` uses, the row
 scrolling its band while it works - the archive is kept; the trash opens a
 gate of the same manners as the instance's - what is lost, spelled out, and
-the exact name typed back - and the folder goes for good, tar and look
+the name typed back - and the folder goes for good, tar and look
 together. The header carries its icons beside the title: **+**, a new
 instance - name, user, the build's recipe and packs in one form. **Build
 from** is a toggle - **Dockerfile**, **Docker image** or **Docker registry**,
@@ -880,7 +880,7 @@ What should happen to 'ubuntu-template' now?
 
 The default is the state it was found in — the row says `(default)`, and
 Escape takes it too. Answering **Delete it** goes through `unregister`, so the
-exact name has to be typed again — the archive is what remains.
+name has to be typed again — the archive is what remains.
 
 ---
 

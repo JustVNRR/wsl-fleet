@@ -221,16 +221,24 @@ try {
     $Pick = [array]::IndexOf(@($rows.Name), $FakeName) + 1
     Check "the test's instance is in the list" ($Pick -ge 1) $true
 
-    # 1. The confirmation wants the exact name: a name that differs only by
-    # case is not it (-cne), and a cancelled run touches nothing at all.
+    # 1. The confirmation wants the name - the case does not count: a name
+    # that is not it is refused, and a cancelled run touches nothing at all.
     Reset-World
-    $Out = Invoke-Child -Word "unregister" -Answers @("$Pick", "UNREGISTER-COMMAND-TEST")
-    Check "a name that differs by case is refused" (@($Out | Where-Object { "$_".Contains("Operation cancelled. No data was modified.") }).Count -gt 0) $true
+    $Out = Invoke-Child -Word "unregister" -Answers @("$Pick", "$FakeName-x")
+    Check "a name that is not it is refused" (@($Out | Where-Object { "$_".Contains("Operation cancelled. No data was modified.") }).Count -gt 0) $true
     Check "and nothing is terminated" (@(Get-Calls | Where-Object { $_ -like "--terminate*" }).Count) 0
     Check "and nothing is unregistered" (@(Get-Calls | Where-Object { $_ -like "--unregister*" }).Count) 0
     Check "and the folder is still there" (Test-Path $FakeFolder) $true
     Check "and the settings were not touched" (Test-Path "$SettingsPath.bak") $false
     Check "and ends on zero" $script:ChildExit 0
+
+    # 1b. The case does not count: the same name in capitals opens the gate
+    # (no copy - the archive question answered no).
+    Reset-World
+    $Out = Invoke-Child -Word "unregister" -Answers @("$Pick", "$($FakeName.ToUpper())", "n")
+    Check "a name in another case opens the gate" (@(Get-Calls | Where-Object { $_ -like "--unregister*" }).Count) 1
+    Check "  ... and the folder went with it" (Test-Path $FakeFolder) $false
+    Check "  ... and ends on zero" $script:ChildExit 0
 
     # An empty answer is the same way out.
     Reset-World

@@ -5,6 +5,7 @@ using module ..\Repositories\PackCatalogRepository.psm1
 using module ..\Mappers\InstanceMapper.psm1
 
 class PackCatalogService {
+
     hidden [WslPackCatalog]$Catalog
     hidden [PackCatalogRepository]$Packs
     hidden [InstanceMapper]$Map

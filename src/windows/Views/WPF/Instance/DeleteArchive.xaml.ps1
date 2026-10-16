@@ -2,6 +2,7 @@ using module ..\BaseViewWpf.psm1
 using module ..\..\..\ViewModels\DeleteArchiveViewModel.psm1
 
 class WpfDeleteArchiveView : BaseViewWpf {
+
     hidden [object]$Vm = $null
 
     [object] Ask([string]$archiveName) {

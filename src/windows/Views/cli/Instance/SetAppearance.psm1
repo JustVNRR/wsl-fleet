@@ -1,6 +1,7 @@
 using module ..\BaseViewCli.psm1
 
 class CliSetAppearanceView : BaseViewCli {
+
     [void] ShowNoFragmentWarning() {
         Write-Host ""
         Write-Host "[WARNING] This instance has no Terminal profile of ours - the look would not show." -ForegroundColor $this.Colour("warning")

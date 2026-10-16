@@ -2,6 +2,7 @@ using module .\BaseViewModel.psm1
 using module ..\Dtos\InstanceDto.psm1
 
 class PackRowViewModel : BaseViewModel {
+
     hidden [object]$_owner = $null
     hidden [string]$_name = ""
     [string]$Label = ""
@@ -28,6 +29,7 @@ class PackRowViewModel : BaseViewModel {
 }
 
 class ManagePacksViewModel : BaseViewModel {
+
     hidden [object]$_packs = $null
     hidden [string]$_name = ""
     [object[]]$PackRows = @()
@@ -36,7 +38,6 @@ class ManagePacksViewModel : BaseViewModel {
     [string]$WillRemove = ""
     hidden [bool]$_canApply = $false
     hidden [bool]$_empty = $false
-
     [object]$Result = $null
     [System.Windows.Input.ICommand]$ApplyCommand
 

@@ -4,6 +4,7 @@ using module ..\Services\LoggerService.psm1
 using module ..\Dtos\InstanceDto.psm1
 
 class InstanceRowViewModel : BaseViewModel {
+
     [string]$Name = ""
     [string]$Size = ""
     [bool]$IsArchive = $false
@@ -23,6 +24,7 @@ class InstanceRowViewModel : BaseViewModel {
 }
 
 class MainWindowViewModel : BaseViewModel {
+
     hidden [object]$_instance
     hidden [object]$_fleet
     hidden [object]$_wpf
@@ -31,20 +33,17 @@ class MainWindowViewModel : BaseViewModel {
     hidden [string]$_runners = ""
     hidden [object]$_log = $null
     hidden [bool]$_popping = $false
-
     [object[]]$Rows = @()
     [string]$Root = ""
     [bool]$Busy = $false
     [bool]$Free = $true
     [string]$ColourSet = ""
     [string]$Variant = "Dark"
-
     hidden [object]$Worker = $null
     hidden [string]$WorkerVerb = ""
     hidden [string]$WorkerName = ""
     hidden [int]$Ticks = 0
     hidden [object]$Console = $null
-
     [System.Windows.Input.ICommand]$RefreshCommand
     [System.Windows.Input.ICommand]$AddCommand
     [System.Windows.Input.ICommand]$SettingsCommand

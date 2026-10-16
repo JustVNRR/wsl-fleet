@@ -3,6 +3,7 @@ using module ..\..\..\Dtos\InstanceDto.psm1
 using module ..\..\..\Tools\Helpers.psm1
 
 class CliRestoreView : BaseViewCli {
+
     [void] ShowNoArchives() {
         Write-Host ""
         Write-Host "[ABORT] There are no archives." -ForegroundColor $this.Colour("error")

@@ -2,13 +2,12 @@ using module .\BaseViewModel.psm1
 using module ..\Dtos\InstanceDto.psm1
 
 class BuildViewModel : BaseViewModel {
-    hidden [object]$_instance
 
+    hidden [object]$_instance
     [string]$Name = ""
     [string]$NameError = ""
     [string]$User = ""
     [string]$UserError = ""
-
     [int]$RoadIndex = 0
     [object[]]$Dockerfiles = @()
     [string[]]$DockerfileNames = @()
@@ -33,7 +32,6 @@ class BuildViewModel : BaseViewModel {
     [bool]$CanDownloadDockerfile = $false
     [bool]$CanDownloadOnboarding = $false
     [bool]$CanDownloadImage = $false
-
     [string]$RegistryRef = ""
     [string]$ImageError = ""
     [string]$RegistryError = ""
@@ -41,12 +39,9 @@ class BuildViewModel : BaseViewModel {
     [bool]$SaveImage = $false
     [bool]$RegisterDocker = $true
     [bool]$RunOnboarding = $true
-
     hidden [bool]$_nameOk = $false
     hidden [bool]$_userOk = $false
-
     [object]$Result = $null
-
     [System.Windows.Input.ICommand]$CreateCommand
 
     BuildViewModel([object]$instanceService) {
@@ -144,7 +139,9 @@ class BuildViewModel : BaseViewModel {
     }
 
     [void] SetSaveImage([bool]$value) { $this.SaveImage = [bool]$value; $this.OnPropertyChanged("SaveImage") }
+
     [void] SetRegisterDocker([bool]$value) { $this.RegisterDocker = [bool]$value; $this.OnPropertyChanged("RegisterDocker") }
+
     [void] SetRunOnboarding([bool]$value) { $this.RunOnboarding = [bool]$value; $this.OnPropertyChanged("RunOnboarding") }
 
     hidden [void] SyncLists() {

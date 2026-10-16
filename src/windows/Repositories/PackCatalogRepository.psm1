@@ -1,6 +1,7 @@
 using module ..\Entities\WslPack.psm1
 
 class PackCatalogRepository {
+
     hidden [string]$PacksRoot
 
     PackCatalogRepository([string]$packsRoot) {

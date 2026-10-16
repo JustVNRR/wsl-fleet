@@ -4,11 +4,13 @@ using module ..\Dtos\PackCatalogDto.psm1
 using module ..\Tools\Helpers.psm1
 
 class SettingsLabelRow {
+
     [string]$Name = ""
     [string]$Label = ""
 }
 
 class SettingsPackRow {
+
     [string]$Name = ""
     [string]$Family = ""
     [string]$Description = ""
@@ -16,11 +18,11 @@ class SettingsPackRow {
 }
 
 class SettingsViewModel : BaseViewModel {
+
     hidden [object]$_wpf = $null
     hidden [object]$_catalogue = $null
     hidden [object]$_fleet = $null
     hidden [string]$_assets = ""
-
     [object[]]$Fonts = @()
     [string[]]$FontLabels = @()
     [int]$FontIndex = 0
@@ -38,7 +40,6 @@ class SettingsViewModel : BaseViewModel {
     [string]$CatalogueError = ""
     [bool]$CanTheme = $false
     [bool]$CanPack = $false
-
     hidden [string]$_newRoot = ""
 
     SettingsViewModel([object]$wpfService, [object]$catalogueService, [object]$fleetService, [string]$assetsDir) {

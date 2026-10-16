@@ -1,4 +1,5 @@
 class WpfTheme {
+
     hidden [string]$FontFamily = "VT323"
     hidden [int]$FontSize = 15
     hidden [string]$ColorTheme = "phosphor"

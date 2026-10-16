@@ -1,17 +1,14 @@
 using module ..\..\ViewModels\ConfirmViewModel.psm1
 
 class BaseViewWpf : System.Windows.Window {
+
     hidden [object]$Scope
-
     hidden [object]$Result = $null
-
     hidden static [object]$Look = $null
     hidden static [string]$Assets = ""
-
     hidden static [object]$UiFont = $null
     hidden static [object]$IconFont = $null
     hidden static [int]$UiSize = 15
-
     hidden static [object]$Main = $null
     hidden static [int]$Depth = 0
     hidden static [object]$Top = $null

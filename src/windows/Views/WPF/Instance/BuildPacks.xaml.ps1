@@ -1,6 +1,7 @@
 using module ..\BaseViewWpf.psm1
 
 class WpfBuildPacksView : BaseViewWpf {
+
     [object] Ask([string]$name, [string]$family, [object[]]$packs) {
         $self = $this
         $this.Title = "Packs for the build"

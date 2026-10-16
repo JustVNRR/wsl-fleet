@@ -15,6 +15,7 @@ using module ..\Mappers\InstanceMapper.psm1
 using module ..\Tools\Helpers.psm1
 
 class InstanceService {
+
     hidden [InstanceRepository]$Instances
     hidden [ArchiveRepository]$Archives
     hidden [WslRepository]$Wsl
@@ -446,7 +447,6 @@ class InstanceService {
 
         return $this.Map.ToAppearanceResponse($theme, $this.Terminal.HasFragment($instanceName))
     }
-
     [SetAppearanceResponseDto] SetAppearance([SetAppearanceDto]$dto) {
         $name = $dto.InstanceName
         $model = $this.Instances.GetInstance($name)

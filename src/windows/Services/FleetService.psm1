@@ -7,6 +7,7 @@ using module ..\Dtos\InstanceDto.psm1
 using module ..\Tools\Helpers.psm1
 
 class FleetService {
+
     hidden [ConfigRepository]$Config
     hidden [WslRepository]$Wsl
     hidden [InstanceRepository]$Instances
@@ -45,7 +46,6 @@ class FleetService {
 
         throw "The working folder '$saved' is gone, and no existing folder holds your instances."
     }
-
     [string] SetRoot([string]$target) {
         $problem = Test-FleetTarget $target
         if ($problem) { throw $problem }

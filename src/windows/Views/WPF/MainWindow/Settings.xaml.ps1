@@ -3,6 +3,7 @@ using module ..\..\..\Dtos\WpfDto.psm1
 using module ..\..\..\ViewModels\SettingsViewModel.psm1
 
 class WpfSettingsView : BaseViewWpf {
+
     hidden [bool]$EatEnter = $false
     hidden [object]$Vm = $null
     hidden [string]$AssetsDir = ""

@@ -1,6 +1,7 @@
 using module ..\Dtos\InstanceDto.psm1
 
 class LoggerService {
+
     hidden [string]$_path = ""
 
     LoggerService([string]$path) {

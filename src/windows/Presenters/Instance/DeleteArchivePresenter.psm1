@@ -3,6 +3,7 @@ using module ..\BasePresenter.psm1
 using module ..\..\Services\InstanceService.psm1
 
 class DeleteArchivePresenter : BasePresenter {
+
     hidden [InstanceService]$Service
 
     DeleteArchivePresenter([InstanceService]$service, [string]$viewsRoot, [string]$viewType) : base($viewsRoot, $viewType, "Instance") {

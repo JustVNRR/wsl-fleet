@@ -2,6 +2,7 @@ using module ..\BaseViewWpf.psm1
 using module ..\..\..\ViewModels\CompactViewModel.psm1
 
 class WpfCompactView : BaseViewWpf {
+
     hidden [object]$Vm = $null
 
     [object] Ask([string]$name) {

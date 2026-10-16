@@ -3,6 +3,7 @@ using module ..\BasePresenter.psm1
 using module ..\..\Services\FleetService.psm1
 
 class WslConfigPresenter : BasePresenter {
+
     hidden [FleetService]$Service
 
     WslConfigPresenter([FleetService]$service, [string]$viewsRoot, [string]$viewType) : base($viewsRoot, $viewType, "Fleet") {

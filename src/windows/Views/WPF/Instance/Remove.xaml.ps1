@@ -2,6 +2,7 @@ using module ..\BaseViewWpf.psm1
 using module ..\..\..\ViewModels\RemoveViewModel.psm1
 
 class WpfRemoveView : BaseViewWpf {
+
     hidden [object]$Vm = $null
 
     [object] Ask([string]$name) {

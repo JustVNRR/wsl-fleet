@@ -2,6 +2,7 @@ using module .\MenuCli.psm1
 using module .\ThemeCli.psm1
 
 class BaseViewCli {
+
     BaseViewCli() {}
 
     [object] Colour([string]$tone) {

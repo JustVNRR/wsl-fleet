@@ -1,6 +1,7 @@
 using module ..\..\BasePresenter.psm1
 
 class SelectInstancePresenter : BasePresenter {
+
     [string]$Miss = ""
 
     SelectInstancePresenter([string]$viewsRoot, [string]$viewType) : base($viewsRoot, $viewType, "Instance") {

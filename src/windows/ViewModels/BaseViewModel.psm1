@@ -1,9 +1,8 @@
 
 class BaseViewModel : System.ComponentModel.INotifyPropertyChanged {
+
     [scriptblock]$DemandeFermeture = $null
-
     [scriptblock]$Ouverture = $null
-
     hidden [System.Collections.Generic.List[System.ComponentModel.PropertyChangedEventHandler]]$Handlers
 
     BaseViewModel() {
@@ -78,6 +77,7 @@ class BaseViewModel : System.ComponentModel.INotifyPropertyChanged {
 }
 
 class RelayCommand : System.Windows.Input.ICommand {
+
     hidden [scriptblock]$Run
     hidden [scriptblock]$Allows
     hidden [System.Collections.Generic.List[System.EventHandler]]$Watchers

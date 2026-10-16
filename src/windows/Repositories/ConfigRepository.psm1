@@ -1,8 +1,8 @@
 using module ..\Entities\WpfTheme.psm1
 
 class ConfigRepository {
-    hidden [string]$AssetsDir
 
+    hidden [string]$AssetsDir
     hidden [string]$DistroTree
 
     ConfigRepository([string]$assetsDir) {

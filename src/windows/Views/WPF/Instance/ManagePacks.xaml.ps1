@@ -2,6 +2,7 @@ using module ..\BaseViewWpf.psm1
 using module ..\..\..\ViewModels\ManagePacksViewModel.psm1
 
 class WpfManagePacksView : BaseViewWpf {
+
     hidden [object]$Vm = $null
 
     [object] Ask([object]$packs, [string]$name) {

@@ -1,13 +1,10 @@
 class WslPack {
+
     hidden [string]$Name
     hidden [string]$Description
-
     hidden [string[]]$Requires = @()
-
     hidden [bool]$Offered = $true
-
     hidden [string]$Family = "debian"
-
     hidden [string]$Welcome
 
     WslPack() {}

@@ -2,6 +2,7 @@ using module .\BaseViewModel.psm1
 using module ..\Dtos\InstanceDto.psm1
 
 class RemoveViewModel : BaseViewModel {
+
     hidden [string]$_name = ""
     [string]$Lead = ""
     [string]$Typed = ""

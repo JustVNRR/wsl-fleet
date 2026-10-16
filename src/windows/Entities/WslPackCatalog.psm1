@@ -1,6 +1,7 @@
 using module .\WslPack.psm1
 
 class WslPackCatalog {
+
     hidden [WslPack[]]$Packs = @()
 
     WslPackCatalog() {}

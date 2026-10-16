@@ -1,5 +1,6 @@
 using module .\BaseViewModel.psm1
 class DeleteArchiveViewModel : BaseViewModel {
+
     hidden [string]$_archiveName = ""
     [string]$Lead = ""
     [string]$Typed = ""

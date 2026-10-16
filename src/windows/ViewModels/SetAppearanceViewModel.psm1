@@ -2,28 +2,31 @@ using module .\BaseViewModel.psm1
 using module ..\Dtos\InstanceDto.psm1
 
 class LookPairRow {
+
     [object]$Pair = $null
     [string]$Label = ""
     [bool]$Current = $false
 }
 
 class LookFontRow {
+
     [string]$Name = ""
     [string]$Label = ""
     [bool]$Current = $false
 }
 
 class LookSchemeRow {
+
     [object]$Scheme = $null
     [string]$Label = ""
     [bool]$Current = $false
 }
 
 class SetAppearanceViewModel : BaseViewModel {
+
     hidden [string]$_name = ""
     hidden [object]$_appearance = $null
     hidden [object]$_recipe = $null
-
     [string]$Lead = ""
     [object[]]$Pairs = @()
     [string[]]$PairLabels = @()
@@ -38,7 +41,6 @@ class SetAppearanceViewModel : BaseViewModel {
     [int]$SchemeIndex = 0
     [string]$ImagePath = ""
     [bool]$NoFragment = $false
-
     [object]$Result = $null
     [System.Windows.Input.ICommand]$ApplyCommand
 

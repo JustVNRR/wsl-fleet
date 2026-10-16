@@ -2,6 +2,7 @@ using module .\BaseViewModel.psm1
 using module ..\Dtos\InstanceDto.psm1
 
 class RestoreViewModel : BaseViewModel {
+
     hidden [string]$_archiveName = ""
     [string]$Lead = ""
     [string]$Name = ""

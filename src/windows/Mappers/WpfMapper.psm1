@@ -2,6 +2,7 @@ using module ..\Entities\WpfTheme.psm1
 using module ..\Dtos\WpfDto.psm1
 
 class WpfMapper {
+
     WpfMapper() {}
 
     [WpfThemeDto] ToThemeDto([WpfTheme]$theme) {

@@ -4,6 +4,7 @@ using module ..\Repositories\TerminalRepository.psm1
 using module ..\Mappers\WpfMapper.psm1
 
 class WpfService {
+
     hidden [ConfigRepository]$Config
     hidden [TerminalRepository]$Terminal
     hidden [WpfMapper]$Map
@@ -17,7 +18,6 @@ class WpfService {
     [WpfThemeDto] GetTheme() {
         return $this.Map.ToThemeDto($this.Config.GetWpfTheme())
     }
-
     [void] SetFontFamily([string]$family) {
         $theme = $this.Config.GetWpfTheme()
         $theme.SetFontFamily($family)

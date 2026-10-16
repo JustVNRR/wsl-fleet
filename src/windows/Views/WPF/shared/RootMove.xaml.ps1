@@ -2,6 +2,7 @@ using module ..\BaseViewWpf.psm1
 using module ..\..\..\ViewModels\RootMoveViewModel.psm1
 
 class WpfRootMoveView : BaseViewWpf {
+
     hidden [object]$Vm = $null
 
     [object] Ask([string]$current) {

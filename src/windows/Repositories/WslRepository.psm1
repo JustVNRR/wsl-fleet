@@ -2,6 +2,7 @@ using module ..\Entities\WslInstance.psm1
 using module ..\Tools\Native.psm1
 
 class WslRepository {
+
     hidden [string]$OrphanScript
 
     WslRepository([string]$distroDir) {

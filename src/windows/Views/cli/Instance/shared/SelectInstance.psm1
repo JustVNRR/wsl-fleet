@@ -3,6 +3,7 @@ using module ..\..\MenuCli.psm1
 using module ..\..\..\..\Tools\Helpers.psm1
 
 class CliSelectInstanceView : BaseViewCli {
+
     [object] AskOffered([object[]]$offered) {
         $Menu = [MenuCli]::new("Our Instances")
         foreach ($row in @($offered)) {

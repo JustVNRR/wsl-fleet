@@ -5,6 +5,7 @@ enum ActionResultStatus {
 }
 
 class ActionResult {
+
     [ActionResultStatus]$Status
     [string]$Message
 

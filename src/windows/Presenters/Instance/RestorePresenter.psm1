@@ -4,6 +4,7 @@ using module ..\..\Services\InstanceService.psm1
 using module ..\..\Dtos\InstanceDto.psm1
 
 class RestorePresenter : BasePresenter {
+
     hidden [InstanceService]$Service
 
     RestorePresenter([InstanceService]$service, [string]$viewsRoot, [string]$viewType) : base($viewsRoot, $viewType, "Instance") {

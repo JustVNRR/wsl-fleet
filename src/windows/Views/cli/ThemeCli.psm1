@@ -1,12 +1,11 @@
 class ThemeCli {
+
     hidden static [string[]]$TerminalSettings = @(
         "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json",
         "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminalPreview_8wekyb3d8bbwe\LocalState\settings.json",
         "$env:LOCALAPPDATA\Microsoft\Windows Terminal\settings.json"
     )
-
     hidden static [string]$OurFragments = (Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-fleet")
-
     hidden static [System.Collections.IDictionary]$SlotNames = [ordered]@{
         "Black"       = @{ Key = "black";        Index = 0 }
         "DarkRed"     = @{ Key = "red";          Index = 1 }
@@ -25,7 +24,6 @@ class ThemeCli {
         "Cyan"        = @{ Key = "brightCyan";   Index = 14 }
         "White"       = @{ Key = "brightWhite";  Index = 15 }
     }
-
     hidden static [System.Collections.IDictionary]$WithoutScheme = [ordered]@{
         error   = "Red"
         warning = "Yellow"
@@ -35,7 +33,6 @@ class ThemeCli {
         hint    = "White"
         danger  = "DarkRed"
     }
-
     hidden static [System.Collections.IDictionary]$FamilyOf = [ordered]@{
         error   = "red"
         warning = "yellow"
@@ -45,7 +42,6 @@ class ThemeCli {
         hint    = "text"
         danger  = "red"
     }
-
     hidden static [System.Collections.IDictionary]$VersionOfColour = [ordered]@{
         red    = @("DarkRed", "Red")
         yellow = @("DarkYellow", "Yellow")
@@ -54,9 +50,7 @@ class ThemeCli {
         text   = @("Gray", "White")
         quiet  = @("DarkGray")
     }
-
     hidden static [double]$UnreadableBelow = 2.0
-
     hidden static [bool]$ThemeRead = $false
     hidden static [object]$Theme = $null
 

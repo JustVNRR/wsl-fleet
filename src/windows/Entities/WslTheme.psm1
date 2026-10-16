@@ -1,9 +1,9 @@
 class WslTheme {
+
     hidden [string]$IconPath
     hidden [string]$ColorScheme
     hidden [string]$FontName
     hidden [string]$TabTitle
-
     hidden [string]$IconText
     hidden [string]$IconTop
     hidden [string]$IconBottom
@@ -38,7 +38,6 @@ class WslTheme {
             TextColor = $this.IconTextColor
         }
     }
-
     [void] SetIcon([object]$drawing) {
         foreach ($colour in @($drawing.Top, $drawing.Bottom, $drawing.TextColor)) {
             if ($colour -and $colour -notmatch '^#[0-9A-Fa-f]{6}$') {

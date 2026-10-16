@@ -2,6 +2,7 @@ using module .\WslTheme.psm1
 using module .\WslPack.psm1
 
 class WslInstance {
+
     hidden [string]$Name
     hidden [string]$DefaultUser = "root"
     hidden [bool]$IsArchive = $false

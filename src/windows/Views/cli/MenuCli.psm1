@@ -1,6 +1,7 @@
 using module .\ThemeCli.psm1
 
 class MenuItemCli {
+
     [string]$Key
     [string]$Text
     [object]$Value
@@ -21,6 +22,7 @@ class MenuItemCli {
 }
 
 class ConsoleCli {
+
     [bool] HasKeyboard() {
         if ([Console]::IsInputRedirected) { return $false }
         try {
@@ -71,6 +73,7 @@ class ConsoleCli {
 }
 
 class MenuCli {
+
     [string]$Title
     [ConsoleCli]$Console
     [System.Collections.Generic.List[MenuItemCli]]$Items

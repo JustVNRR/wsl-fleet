@@ -1,6 +1,7 @@
 using module .\BaseViewModel.psm1
 
 class DockerRegisterViewModel : BaseViewModel {
+
     hidden [string]$_name = ""
     [string]$Lead = ""
     [bool]$Restart = $true

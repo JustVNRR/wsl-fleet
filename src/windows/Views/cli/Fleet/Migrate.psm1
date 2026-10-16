@@ -1,6 +1,7 @@
 using module ..\BaseViewCli.psm1
 
 class CliMigrateView : BaseViewCli {
+
     [string] AskTarget([string]$root) {
         Write-Host ""
         Write-Host -NoNewline "Move the fleet from '$root' to: "

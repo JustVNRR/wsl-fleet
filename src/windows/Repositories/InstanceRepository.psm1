@@ -2,6 +2,7 @@ using module ..\Entities\WslInstance.psm1
 using module ..\Entities\WslTheme.psm1
 
 class InstanceRepository {
+
     hidden [string]$InstancesRoot
 
     InstanceRepository([string]$instancesRoot) {

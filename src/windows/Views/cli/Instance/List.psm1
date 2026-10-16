@@ -2,6 +2,7 @@ using module ..\BaseViewCli.psm1
 using module ..\..\..\Tools\Helpers.psm1
 
 class CliListView : BaseViewCli {
+
     [void] Show([object]$response) {
         $instances = @($response.Rows | Where-Object { -not $_.IsArchive })
         $archives = @($response.Rows | Where-Object { $_.IsArchive })

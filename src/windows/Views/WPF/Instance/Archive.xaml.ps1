@@ -2,6 +2,7 @@ using module ..\BaseViewWpf.psm1
 using module ..\..\..\ViewModels\ArchiveViewModel.psm1
 
 class WpfArchiveView : BaseViewWpf {
+
     hidden [object]$Vm = $null
 
     [object] Ask([string]$name, [object[]]$rows) {

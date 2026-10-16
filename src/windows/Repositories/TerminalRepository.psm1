@@ -1,6 +1,7 @@
 using module ..\Entities\WslTheme.psm1
 
 class TerminalRepository {
+
     hidden [string]$AssetsDir
 
     TerminalRepository([string]$assetsDir) {

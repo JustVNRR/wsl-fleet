@@ -1,6 +1,7 @@
 using module .\BaseViewModel.psm1
 
 class ConfirmViewModel : BaseViewModel {
+
     [string]$Title = "Wsl Fleet"
     [string]$Question = ""
     [string]$Danger = ""

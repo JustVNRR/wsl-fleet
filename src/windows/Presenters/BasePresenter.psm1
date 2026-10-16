@@ -1,9 +1,9 @@
 class BasePresenter {
+
     hidden [string]$ViewsRoot
     hidden [string]$ViewType
     hidden [string]$ViewFolder
     hidden [hashtable]$Loaded = @{}
-
     [hashtable]$Views = @{}
 
     BasePresenter([string]$viewsRoot, [string]$viewType, [string]$viewFolder) {

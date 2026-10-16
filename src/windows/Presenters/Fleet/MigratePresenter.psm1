@@ -4,6 +4,7 @@ using module ..\..\Services\FleetService.psm1
 using module ..\..\Tools\Helpers.psm1
 
 class MigratePresenter : BasePresenter {
+
     hidden [FleetService]$Service
 
     MigratePresenter([FleetService]$service, [string]$viewsRoot, [string]$viewType) : base($viewsRoot, $viewType, "Fleet") {

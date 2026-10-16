@@ -2,6 +2,7 @@ using module ..\BaseViewWpf.psm1
 using module ..\..\..\ViewModels\RestoreViewModel.psm1
 
 class WpfRestoreView : BaseViewWpf {
+
     hidden [object]$Vm = $null
 
     [object] Ask([string]$archiveName) {

@@ -1,8 +1,8 @@
 using module .\BaseViewModel.psm1
 
 class PackDuplicateViewModel : BaseViewModel {
-    hidden [object[]]$_taken = @()
 
+    hidden [object[]]$_taken = @()
     [string]$Lead = ""
     [string]$Name = ""
     [string]$Description = ""

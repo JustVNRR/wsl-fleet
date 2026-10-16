@@ -2,6 +2,7 @@ using module ..\BaseViewWpf.psm1
 using module ..\..\..\ViewModels\ErrorViewModel.psm1
 
 class WpfErrorView : BaseViewWpf {
+
     hidden [object]$Vm = $null
 
     [object] Ask([object]$entry) {

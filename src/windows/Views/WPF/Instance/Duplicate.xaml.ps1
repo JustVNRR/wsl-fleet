@@ -2,6 +2,7 @@ using module ..\BaseViewWpf.psm1
 using module ..\..\..\ViewModels\DuplicateViewModel.psm1
 
 class WpfDuplicateView : BaseViewWpf {
+
     hidden [object]$Vm = $null
 
     [object] Ask([string]$source) {

@@ -13,6 +13,7 @@ using module .\PackCatalogService.psm1
 using module .\LoggerService.psm1
 
 class ServiceFactory {
+
     static [InstanceService] CreateInstanceService([string]$root, [string]$assets, [string]$distroTree) {
         return [InstanceService]::new(
             [InstanceRepository]::new($root),

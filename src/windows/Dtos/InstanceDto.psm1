@@ -1,6 +1,7 @@
 using module .\PackCatalogDto.psm1
 
 class WslIndexDto {
+
     [string]$Name
     [long]$Size
     [bool]$IsArchive
@@ -10,12 +11,14 @@ class WslIndexDto {
 }
 
 class WslOrphanDto {
+
     [string]$Name
     [string]$Path
     [long]$Size
 }
 
 class WslBuildSourceDto {
+
     [string]$Name
     [string]$Path
     [string]$Family
@@ -23,6 +26,7 @@ class WslBuildSourceDto {
 }
 
 class WslBuildPackDto {
+
     [string]$Name
     [string]$Family
     [string]$Description
@@ -30,32 +34,38 @@ class WslBuildPackDto {
 }
 
 class GetBuildSourcesResponseDto {
+
     [WslBuildSourceDto[]]$Dockerfiles = @()
     [WslBuildSourceDto[]]$Onboardings = @()
     [WslBuildSourceDto[]]$Recipes = @()
 }
 
 class NewRecipeDto {
+
     [string]$Name
 }
 
 class UploadRecipeDto {
+
     [string]$Kind
     [string]$Source
     [string]$FileName
 }
 
 class ExportRecipeDto {
+
     [string]$Path
     [string]$Target
 }
 
 class MigrateResponseDto {
+
     [string[]]$Moved = @()
     [string]$Target
 }
 
 class WslIconDto {
+
     [string]$Text
     [string]$Top
     [string]$Bottom
@@ -70,6 +80,7 @@ enum WslBuildType {
 }
 
 class BuildDto {
+
     [string]$Name
     [string]$User
     [WslBuildType]$BuildType
@@ -91,22 +102,26 @@ enum WslRecipeStatus {
 }
 
 class BuildResponseDto {
+
     [string]$InstanceName
     [WslRecipeStatus]$Status
     [string[]]$Messages = @()
 }
 
 class RemoveDto {
+
     [string]$InstanceName
     [bool]$ArchiveFirst = $false
 }
 
 class CompactDto {
+
     [string]$InstanceName
     [bool]$ArchiveFirst = $false
 }
 
 class CompactResponseDto {
+
     [string]$InstanceName
     [bool]$Archived
     [bool]$Restarted
@@ -116,6 +131,7 @@ class CompactResponseDto {
 }
 
 class GetAppearanceResponseDto {
+
     [string]$Font
     [string]$ColourScheme
     [WslIconDto]$Icon
@@ -124,6 +140,7 @@ class GetAppearanceResponseDto {
 }
 
 class SetAppearanceDto {
+
     [string]$InstanceName
     [string]$Font
     [string]$ColourScheme
@@ -132,6 +149,7 @@ class SetAppearanceDto {
 }
 
 class WslIconPairDto {
+
     [string]$Name
     [string]$Top
     [string]$Bottom
@@ -139,17 +157,20 @@ class WslIconPairDto {
 }
 
 class GetPacksResponseDto {
+
     [string[]]$Installed = @()
     [WslPackDto[]]$Candidate = @()
     [string[]]$Removable = @()
 }
 
 class AddPackDto {
+
     [string]$InstanceName
     [string]$PackName
 }
 
 class AddPackResponseDto {
+
     [string]$InstanceName
     [string]$Outcome
     [int]$ExitCode
@@ -158,11 +179,13 @@ class AddPackResponseDto {
 }
 
 class RemovePackDto {
+
     [string]$InstanceName
     [string]$PackName
 }
 
 class RemovePackResponseDto {
+
     [string]$InstanceName
     [string]$Outcome
     [int]$ExitCode
@@ -170,12 +193,14 @@ class RemovePackResponseDto {
 }
 
 class ManagePacksDto {
+
     [string]$InstanceName
     [string[]]$ToAdd = @()
     [string[]]$ToRemove = @()
 }
 
 class ManagePacksResponseDto {
+
     [string]$InstanceName
     [string]$Outcome
     [int]$ExitCode
@@ -185,6 +210,7 @@ class ManagePacksResponseDto {
 }
 
 class WslColorSchemeDto {
+
     [string]$Name
     [string]$Background
     [string]$Foreground
@@ -207,12 +233,14 @@ class WslColorSchemeDto {
 }
 
 class ArchiveDto {
+
     [string]$InstanceName
     [string]$Format
     [bool]$Permit = $false
 }
 
 class ArchiveResponseDto {
+
     [string]$InstanceName
     [string]$ArchiveDir
     [string]$Tar
@@ -223,75 +251,90 @@ class ArchiveResponseDto {
 }
 
 class RestoreDto {
+
     [string]$ArchiveName
     [string]$InstanceName
 }
 
 class DuplicateDto {
+
     [string]$SourceName
     [string]$CopyName
 }
 
 class DeleteArchiveResponseDto {
+
     [string]$ArchiveName
 }
 
 class RestoreResponseDto {
+
     [string]$ArchiveName
     [string]$InstanceName
 }
 
 class DuplicateResponseDto {
+
     [string]$SourceName
     [string]$CopyName
 }
 
 class RestartResponseDto {
+
     [string]$InstanceName
 }
 
 class OpenResponseDto {
+
     [string]$InstanceName
     [bool]$Profile
 }
 
 class SetAppearanceResponseDto {
+
     [string]$InstanceName
     [string[]]$Changes = @()
 }
 
 class WslConfigResponseDto {
+
     [string]$Path
     [bool]$Created
 }
 
 class ListResponseDto {
+
     [object[]]$Rows = @()
     [object[]]$Orphans = @()
     [string[]]$Running = @()
 }
 
 class RegisterDockerDto {
+
     [string]$InstanceName
     [bool]$Restart = $true
 }
 
 class RegisterDockerResponseDto {
+
     [string]$InstanceName
     [string]$Restart = ""
 }
 
 class UnregisterDockerDto {
+
     [string]$InstanceName
     [bool]$Restart = $true
 }
 
 class UnregisterDockerResponseDto {
+
     [string]$InstanceName
     [string]$Restart = ""
 }
 
 class LogEntryDto {
+
     [DateTime]$When
     [string]$Level
     [string]$Message

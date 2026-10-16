@@ -5,8 +5,8 @@ using module ..\..\Services\InstanceService.psm1
 using module ..\..\Dtos\InstanceDto.psm1
 
 class DuplicatePresenter : BasePresenter {
-    hidden [InstanceService]$Service
 
+    hidden [InstanceService]$Service
     [SelectInstancePresenter]$Picker
 
     DuplicatePresenter([InstanceService]$service, [string]$viewsRoot, [string]$viewType) : base($viewsRoot, $viewType, "Instance") {

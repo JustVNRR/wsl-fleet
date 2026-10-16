@@ -5,6 +5,7 @@ using module ..\Dtos\InstanceDto.psm1
 using module ..\Dtos\PackCatalogDto.psm1
 
 class InstanceMapper {
+
     InstanceMapper() {}
 
     [WslIndexDto] ToIndexDto([WslInstance]$instance) {

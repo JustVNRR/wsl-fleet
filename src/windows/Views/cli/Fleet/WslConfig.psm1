@@ -1,6 +1,7 @@
 using module ..\BaseViewCli.psm1
 
 class CliWslConfigView : BaseViewCli {
+
     [void] ShowLead() {
         Write-Host ""
         Write-Host "==> Opening .wslconfig" -ForegroundColor $this.Colour("info")

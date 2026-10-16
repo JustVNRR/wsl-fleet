@@ -2,6 +2,7 @@ using module ..\BaseViewCli.psm1
 using module ..\..\..\Dtos\InstanceDto.psm1
 
 class CliBuildView : BaseViewCli {
+
     [void] ShowNameHint() {
         Write-Host "  Letters, digits, '.', '_' and '-' only." -ForegroundColor $this.Colour("hint")
     }

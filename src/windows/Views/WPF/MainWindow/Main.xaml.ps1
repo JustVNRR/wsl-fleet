@@ -1,6 +1,7 @@
 using module ..\BaseViewWpf.psm1
 
 class WpfMainView : BaseViewWpf {
+
     hidden [object]$Vm = $null
     hidden [object]$Beat = $null
 

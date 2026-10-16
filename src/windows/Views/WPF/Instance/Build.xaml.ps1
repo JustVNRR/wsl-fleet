@@ -2,6 +2,7 @@ using module ..\BaseViewWpf.psm1
 using module ..\..\..\ViewModels\BuildViewModel.psm1
 
 class WpfBuildView : BaseViewWpf {
+
     hidden [bool]$EatEnter = $false
     hidden [object]$Vm = $null
 

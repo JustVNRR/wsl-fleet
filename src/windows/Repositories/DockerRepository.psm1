@@ -1,6 +1,7 @@
 using module ..\Tools\Native.psm1
 
 class DockerRepository {
+
     hidden [string]$AssetsDir
 
     DockerRepository([string]$assetsDir) {
@@ -174,7 +175,6 @@ class DockerRepository {
             return "unknown"
         }
     }
-
     [void] SetDesktopState([string]$instanceName) {
         $settings = $this.DesktopSettingsPath()
         $config = Get-Content $settings -Raw | ConvertFrom-Json

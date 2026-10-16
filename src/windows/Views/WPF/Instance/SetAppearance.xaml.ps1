@@ -2,6 +2,7 @@ using module ..\BaseViewWpf.psm1
 using module ..\..\..\ViewModels\SetAppearanceViewModel.psm1
 
 class WpfSetAppearanceView : BaseViewWpf {
+
     hidden [bool]$EatEnter = $false
     hidden [object]$Vm = $null
     hidden [object]$TileFace = $null

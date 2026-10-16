@@ -2,6 +2,7 @@ using module ..\BaseViewWpf.psm1
 using module ..\..\..\ViewModels\RecipeNameViewModel.psm1
 
 class WpfRecipeNameView : BaseViewWpf {
+
     hidden [object]$Vm = $null
 
     [object] Ask() {

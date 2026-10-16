@@ -1,6 +1,7 @@
 using module .\BaseViewModel.psm1
 
 class RecipeNameViewModel : BaseViewModel {
+
     [string]$Lead = "Create a recipe"
     [string]$Name = ""
     [string]$NameError = ""

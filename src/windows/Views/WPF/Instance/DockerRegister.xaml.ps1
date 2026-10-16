@@ -2,6 +2,7 @@ using module ..\BaseViewWpf.psm1
 using module ..\..\..\ViewModels\DockerRegisterViewModel.psm1
 
 class WpfDockerRegisterView : BaseViewWpf {
+
     hidden [object]$Vm = $null
 
     [object] Ask([string]$name, [string]$state) {

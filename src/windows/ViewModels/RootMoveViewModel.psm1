@@ -2,8 +2,8 @@ using module .\BaseViewModel.psm1
 using module ..\Tools\Helpers.psm1
 
 class RootMoveViewModel : BaseViewModel {
-    hidden [string]$_current = ""
 
+    hidden [string]$_current = ""
     [string]$Lead = ""
     [string]$Warning = ""
     [string]$NewRoot = ""

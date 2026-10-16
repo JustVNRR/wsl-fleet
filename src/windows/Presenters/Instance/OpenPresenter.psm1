@@ -4,8 +4,8 @@ using module .\shared\SelectInstancePresenter.psm1
 using module ..\..\Services\InstanceService.psm1
 
 class OpenPresenter : BasePresenter {
-    hidden [InstanceService]$Service
 
+    hidden [InstanceService]$Service
     [SelectInstancePresenter]$Picker
 
     OpenPresenter([InstanceService]$service, [string]$viewsRoot, [string]$viewType) : base($viewsRoot, $viewType, "Instance") {

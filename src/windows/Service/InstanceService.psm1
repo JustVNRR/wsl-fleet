@@ -537,12 +537,13 @@ class InstanceService {
     # LE LOOK
     # =========================================================================
 
-    # Les polices choisissables : celles que l'appli livre (les assets) et
-    # celles que la machine a, fusionnées — le même dessin que la fenêtre
-    # (WpfService.GetFontChoices) : une seule liste pour les deux UI.
+    # The fonts an instance may wear: the folder's, probed for the prompt
+    # glyphs (a shell draws its icons with them), and the machine's, probed
+    # the same way - the window's own list (WpfService.GetFontChoices) keeps
+    # the unprobed folder, it may wear VT323.
     [string[]] GetFonts() {
         $names = @()
-        foreach ($name in @($this.Config.GetFontNames())) {
+        foreach ($name in @($this.Config.GetPromptFontNames())) {
             if ($names -notcontains $name) { $names += $name }
         }
         foreach ($font in @($this.Terminal.GetTerminalFonts())) {

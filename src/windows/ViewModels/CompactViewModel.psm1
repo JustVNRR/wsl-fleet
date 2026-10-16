@@ -17,7 +17,7 @@ class CompactViewModel : BaseViewModel {
 
     CompactViewModel([string]$name) {
         $this._name = "$name"
-        $this.Lead = "Compacting '$name'."
+        $this.Lead = ("Compacting '$name'.").ToUpperInvariant()
 
         $this.ConfirmCommand = $this.NewCommand({ param($vm) $vm.Confirm() })
     }

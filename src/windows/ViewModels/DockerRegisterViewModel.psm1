@@ -19,9 +19,9 @@ class DockerRegisterViewModel : BaseViewModel {
     DockerRegisterViewModel([string]$name, [string]$state) {
         $this._name = "$name"
         if ("$state" -eq "yes") {
-            $this.Lead = "Unregister '$name' from Docker Desktop?"
+            $this.Lead = ("Unregister '$name' from Docker Desktop?").ToUpperInvariant()
         } else {
-            $this.Lead = "Register '$name' with Docker Desktop?"
+            $this.Lead = ("Register '$name' with Docker Desktop?").ToUpperInvariant()
         }
         $this.ConfirmCommand = $this.NewCommand({ param($vm) $vm.Confirm() })
     }

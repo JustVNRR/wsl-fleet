@@ -77,6 +77,46 @@ class ConfigRepository {
         return @($names | Sort-Object)
     }
 
+    # The families of the fonts folder that can draw a prompt: each file is
+    # asked for the folder glyph (F07B) or the powerline arrow (E0B0) - one
+    # suffices, the very probe the terminal fonts get. A font that draws
+    # neither leaves boxes where a prompt wants an icon (VT323 among them);
+    # the window may still wear those.
+    [string[]] GetPromptFontNames() {
+        $fontHome = Join-Path $this.AssetsDir "fonts"
+        if (-not (Test-Path $fontHome)) { return @() }
+
+        $names = @()
+        foreach ($dir in (Get-ChildItem $fontHome -Directory)) {
+            $face = $null
+            foreach ($file in (Get-ChildItem $dir.FullName -File)) {
+                if ($file.Extension -eq ".ttf" -or $file.Extension -eq ".otf") { $face = $file; break }
+            }
+            if (-not $face) { continue }
+
+            try {
+                # Les types par leur nom : un littéral serait résolu quand ce
+                # fichier se charge, et une machine sans WPF ne le charge alors
+                # même pas.
+                Add-Type -AssemblyName PresentationCore
+                $glyphType = [type]"Windows.Media.GlyphTypeface"
+                $glyphs = $glyphType::new([Uri]("file:///" + ($face.FullName -replace '\\', '/')))
+                $map = $glyphs.CharacterToGlyphMap
+                if (-not ($map.ContainsKey(0xF07B) -or $map.ContainsKey(0xE0B0))) { continue }
+
+                $mediaFonts = [type]"Windows.Media.Fonts"
+                $uri = [Uri]("file:///" + ($dir.FullName -replace '\\', '/') + "/")
+                foreach ($family in $mediaFonts::GetFontFamilies($uri)) {
+                    if ("$($family.Source)" -like "*Font Awesome*") { continue }
+                    $name = "$($family.FamilyNames.Values | Select-Object -First 1)"
+                    if (-not $name) { $name = "$($family.Source)" -replace '^\./#', '' }
+                    if ($name -and $names -notcontains $name) { $names += $name }
+                }
+            } catch { }
+        }
+        return @($names | Sort-Object)
+    }
+
     # Les Dockerfiles que la naissance peut prendre : un sous-dossier de
     # assets\dockerfiles, son fichier dedans — un dossier sans fichier n'est
     # pas une source, un dossier absent n'est pas une erreur. Le brut : le nom

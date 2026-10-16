@@ -58,7 +58,7 @@ class ManagePacksViewModel : BaseViewModel {
     ManagePacksViewModel([object]$packs, [string]$name) {
         $this._packs = $packs
         $this._name = "$name"
-        $this.Lead = "Packs for '$name'"
+        $this.Lead = ("Packs for '$name'").ToUpperInvariant()
 
         $installed = @($packs.Installed)
         $rows = @()

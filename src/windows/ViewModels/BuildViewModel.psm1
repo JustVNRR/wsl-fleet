@@ -311,10 +311,12 @@ class BuildViewModel : BaseViewModel {
             }
         }
         $this.OnPropertyChanged($listName)
+        $this.SyncLists()
+        # The index is announced after the names: the combo resets its
+        # selection as the names land, and this puts it back.
         $this.OnPropertyChanged("DockerfileIndex")
         $this.OnPropertyChanged("OnboardingIndex")
         $this.OnPropertyChanged("ImageIndex")
-        $this.SyncLists()
     }
 
     [void] DeleteDockerfile() {
@@ -340,8 +342,10 @@ class BuildViewModel : BaseViewModel {
         $this.Recipes = @($this.Recipes) + @($row)
         $this.RecipeIndex = $this.Recipes.Count - 1
         $this.OnPropertyChanged("Recipes")
-        $this.OnPropertyChanged("RecipeIndex")
         $this.SyncLists()
+        # The index is announced after the names: the combo resets its
+        # selection as the names land, and this puts it back.
+        $this.OnPropertyChanged("RecipeIndex")
     }
 
     # The selected row's path, opened in the code editor - any list that
@@ -370,11 +374,13 @@ class BuildViewModel : BaseViewModel {
             "Recipes" { $this.Recipes = $kept; $this.RecipeIndex = if ($kept.Count -gt 0) { 0 } else { -1 } }
         }
         $this.OnPropertyChanged($listName)
+        $this.SyncLists()
+        # The index is announced after the names: the combo resets its
+        # selection as the names land, and this puts it back.
         $this.OnPropertyChanged("DockerfileIndex")
         $this.OnPropertyChanged("OnboardingIndex")
         $this.OnPropertyChanged("ImageIndex")
         $this.OnPropertyChanged("RecipeIndex")
-        $this.SyncLists()
     }
 
     # Le nom proposé au téléchargement : celui du téléversement, l'empreinte

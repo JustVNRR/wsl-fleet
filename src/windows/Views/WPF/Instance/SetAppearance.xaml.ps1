@@ -72,9 +72,9 @@ class WpfSetAppearanceView : BaseViewWpf {
         # Les saisies : liens à sens unique — WPF lit ; les écritures passent
         # par ici, relayées au ViewModel.
         $this.Find("TxtIconText").Add_TextChanged({ param($source, $e) $self.Vm.SetIconText("$($source.Text)") })
-        $this.Find("LstPairs").Add_SelectionChanged({ param($source, $e) $self.Vm.SetPairIndex([int]$source.SelectedIndex) })
-        $this.Find("LstFonts").Add_SelectionChanged({ param($source, $e) $self.Vm.SetFontIndex([int]$source.SelectedIndex) })
-        $this.Find("LstSchemes").Add_SelectionChanged({ param($source, $e) $self.Vm.SetSchemeIndex([int]$source.SelectedIndex) })
+        $this.Find("LstPairs").Add_SelectionChanged({ param($source, $e) if ([int]$source.SelectedIndex -ge 0) { $self.Vm.SetPairIndex([int]$source.SelectedIndex) } })
+        $this.Find("LstFonts").Add_SelectionChanged({ param($source, $e) if ([int]$source.SelectedIndex -ge 0) { $self.Vm.SetFontIndex([int]$source.SelectedIndex) } })
+        $this.Find("LstSchemes").Add_SelectionChanged({ param($source, $e) if ([int]$source.SelectedIndex -ge 0) { $self.Vm.SetSchemeIndex([int]$source.SelectedIndex) } })
 
         $this.Find("BtnLookCancel").Add_Click({ $self.Close() })
 

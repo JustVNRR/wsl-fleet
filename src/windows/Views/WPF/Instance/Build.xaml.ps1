@@ -117,11 +117,11 @@ class WpfBuildView : BaseViewWpf {
         $this.Find("TxtName").Add_TextChanged({ param($source, $e) $self.Vm.SetName("$($source.Text)") })
         $this.Find("TxtUser").Add_TextChanged({ param($source, $e) $self.Vm.SetUser("$($source.Text)") })
         $this.Find("TxtRegistry").Add_TextChanged({ param($source, $e) $self.Vm.SetRegistryRef("$($source.Text)") })
-        $this.Find("CmbRoad").Add_SelectionChanged({ param($source, $e) $self.Vm.SetRoad([int]$source.SelectedIndex) })
-        $this.Find("CmbDockerfile").Add_SelectionChanged({ param($source, $e) $self.Vm.SetDockerfileIndex([int]$source.SelectedIndex) })
-        $this.Find("CmbOnboarding").Add_SelectionChanged({ param($source, $e) $self.Vm.SetOnboardingIndex([int]$source.SelectedIndex) })
-        $this.Find("CmbDockerImage").Add_SelectionChanged({ param($source, $e) $self.Vm.SetImageIndex([int]$source.SelectedIndex) })
-        $this.Find("CmbRecipe").Add_SelectionChanged({ param($source, $e) $self.Vm.SetRecipeIndex([int]$source.SelectedIndex) })
+        $this.Find("CmbRoad").Add_SelectionChanged({ param($source, $e) if ([int]$source.SelectedIndex -ge 0) { $self.Vm.SetRoad([int]$source.SelectedIndex) } })
+        $this.Find("CmbDockerfile").Add_SelectionChanged({ param($source, $e) if ([int]$source.SelectedIndex -ge 0) { $self.Vm.SetDockerfileIndex([int]$source.SelectedIndex) } })
+        $this.Find("CmbOnboarding").Add_SelectionChanged({ param($source, $e) if ([int]$source.SelectedIndex -ge 0) { $self.Vm.SetOnboardingIndex([int]$source.SelectedIndex) } })
+        $this.Find("CmbDockerImage").Add_SelectionChanged({ param($source, $e) if ([int]$source.SelectedIndex -ge 0) { $self.Vm.SetImageIndex([int]$source.SelectedIndex) } })
+        $this.Find("CmbRecipe").Add_SelectionChanged({ param($source, $e) if ([int]$source.SelectedIndex -ge 0) { $self.Vm.SetRecipeIndex([int]$source.SelectedIndex) } })
         $this.Find("ChkSaveImage").Add_Checked({ param($source, $e) $self.Vm.SetSaveImage([bool]$source.IsChecked) })
         $this.Find("ChkSaveImage").Add_Unchecked({ param($source, $e) $self.Vm.SetSaveImage([bool]$source.IsChecked) })
         $this.Find("ChkSaveImageRecipe").Add_Checked({ param($source, $e) $self.Vm.SetSaveImage([bool]$source.IsChecked) })
@@ -159,7 +159,7 @@ class WpfBuildView : BaseViewWpf {
         $row = $this.Vm.SelectedRow($listName)
         if (-not $row) { return }
         if (-not $row.Uploaded) { return }
-        if (-not $this.ConfirmAs($this, $title, "Remove '$($row.Name)' from the available ${what}?", "")) { return }
+        if (-not $this.ConfirmAs($this, $title, "Remove '$($row.Name)'?", "")) { return }
         $this.Vm.RemoveSelected($listName)
     }
 }

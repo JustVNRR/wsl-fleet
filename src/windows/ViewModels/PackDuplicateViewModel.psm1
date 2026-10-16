@@ -20,7 +20,7 @@ class PackDuplicateViewModel : BaseViewModel {
 
     PackDuplicateViewModel([string]$source, [string]$blurb, [string[]]$taken) {
         $this._taken = @($taken)
-        $this.Lead = "Duplicate the pack '$source'"
+        $this.Lead = ("Duplicate the pack '$source'").ToUpperInvariant()
         $this.Name = "$source-copy"
         $this.Description = "$blurb"
 

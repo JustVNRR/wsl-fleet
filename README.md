@@ -3,11 +3,11 @@
 A reproducible WSL2 stack: one PowerShell command builds a fresh Ubuntu 24.04 distro with:
 - the shell,
 - optional tooling as packs, added with `.\wsl.ps1 add_pack`:
-  - `oh_my_py`: Python 3, `uv`, ruff and the compilation tools
+  - `oh_my_py`: Python 3, `uv` and ruff
   - `oh_my_cloud`: the Google Cloud CLI
   - `oh_my_peg`: ffmpeg, ImageMagick and Tesseract OCR
-  - `oh_my_web`: Firefox, and a WireGuard tunnel
-  - `oh_my_code`: Claude Code, the agentic CLI
+  - `oh_my_web`: Firefox and a WireGuard tunnel
+  - `oh_my_code`: Claude Code (CLI)
   - `oh_my_doc`: Pandoc and XeLaTeX, to build a markdown document into a PDF
 
 ## Features

@@ -386,21 +386,30 @@ class BaseViewWpf : System.Windows.Window {
         # La porte de fermeture — METHODE 1 : le ViewModel dit « j'ai fini »,
         # et la réponse voyage avec (elle vient DE la porte).
         $vm.DemandeFermeture = { param($result) $dialog.Result = $result; $dialog.Close() }
-        $dialog.Find("TxtLead").Text = $vm.Title
 
-        # La question, un bloc à deux couleurs : le texte, puis — quand il y
-        # en a une — la ligne rouge dessous (un Run de plus dans le même
-        # TextBlock).
+        # The title IS the question: its first line in capitals, the rest
+        # (and the danger line) below it.
+        $lines = @("$($vm.Question)" -split "`n")
+        $dialog.Find("TxtLead").Text = "$($lines[0])".Trim().ToUpperInvariant()
+
+        # The question, one block in two colours: what remains of it, then -
+        # when there is one - the danger line under (one more Run in the same
+        # TextBlock). A question with nothing left to say hides its block.
+        $rest = ""
+        if ($lines.Count -gt 1) { $rest = (@($lines[1..($lines.Count - 1)]) -join "`n").Trim() }
         $txtQuestion = $dialog.Find("TxtQuestion")
         $txtQuestion.Inlines.Clear()
-        $txtQuestion.Inlines.Add([System.Windows.Documents.Run]::new($vm.Question))
+        if ($rest) { $txtQuestion.Inlines.Add([System.Windows.Documents.Run]::new($rest)) }
         if ("$($vm.Danger)") {
-            $txtQuestion.Inlines.Add([System.Windows.Documents.LineBreak]::new())
-            $txtQuestion.Inlines.Add([System.Windows.Documents.LineBreak]::new())
+            if ($rest) {
+                $txtQuestion.Inlines.Add([System.Windows.Documents.LineBreak]::new())
+                $txtQuestion.Inlines.Add([System.Windows.Documents.LineBreak]::new())
+            }
             $dangerRun = [System.Windows.Documents.Run]::new("$($vm.Danger)")
             $dangerRun.Foreground = $dialog.FindResource("AppDangerBrush")
             $txtQuestion.Inlines.Add($dangerRun)
         }
+        if (-not $rest -and -not "$($vm.Danger)") { $txtQuestion.Visibility = [System.Windows.Visibility]::Collapsed }
 
         $dialog.Find("BtnConfirmCancel").Add_Click({ $dialog.Close() })
 

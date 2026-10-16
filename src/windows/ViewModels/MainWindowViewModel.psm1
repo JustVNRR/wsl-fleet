@@ -318,7 +318,14 @@ class MainWindowViewModel : BaseViewModel {
     # minuteur de la vue toppe Tick) — rien à poser ici. La ligne est
     # assemblée à la main, chaque valeur citée : un tableau est joint
     # aveuglément, et un nom qui casse la ligne est refusé ici, avant.
-    hidden [void] StartLong([string]$verb, [string]$name, [string]$arg1, [string]$message, [string]$arg2 = "") {
+    # Une méthode de classe ne connaît pas les valeurs par défaut : la forme à
+    # quatre arguments EST la surcharge (mesuré — « aucune surcharge avec le
+    # nombre d'arguments 4 »).
+    hidden [void] StartLong([string]$verb, [string]$name, [string]$arg1, [string]$message) {
+        $this.StartLong($verb, $name, $arg1, $message, "")
+    }
+
+    hidden [void] StartLong([string]$verb, [string]$name, [string]$arg1, [string]$message, [string]$arg2) {
         $workerPath = Join-Path $this._runners "$($verb)Runner.ps1"
         $log = Join-Path $env:TEMP "wsl-stack-gui-job.log"
         Remove-Item -LiteralPath $log -ErrorAction SilentlyContinue

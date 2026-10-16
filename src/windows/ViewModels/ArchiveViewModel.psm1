@@ -18,7 +18,7 @@ class ArchiveViewModel : BaseViewModel {
 
     ArchiveViewModel([string]$name, [object[]]$rows) {
         $this._name = "$name"
-        $this.Lead = "Back up '$name' as '${name}_archive'."
+        $this.Lead = ("Back up '$name' as '${name}_archive'.").ToUpperInvariant()
         $taken = @($rows | Where-Object { $_.IsArchive -and "$($_.Name)" -eq "${name}_archive" })
         $this.TakenVisible = ($taken.Count -gt 0)
 

@@ -5,7 +5,7 @@
 # tire.
 using module .\BaseViewModel.psm1
 # La porte de la suppression d'archive : la phrase avec le nom, et le nom
-# exact retapé — DELETE ne s'éveille que sur lui, casse comprise (-ceq).
+# retapé — DELETE ne s'éveille que sur lui, case ignorée.
 # Confirm rend le nom confirmé — la fenêtre principale en fait le geste.
 class DeleteArchiveViewModel : BaseViewModel {
     hidden [string]$_archiveName = ""
@@ -16,16 +16,14 @@ class DeleteArchiveViewModel : BaseViewModel {
 
     DeleteArchiveViewModel([string]$archiveName) {
         $this._archiveName = "$archiveName"
-        $this.Lead = "The archive '$archiveName' will be deleted and will not be restorable again."
+        $this.Lead = ("The archive '$archiveName' will be deleted and will not be restorable again.").ToUpperInvariant()
 
         $this.ConfirmCommand = $this.NewCommand({ param($vm) $vm.Confirm() }, { param($vm) $vm.CanConfirm() })
     }
 
     # Le lien XAML est à sens unique : la vue relaie la saisie ici.
     [void] SetTyped([string]$value) {
-        # -cne : le champ se compare à la casse près en aval — un changement
-        # de casse seule doit compter (mesuré à la fumée).
-        if ($this.Typed -cne "$value") {
+        if ($this.Typed -ne "$value") {
             $this.Typed = "$value"
             $this.OnPropertyChanged("Typed")
             $this.ConfirmCommand.RaiseCanExecuteChanged()
@@ -33,8 +31,8 @@ class DeleteArchiveViewModel : BaseViewModel {
     }
 
     [bool] CanConfirm() {
-        # -ceq : le nom exact, casse comprise.
-        return ("$($this.Typed)" -ceq $this._archiveName)
+        # -eq : the name; the case does not count.
+        return ("$($this.Typed)" -eq $this._archiveName)
     }
 
     [void] Confirm() {

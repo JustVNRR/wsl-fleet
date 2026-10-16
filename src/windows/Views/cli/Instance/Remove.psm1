@@ -27,7 +27,7 @@ class CliRemoveView : BaseViewCli {
         Write-Host ""
         Write-Host " ----------------------------------------------------------------------" -ForegroundColor $this.Colour("muted")
         Write-Host " Press ENTER to abort immediately." -ForegroundColor $this.Colour("hint")
-        Write-Host " To confirm DESTRUCTION, type the exact name of the distribution:" -ForegroundColor $this.Colour("hint")
+        Write-Host " To confirm DESTRUCTION, type the name of the distribution:" -ForegroundColor $this.Colour("hint")
     }
 
     # Le nom retapé, lu — Read-Host est demandé nu : ce qu'il écrit lui-même

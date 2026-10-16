@@ -166,6 +166,7 @@ class FakeConfig : ConfigRepository {
     FakeConfig() : base([System.IO.Path]::GetTempPath()) {}
 
     [string[]] GetFontNames() { return @($this.FontNames) }
+    [string[]] GetPromptFontNames() { return @($this.FontNames) }
 }
 
 # The view fakes: every order recorded, every question answered from a script.

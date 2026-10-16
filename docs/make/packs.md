@@ -20,7 +20,7 @@ name, and the description from its own `pack.conf`:
 Packs currently installed:
 
   hide_my_ops  The Google Cloud CLI
-  oh_my_py     Python 3, uv, ruff and the compilation tools
+  oh_my_py     Python 3, uv and ruff
   oh_my_peg    ffmpeg, ImageMagick and Tesseract OCR
 
 Packs are managed from Windows (.\wsl.ps1)

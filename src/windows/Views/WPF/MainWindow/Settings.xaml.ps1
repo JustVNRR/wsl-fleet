@@ -72,10 +72,10 @@ class WpfSettingsView : BaseViewWpf {
 
         # Les choix : liens à sens unique — la vue relaie chaque sélection au
         # ViewModel, qui crie et fait repeindre la face.
-        $this.Find("LstGuiFonts").Add_SelectionChanged({ param($source, $e) $self.Vm.SetFontIndex([int]$source.SelectedIndex) })
-        $this.Find("LstGuiSizes").Add_SelectionChanged({ param($source, $e) $self.Vm.SetSizeIndex([int]$source.SelectedIndex) })
-        $this.Find("LstGuiColours").Add_SelectionChanged({ param($source, $e) $self.Vm.SetColourIndex([int]$source.SelectedIndex) })
-        $this.Find("LstGuiPacks").Add_SelectionChanged({ param($source, $e) $self.Vm.SetPackIndex([int]$source.SelectedIndex) })
+        $this.Find("LstGuiFonts").Add_SelectionChanged({ param($source, $e) if ([int]$source.SelectedIndex -ge 0) { $self.Vm.SetFontIndex([int]$source.SelectedIndex) } })
+        $this.Find("LstGuiSizes").Add_SelectionChanged({ param($source, $e) if ([int]$source.SelectedIndex -ge 0) { $self.Vm.SetSizeIndex([int]$source.SelectedIndex) } })
+        $this.Find("LstGuiColours").Add_SelectionChanged({ param($source, $e) if ([int]$source.SelectedIndex -ge 0) { $self.Vm.SetColourIndex([int]$source.SelectedIndex) } })
+        $this.Find("LstGuiPacks").Add_SelectionChanged({ param($source, $e) if ([int]$source.SelectedIndex -ge 0) { $self.Vm.SetPackIndex([int]$source.SelectedIndex) } })
 
         $this.Find("BtnGuiRootEdit").Add_Click({ $self.Vm.EditRoot() })
 
@@ -149,7 +149,7 @@ class WpfSettingsView : BaseViewWpf {
         $this.Find("BtnGuiThemeDelete").Add_Click({
             $name = $self.Vm.SelectedColour()
             if (-not $name) { return }
-            if (-not $self.ConfirmAs($self, "Delete theme", "Remove the theme '$name'?", "")) { return }
+            if (-not $self.ConfirmAs($self, "Delete theme", "Remove '$name'?", "")) { return }
             $self.Vm.DeleteTheme($name)
         })
 
@@ -166,7 +166,7 @@ class WpfSettingsView : BaseViewWpf {
         $this.Find("BtnGuiPackDelete").Add_Click({
             $row = $self.Vm.SelectedPack()
             if (-not $row) { return }
-            if (-not $self.ConfirmAs($self, "Remove the pack", "Remove the pack '$($row.Name)'?`n`nInstances already carrying it keep their own copy.", "")) { return }
+            if (-not $self.ConfirmAs($self, "Remove the pack", "Remove '$($row.Name)'?`n`nInstances already carrying it keep their own copy.", "")) { return }
             $self.Vm.DeletePack()
         })
 

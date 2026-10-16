@@ -66,7 +66,7 @@ class SetAppearanceViewModel : BaseViewModel {
 
     SetAppearanceViewModel([string]$name, [object]$appearance, [string[]]$fonts, [object[]]$schemes, [object[]]$pairs) {
         $this._name = "$name"
-        $this.Lead = "$name's appearance."
+        $this.Lead = ("$name's appearance.").ToUpperInvariant()
         $this._appearance = $appearance
         $this._recipe = $appearance.Icon
         $this.NoFragment = (-not [bool]$appearance.HasFragment)

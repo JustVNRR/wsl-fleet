@@ -8,7 +8,7 @@ using module ..\Dto\InstanceDto.psm1
 
 # La porte de la destruction : la phrase avec le nom, l'écho de ce qui part,
 # la case « archiver d'abord », et le nom exact retapé — REMOVE ne s'éveille
-# que sur lui, casse comprise (-ceq de la console).
+# que sur lui — case ignorée.
 class RemoveViewModel : BaseViewModel {
     hidden [string]$_name = ""
     [string]$Lead = ""
@@ -19,16 +19,14 @@ class RemoveViewModel : BaseViewModel {
 
     RemoveViewModel([string]$name) {
         $this._name = "$name"
-        $this.Lead = "The WSL distribution '$name' and ALL its data will be deleted."
+        $this.Lead = ("The WSL distribution '$name' and ALL its data will be deleted.").ToUpperInvariant()
 
         $this.ConfirmCommand = $this.NewCommand({ param($vm) $vm.Confirm() }, { param($vm) $vm.CanConfirm() })
     }
 
     # Les liens XAML sont à sens unique : la vue relaie saisies et bascules.
     [void] SetTyped([string]$value) {
-        # -cne : le champ se compare à la casse près en aval — un changement
-        # de casse seule doit compter (mesuré à la fumée).
-        if ($this.Typed -cne "$value") {
+        if ($this.Typed -ne "$value") {
             $this.Typed = "$value"
             $this.OnPropertyChanged("Typed")
             $this.ConfirmCommand.RaiseCanExecuteChanged()
@@ -43,8 +41,8 @@ class RemoveViewModel : BaseViewModel {
     }
 
     [bool] CanConfirm() {
-        # -ceq : le nom exact, casse comprise.
-        return ("$($this.Typed)" -ceq $this._name)
+        # -eq : the name; the case does not count.
+        return ("$($this.Typed)" -eq $this._name)
     }
 
     [void] Confirm() {

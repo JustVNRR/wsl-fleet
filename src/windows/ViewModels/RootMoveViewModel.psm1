@@ -21,7 +21,7 @@ class RootMoveViewModel : BaseViewModel {
 
     RootMoveViewModel([string]$current) {
         $this._current = "$($current)".TrimEnd('\')
-        $this.Lead = "Move the fleet from '$current'"
+        $this.Lead = ("Move the fleet from '$current'").ToUpperInvariant()
         $this.Warning = "Every instance will be archived and unregistered before migration."
         $this.NewRoot = "$current"
 

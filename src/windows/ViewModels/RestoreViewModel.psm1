@@ -18,7 +18,7 @@ class RestoreViewModel : BaseViewModel {
 
     RestoreViewModel([string]$archiveName) {
         $this._archiveName = "$archiveName"
-        $this.Lead = "The archive '$archiveName' comes back as a new instance."
+        $this.Lead = ("The archive '$archiveName' comes back as a new instance.").ToUpperInvariant()
         $this.Name = "$archiveName"
 
         $this.ConfirmCommand = $this.NewCommand({ param($vm) $vm.Confirm() }, { param($vm) $vm.CanConfirm() })

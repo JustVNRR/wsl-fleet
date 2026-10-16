@@ -6,6 +6,8 @@
     </Grid.RowDefinitions>
     <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="18,18,18,4">
+            <TextBlock Text="NEW WSL DISTRIBUTION" FontWeight="SemiBold"/>
+            <Border BorderBrush="{DynamicResource AppDividerBrush}" BorderThickness="0,0,0,1" Margin="0,8,0,0"/>
             <TextBlock Margin="0,10,0,0" Text="Instance name:"/>
             <!-- Les saisies : liens à sens unique — WPF lit ; la vue relaie
                  les écritures au ViewModel (voir le .xaml.ps1). -->
@@ -119,7 +121,7 @@
                 <TextBlock Text="{Binding RecipeError}" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource AppDangerBrush}"/>
                 <CheckBox Name="ChkSaveImageRecipe" IsChecked="{Binding SaveImage, Mode=OneWay}" Margin="0,10,0,0" Content="Save image locally" Foreground="{DynamicResource AppForegroundBrush}"/>
             </StackPanel>
-            <CheckBox Name="ChkRegisterDocker" IsChecked="{Binding RegisterDocker, Mode=OneWay}" Margin="0,12,0,0" Content="Add to Docker Desktop (it will be restarted)" Foreground="{DynamicResource AppForegroundBrush}"/>
+            <CheckBox Name="ChkRegisterDocker" IsChecked="{Binding RegisterDocker, Mode=OneWay}" Margin="0,12,0,0" Content="Add Docker Desktop support (will be restarted)" Foreground="{DynamicResource AppForegroundBrush}"/>
             <CheckBox Name="ChkRunOnboarding" IsChecked="{Binding RunOnboarding, Mode=OneWay}" Margin="0,12,0,0" Content="Run onboarding shell" Foreground="{DynamicResource AppForegroundBrush}"/>
             <StackPanel Name="BoxOnboarding" IsEnabled="{Binding RunOnboarding}">
                 <TextBlock Margin="0,10,0,0" Text="Onboarding:"/>

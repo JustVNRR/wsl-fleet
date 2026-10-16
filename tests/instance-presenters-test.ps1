@@ -230,15 +230,24 @@ try {
     $presenter.Views = @{ "Remove" = $removeView }
     $presenter.Picker.Views = @{ "SelectInstance" = $selectView }
 
-    # 1. The gate: a name that is not the exact one is refused, nothing is
-    # touched - and the case is the point (-cne).
+    # 1. The gate: a name that is not it is refused, nothing is touched.
     $fake.Called.Clear()
-    $removeView.Typed = $Instance.ToUpper()
+    $removeView.Typed = "not-$Instance"
     $result = $presenter.Run("")
-    Check "remove refuses a case-only name" "$($result.Status)/$($result.Message)" "Ok/Remove : cancelled"
+    Check "remove refuses a foreign name" "$($result.Status)/$($result.Message)" "Ok/Remove : cancelled"
     Check "  ... the gate said so, before the question" ($removeView.Orders -join " | ") "gate $Instance | typed | gate-close | gate-refused"
     Check "  ... and nothing was touched" ($fake.Called.Count) 0
     Check "  ... and the folder stays" (Test-Path $FakeFolder) $true
+
+    # 1b. The case does not count: the same name in capitals opens the gate.
+    Reset-World
+    $removeView.Orders.Clear()
+    $removeView.Typed = $Instance.ToUpper()
+    $removeView.ArchiveFirst = $false
+    $fake.Called.Clear()
+    $result = $presenter.Run("")
+    Check "a case-only name opens the gate" "$($result.Status)/$($result.Message)" "Ok/Remove : $Instance"
+    Check "  ... the gate opened, not refused" ($removeView.Orders -contains "gate-opened") $true
 
     # 2. The exact name passes: the last copy question, the steps, the call -
     # stop and unregister, in that order - and the report.

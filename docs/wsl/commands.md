@@ -808,7 +808,7 @@ Removes an instance and everything it left on Windows.
 This is the only command that deletes without rebuilding, and it asks twice:
 
 1. It lists the instances and you pick one.
-2. It shows the red warning and asks you to **type the exact name**. An empty
+2. It shows the red warning and asks you to **type the name** (the case does not count). An empty
    answer aborts, and picking from the list does not replace the typing.
 3. It then offers `Archive it before deleting? [y/N]` — default no. Answering
    yes calls `archive` first, and **if the archive fails, nothing is deleted**.

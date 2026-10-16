@@ -24,6 +24,8 @@ class WpfBuildPacksView : BaseViewWpf {
         $this.WearDefault()
         $this.Dress($null, 15)
 
+        $this.Find("TxtPacksTitle").Text = "ADD PACKS FOR '$name'"
+
         if (-not $family) { $this.Find("TxtPacksForeign").Visibility = [System.Windows.Visibility]::Visible }
 
         $offered = if ($family) { @($packs | Where-Object { $_.Family -eq $family }) } else { @($packs) }

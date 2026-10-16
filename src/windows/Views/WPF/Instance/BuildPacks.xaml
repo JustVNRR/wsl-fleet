@@ -6,7 +6,8 @@
     </Grid.RowDefinitions>
     <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="18,18,18,4">
-            <TextBlock Margin="0,4,0,0" Text="Add optional packs"/>
+            <TextBlock Name="TxtPacksTitle" FontWeight="SemiBold"/>
+            <Border BorderBrush="{DynamicResource AppDividerBrush}" BorderThickness="0,0,0,1" Margin="0,8,0,0"/>
             <TextBlock Name="TxtPacksForeign" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource AppWarningBrush}" Visibility="Collapsed" Text="The recipe's system cannot be read.&#10;Please make sure your Docker image is compatible with the following packs before ticking them."/>
             <ScrollViewer MaxHeight="260" Margin="0,6,0,0" VerticalScrollBarVisibility="Auto">
                 <StackPanel Name="Boxes"/>

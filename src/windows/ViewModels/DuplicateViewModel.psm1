@@ -23,7 +23,7 @@ class DuplicateViewModel : BaseViewModel {
 
     DuplicateViewModel([string]$source) {
         $this._source = "$source"
-        $this.Lead = "Copy '$source'."
+        $this.Lead = ("Duplicate '$source'.").ToUpperInvariant()
         $this.Name = "$source-copy"
 
         $this.ConfirmCommand = $this.NewCommand({ param($vm) $vm.Confirm() }, { param($vm) $vm.CanConfirm() })

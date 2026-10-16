@@ -209,7 +209,7 @@ Write-Output ""
 Write-Output "--- the window: rows are cut, a tall list scrolls ---"
 # A tiny window, and the list must still work: the long label is cut rather
 # than wrapping, and the list scrolls instead of refusing to draw.
-$Long = "remove_pack  uninstall optional tooling from an instance, dependencies included"
+$Long = "manage_packs choose the packs an instance should carry, installed and taken out in one visit"
 # @() around each: a one-element list unrolls to its element, and [0] on a
 # string is its first LETTER - the same trap, met again in the test.
 $Cut = @([MenuCli]::Fit(@($Long), 40, 4))[0]

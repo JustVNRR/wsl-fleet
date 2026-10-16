@@ -2,7 +2,7 @@
 # ==============================================================================
 # THE OH_MY_DOC PACK - WHAT IT REMOVES
 # ==============================================================================
-# `wsl-fleet.ps1 remove_pack` runs this before deleting the pack's folder: what the
+# `wsl-fleet.ps1 manage_packs` runs this before deleting the pack's folder: what the
 # install added leaves the machine, and only that.
 #
 # The packages go one at a time, and one another installed pack still claims
@@ -12,7 +12,7 @@
 # nothing else under ~/.local/share/fonts is touched.
 #
 # Two things this never does: remove a library (apt would take its dependents
-# along), and autoremove - remove_pack takes the dependencies back afterwards,
+# along), and autoremove - manage_packs takes the dependencies back afterwards,
 # with its question.
 #
 # Everything this script PRINTS is plain ASCII: it travels through wsl.exe.

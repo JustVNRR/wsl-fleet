@@ -25,8 +25,6 @@ WSL Fleet CLI
     build        build an instance from the image
     restart      restart an instance
     shell        open a shell inside an instance
-    add_pack     install a pack into an instance
-    remove_pack  uninstall a pack from an instance
     manage_packs choose the packs an instance should carry
     theme        choose the icon, font and colours
     register_docker register an instance with Docker Desktop
@@ -64,8 +62,6 @@ read, the colours a console has always had are used.
 | [`.\wsl-fleet.ps1 build`](#build) | build an instance from the image |
 | [`.\wsl-fleet.ps1 restart`](#restart) | restart an instance |
 | [`.\wsl-fleet.ps1 shell`](#shell) | open a shell inside an instance |
-| [`.\wsl-fleet.ps1 add_pack`](#add_pack) | install a pack into an instance |
-| [`.\wsl-fleet.ps1 remove_pack`](#remove_pack) | uninstall a pack from an instance |
 | [`.\wsl-fleet.ps1 manage_packs`](#manage_packs) | choose the packs an instance should carry |
 | [`.\wsl-fleet.ps1 theme`](#theme) | choose the icon, font and colours |
 | [`.\wsl-fleet.ps1 register_docker`](#register_docker) | register an instance with Docker Desktop |
@@ -417,159 +413,6 @@ thing the build does when a new instance is ready.
 
 ---
 
-## `add_pack`
-
-Installs a pack into an instance: the tool itself (its packages and its APT
-repository) and the pack's files — its gmake targets, its cheatsheets, its
-environment samples.
-
-```powershell
-.\wsl-fleet.ps1 add_pack
-```
-
-Two lists, then it installs:
-
-```text
-Our Instances
-   1.  template-bac                   running      1.1 GB
-   2.  ubuntu-template                stopped      2.4 GB
-   0.  Cancel
-Which one? (0 to cancel) 2
-
-       Already in 'ubuntu-template': oh_my_py
-Packs available for 'ubuntu-template':
-   1.  oh_my_cloud  [debian] The Google Cloud CLI
-   0.  Cancel
-Which one? (0 to cancel) 1
-
-==> Installing 'oh_my_cloud' in 'ubuntu-template'...
-```
-
-Only the packs the instance does not have yet are offered. The packs are the
-folders under `packs\`: a folder carrying a `pack.conf` is a pack.
-
-The pack's files travel from the Windows checkout into the instance — through
-the mounted drives when they are there, and through Windows' own
-`\\wsl.localhost` share when the instance has them unmounted (`gmake
-automount_down`) — so a pack arrives either way, and its scripts are made
-executable on arrival.
-
-The list is the packs a **user** chooses. A pack that says `PACK_VISIBLE := no`
-in its `pack.conf` is never in it: it is a shared dependency — `hide_my_ops` is the
-project targets several packs need — and it arrives with the pack that requires
-it, before it, in the same run:
-
-```text
-==> Installing 'hide_my_ops' in 'ubuntu-template'...
-    It comes with 'oh_my_cloud', which requires it.
-
-==> Installing 'oh_my_cloud' in 'ubuntu-template' (as root)...
-==> Installing 'oh_my_cloud' in 'ubuntu-template'...
-```
-
-**It asks nothing.** The root halves run first, one per pack, as WSL's own
-root - `wsl -u root`, no password - before anything else: that is what lets
-the `oh_my_shell` pack install `sudo` itself on a machine that has none, since the
-door below is a `sudo` rule and cannot open before `sudo` exists. Then the
-engine opens WSL's own passwordless root door to `sudo` for the length of the
-`install.sh` runs, and closes it after: the run never stops to ask. (Run
-`install.sh` by hand inside the instance and `sudo` asks as usual.)
-
-Nothing has to be reopened afterwards: `gmake` reads the pack's files at every
-run, and `fcheat` re-reads its cheatsheets at every opening.
-
-One step is left for you, and the command names it at the end: `gmake
-env_global_enable`, inside the instance, merges the pack's environment samples
-into your `.env.global`. Nothing writes into that file on your behalf — it is
-yours, and so is the project's `.env`.
-
-If the installation fails, the pack's files are removed and the script says so.
-What the install had already put in place stays; running `add_pack` again picks
-up where it stopped.
-
----
-
-## `remove_pack`
-
-The reverse: the pack's own `remove.sh` runs first — the tool and its APT
-repository leave the system — then its folder leaves the instance.
-
-```powershell
-.\wsl-fleet.ps1 remove_pack
-```
-
-```text
-Packs installed in 'ubuntu-template':
-   1.  oh_my_cloud
-   0.  Cancel
-Which one? (0 to cancel) 1
-
-==> Removing from 'ubuntu-template': oh_my_cloud
-Remove 'oh_my_cloud'? [Y/n] y
-```
-
-The list comes from the instance, not from this repository: a pack installed by
-an older copy is still removable, because its `remove.sh` travelled with it.
-What is *not* in it is a pack marked invisible: it is nobody's to remove by
-hand, since removing it would pull the base out from under a pack still
-installed. It leaves with the last pack that requires it:
-
-```text
-==> Removing from 'ubuntu-template': oh_my_py, hide_my_ops
-    'hide_my_ops' goes with 'oh_my_py': nothing installed requires it any more.
-Remove oh_my_py, hide_my_ops? [Y/n]
-```
-
-And a pack a still-installed pack requires is refused outright: the choice
-comes back with the claimant named, because the removal would leave that pack
-standing on nothing — every visible pack stands on `oh_my_shell`, the shell:
-
-```text
-[ABORT] 'oh_my_shell' cannot be removed: required by oh_my_py.
-        Take oh_my_py out first, or leave 'oh_my_shell' where it is.
-```
-
-The chosen pack goes first, and the packs it held up follow: that order is what
-lets a `remove.sh` ask whether a neighbour still claims its packages and get
-the right answer.
-
-No password is asked: the removal runs behind WSL's own root door. What the
-pack left in your files is not touched: your `gcloud` logins, the variables it
-copied into `.env.global`.
-
-A pack installed before packs carried a `remove.sh` is a special case: the
-command says so, and deleting its files undoes nothing on the system side.
-
-### What it takes back after the pack is gone
-
-A `remove.sh` names what it installed — `ffmpeg`, the Google CLI — and takes
-those away. What arrived with them as *dependencies* is nobody's to name, and it
-is the bulk of the weight. So the command asks one more question, and removes
-only if both answers come back empty:
-
-| Question | Who answers |
-| :--- | :--- |
-| Does any installed package depend on it? | apt — the automatic packages no installed package needs any more |
-| Does anything **outside apt** link its libraries? | `ldd` over `~/.local`, `~/projects`, `/usr/local` and `/opt`, each library traced to its package with `dpkg -S` |
-
-A program apt knows nothing about — a venv, a binary you built — stops the
-cleanup, and the command names it:
-
-```text
-    Kept in place: something outside apt still links what would go.
-
-    /usr/local/bin/mytool links libtesseract5, liblept5, libtiff6
-    Remove the package by hand if that program is gone.
-```
-
-When nothing answers yes, it goes: `46 dependencies nothing needs any more:
-78 MB`.
-
-It is the one place the repository runs `autoremove`, and it never runs it
-blind.
-
----
-
 ## `manage_packs`
 
 Several packs at once. The list shows every pack this repository carries for
@@ -623,10 +466,116 @@ folder that has just arrived counts — so a package two packs share is left in
 place. There is no list of packages compared anywhere: the packs say what they
 claim, and the question is asked of the instance.
 
-`add_pack` and `remove_pack` stay what they were, for one pack at a time. A
+A
 failure here stops the run where it stands: the pack that failed and the packs
 that had not run yet lose their folder, and the command says what was installed,
 what failed, what was skipped.
+
+### What an install runs
+
+Installs a pack into an instance: the tool itself (its packages and its APT
+repository) and the pack's files — its gmake targets, its cheatsheets, its
+environment samples.
+
+Only the packs the instance does not have yet are offered. The packs are the
+folders under `packs\`: a folder carrying a `pack.conf` is a pack.
+
+The pack's files travel from the Windows checkout into the instance — through
+the mounted drives when they are there, and through Windows' own
+`\\wsl.localhost` share when the instance has them unmounted (`gmake
+automount_down`) — so a pack arrives either way, and its scripts are made
+executable on arrival.
+
+The list is the packs a **user** chooses. A pack that says `PACK_VISIBLE := no`
+in its `pack.conf` is never in it: it is a shared dependency — `hide_my_ops` is the
+project targets several packs need — and it arrives with the pack that requires
+it, before it, in the same run:
+
+```text
+==> Installing 'hide_my_ops' in 'ubuntu-template'...
+    It comes with 'oh_my_cloud', which requires it.
+
+==> Installing 'oh_my_cloud' in 'ubuntu-template' (as root)...
+==> Installing 'oh_my_cloud' in 'ubuntu-template'...
+```
+
+**It asks nothing.** The root halves run first, one per pack, as WSL's own
+root - `wsl -u root`, no password - before anything else: that is what lets
+the `oh_my_shell` pack install `sudo` itself on a machine that has none, since the
+door below is a `sudo` rule and cannot open before `sudo` exists. Then the
+engine opens WSL's own passwordless root door to `sudo` for the length of the
+`install.sh` runs, and closes it after: the run never stops to ask. (Run
+`install.sh` by hand inside the instance and `sudo` asks as usual.)
+
+Nothing has to be reopened afterwards: `gmake` reads the pack's files at every
+run, and `fcheat` re-reads its cheatsheets at every opening.
+
+One step is left for you, and the command names it at the end: `gmake
+env_global_enable`, inside the instance, merges the pack's environment samples
+into your `.env.global`. Nothing writes into that file on your behalf — it is
+yours, and so is the project's `.env`.
+
+If the installation fails, the pack's files are removed and the script says so.
+What the install had already put in place stays; running `manage_packs` again picks
+up where it stopped.
+
+### What a removal runs
+
+The pack's own `remove.sh` runs first — the tool and its APT
+repository leave the system — then its folder leaves the instance.
+
+The list comes from the instance, not from this repository: a pack installed by
+an older copy is still removable, because its `remove.sh` travelled with it.
+What is *not* in it is a pack marked invisible: it is nobody's to remove by
+hand, since removing it would pull the base out from under a pack still
+installed. It leaves with the last pack that requires it:
+
+```text
+==> Removing from 'ubuntu-template': oh_my_py, hide_my_ops
+    'hide_my_ops' goes with 'oh_my_py': nothing installed requires it any more.
+Remove oh_my_py, hide_my_ops? [Y/n]
+```
+
+The chosen pack goes first, and the packs it held up follow: that order is what
+lets a `remove.sh` ask whether a neighbour still claims its packages and get
+the right answer.
+
+No password is asked: the removal runs behind WSL's own root door. What the
+pack left in your files is not touched: your `gcloud` logins, the variables it
+copied into `.env.global`.
+
+A pack installed before packs carried a `remove.sh` is a special case: the
+command says so, and deleting its files undoes nothing on the system side.
+
+### What it takes back after the pack is gone
+
+A `remove.sh` names what it installed — `ffmpeg`, the Google CLI — and takes
+those away. What arrived with them as *dependencies* is nobody's to name, and it
+is the bulk of the weight. So the command asks one more question, and removes
+only if both answers come back empty:
+
+| Question | Who answers |
+| :--- | :--- |
+| Does any installed package depend on it? | apt — the automatic packages no installed package needs any more |
+| Does anything **outside apt** link its libraries? | `ldd` over `~/.local`, `~/projects`, `/usr/local` and `/opt`, each library traced to its package with `dpkg -S` |
+
+A program apt knows nothing about — a venv, a binary you built — stops the
+cleanup, and the command names it:
+
+```text
+    Kept in place: something outside apt still links what would go.
+
+    /usr/local/bin/mytool links libtesseract5, liblept5, libtiff6
+    Remove the package by hand if that program is gone.
+```
+
+When nothing answers yes, it goes: `46 dependencies nothing needs any more:
+78 MB`.
+
+It is the one place the repository runs `autoremove`, and it never runs it
+blind.
+
+---
 
 ---
 
@@ -828,7 +777,7 @@ rebuild destroys it the same way. Before either:
 | `~/.ssh/` | A key generated inside cannot be recovered: copy it out, or plan to revoke and regenerate it |
 | `~/.config/gcloud/` | Both logins are redoable in minutes ([GCP onboarding](../../src/distro/packs/oh_my_cloud/docs/onboarding.md)) |
 | `~/.config/zsh/gmake/.env.global` | A handful of lines; `gmake env_global_enable` recreates them from the samples the instance carries |
-| `~/.config/packs/oh_my_py/cheatsheets/templates.tsv` | Only for rows you added inside the instance: `add_pack` copied the file there — move the line into the pack to keep it |
+| `~/.config/packs/oh_my_py/cheatsheets/templates.tsv` | Only for rows you added inside the instance: `manage_packs` copied the file there — move the line into the pack to keep it |
 
 `archive` is the way out: it writes the whole file system to a folder you can
 restore from later.

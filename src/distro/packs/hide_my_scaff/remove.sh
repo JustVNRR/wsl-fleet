@@ -2,7 +2,7 @@
 # ==============================================================================
 # THE HIDE_MY_SCAFF PACK - WHAT IT REMOVES
 # ==============================================================================
-# `wsl-fleet.ps1 remove_pack` runs this before deleting the pack's folder: what the
+# `wsl-fleet.ps1 manage_packs` runs this before deleting the pack's folder: what the
 # install added leaves the machine, and only that.
 #
 # One thing to take back - uv - and one thing never to touch: ~/projects. The

@@ -11,8 +11,8 @@
 ## Installing and removing it
 
 ```powershell
-.\wsl-fleet.ps1 add_pack      # pick the instance, then claude
-.\wsl-fleet.ps1 remove_pack   # the reverse
+.\wsl-fleet.ps1 manage_packs  # pick the instance, then tick claude
+.\wsl-fleet.ps1 manage_packs   # untick to take it back
 ```
 
 ## Getting in

@@ -4,7 +4,7 @@
 
 The shell's settings — the `.zshrc`, the modules, `gmake`, the cheatsheets,
 the prompt — live in one folder, `src/distro/packs/oh_my_shell/config/`, and the pack
-is what deploys them: `.\wsl-fleet.ps1 add_pack` copies the folder in and runs
+is what deploys them: `.\wsl-fleet.ps1 manage_packs` copies the folder in and runs
 `install.sh`, which fills `~/.config/zsh`, writes the `.zshenv` that points
 zsh at it, and lays the same files into `/etc/skel` for the accounts that
 come after. Chosen while an instance is built, it runs the same way, right
@@ -63,7 +63,7 @@ rather than add it.
 
 ## Removing it
 
-`remove_pack` is the reverse, and the removal is guarded upstream: this pack
+`manage_packs` is the reverse, and the removal is guarded upstream: this pack
 leaves only when no installed pack requires it any more, so the packages go
 one at a time and any name a standing pack claims is left in place. The
 configuration leaves `~/.config/zsh`, **except** the `.env` files the gmake

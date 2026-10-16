@@ -2,10 +2,10 @@
 # ==============================================================================
 # THE OH_MY_WEB PACK - WHAT IT REMOVES
 # ==============================================================================
-# `wsl-fleet.ps1 remove_pack` runs this before deleting the pack's folder: what the
+# `wsl-fleet.ps1 manage_packs` runs this before deleting the pack's folder: what the
 # install added to the system leaves it, and only that. A package another
 # installed pack still claims stays where it is. Never a library (apt would
-# take its dependents), and no autoremove here - remove_pack runs the cleanup
+# take its dependents), and no autoremove here - manage_packs runs the cleanup
 # that follows.
 
 set -euo pipefail
@@ -48,7 +48,7 @@ for package in $declared; do
 done
 
 # Libraries installed beside the browser: marked automatic, they become
-# orphans for the cleanup remove_pack runs next. The decoder's name is read
+# orphans for the cleanup manage_packs runs next. The decoder's name is read
 # the way install_root.sh read it - the machine's own ffmpeg names it, and a
 # machine that never had one marks only the sound library.
 echo "Leaving the browser's decoder and its sound client to the cleanup that follows..."

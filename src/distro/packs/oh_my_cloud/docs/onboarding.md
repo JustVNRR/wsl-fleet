@@ -16,12 +16,12 @@ The image ships no pack at all, and not every project uses Google Cloud: a pack
 arrives on a living instance, from Windows — pick the instance, then `oh_my_cloud`:
 
 ```powershell
-.\wsl-fleet.ps1 add_pack
+.\wsl-fleet.ps1 manage_packs
 ```
 
 It registers Google's APT repository before installing the package, and copies
 the pack's files — targets, cheatsheets, environment samples — into the
-instance. `.\wsl-fleet.ps1 remove_pack` takes both back out.
+instance. `.\wsl-fleet.ps1 manage_packs` takes both back out.
 
 Run `gmake` again: the GCP targets are there. They call `gcloud`
 and `bq` under your Google account — this one-time login authorizes them.
@@ -112,7 +112,7 @@ its full flow.
 
 - **The CLI and the credentials live inside the distro** (`/usr/bin/gcloud`,
   `~/.config/gcloud`). Recreating the distro loses both — run
-  `.\wsl-fleet.ps1 add_pack`, then redo steps 1 and 5.
+  `.\wsl-fleet.ps1 manage_packs`, then redo steps 1 and 5.
 - Operational targets refuse to run outside a project folder under
   `~/projects` — the message says so. `GMAKE_ANYWHERE=1` bypasses the gate
   for unconventional setups.

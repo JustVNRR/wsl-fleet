@@ -17,8 +17,8 @@ package is part of the pack). Another language is one command away:
 ## Installing and removing it
 
 ```powershell
-.\wsl-fleet.ps1 add_pack      # pick the instance, then vision
-.\wsl-fleet.ps1 remove_pack   # the reverse
+.\wsl-fleet.ps1 manage_packs  # pick the instance, then tick vision
+.\wsl-fleet.ps1 manage_packs   # untick to take it back
 ```
 
 ## From Python

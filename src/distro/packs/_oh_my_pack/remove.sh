@@ -2,7 +2,7 @@
 # ==============================================================================
 # THE TEMPLATE PACK - WHAT LEAVES WITH IT
 # ==============================================================================
-# `wsl-fleet.ps1 remove_pack` runs this script before the folder goes, as the
+# `wsl-fleet.ps1 manage_packs` runs this script before the folder goes, as the
 # instance's own user. What needs root goes to remove_root.sh, which this
 # script calls as one sudo - the door is open exactly here.
 #

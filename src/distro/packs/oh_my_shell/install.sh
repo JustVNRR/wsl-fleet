@@ -2,7 +2,7 @@
 # ==============================================================================
 # THE OH_MY_SHELL PACK - WHAT IT INSTALLS
 # ==============================================================================
-# `wsl-fleet.ps1 add_pack` copies this pack's folder into ~/.config/packs/oh_my_shell, then
+# `wsl-fleet.ps1 manage_packs` copies this pack's folder into ~/.config/packs/oh_my_shell, then
 # runs this script from inside it, as the instance's own user.
 #
 # The shell in one pack: on the built image the tools are already in place

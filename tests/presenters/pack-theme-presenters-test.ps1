@@ -1,5 +1,5 @@
-# The four traversals of the third lot, driven by fake views: add_pack,
-# remove_pack, manage_packs and theme (the look's visit) - each presenter runs
+# The two traversals of the third lot, driven by fake views: manage_packs
+# and theme (the look's visit) - each presenter runs
 # its whole conversation with no console anywhere: the views record what they
 # are told and replay what they are asked, and every decision (the empty
 # catalogue, the escape, the confirmation, the ticked boxes, the letters'
@@ -8,12 +8,10 @@
 # The service is the real one over a world of the suite's own: repositories on
 # a temp root, a stand-in WslRepository recording every pack move, the pack
 # catalogue read from a packs folder of the suite's, and stand-in terminal and
-# config repositories for the look - so the four traversals run anywhere, the
+# config repositories for the look - so the two traversals run anywhere, the
 # sandbox and the runner alike.
 #
 # Usage:  pwsh -NoProfile -File tests\presenters\pack-theme-presenters-test.ps1
-using module ..\..\src\windows\Presenters\Instance\AddPackPresenter.psm1
-using module ..\..\src\windows\Presenters\Instance\RemovePackPresenter.psm1
 using module ..\..\src\windows\Presenters\Instance\ManagePacksPresenter.psm1
 using module ..\..\src\windows\Presenters\Instance\SetAppearancePresenter.psm1
 using module ..\..\src\windows\Repositories\WslRepository.psm1
@@ -90,52 +88,6 @@ class FakeConfig : ConfigRepository {
 
 # The view fakes: every order recorded, every question answered from a script.
 # A view that decided would hide what the presenter decides.
-class FakeAddPackView {
-    [System.Collections.Generic.List[string]]$Orders
-    [string]$PackName = ""
-
-    FakeAddPackView() { $this.Orders = [System.Collections.Generic.List[string]]::new() }
-
-    [void] ShowAlreadyComplete([string]$name) { $this.Orders.Add("complete $name") }
-    [void] ShowAlreadyIn([string]$name, [object[]]$installed) { $this.Orders.Add("already-in $($installed -join ',')") }
-    [object] AskPack([string]$name, [object[]]$candidates) {
-        $this.Orders.Add("ask $($candidates.Name -join ',')")
-        if (-not $this.PackName) { return "" }
-        foreach ($row in @($candidates)) {
-            if ("$($row.Name)" -eq $this.PackName) { return $row }
-        }
-        return ""
-    }
-    [void] ShowCancelled([string]$what) { $this.Orders.Add("cancelled $what") }
-    [void] Show([object]$response) {
-        $this.Orders.Add("report $($response.Outcome) installed=$($response.Installed -join ',')")
-    }
-}
-
-class FakeRemovePackView {
-    [System.Collections.Generic.List[string]]$Orders
-    [string]$PackName = ""
-    [bool]$Yes = $false
-
-    FakeRemovePackView() { $this.Orders = [System.Collections.Generic.List[string]]::new() }
-
-    [void] ShowNoPacks([string]$name) { $this.Orders.Add("no-packs $name") }
-    [void] ShowNoRemovable([string]$name) { $this.Orders.Add("no-removable $name") }
-    [object] AskPack([string]$name, [object[]]$offered) {
-        $this.Orders.Add("ask $($offered -join ',')")
-        return $this.PackName
-    }
-    [bool] AskRemoval([string]$packName) {
-        $this.Orders.Add("removal $packName")
-        return $this.Yes
-    }
-    [void] ShowRemoving([string]$packName, [string]$name) { $this.Orders.Add("removing $packName from $name") }
-    [void] ShowCancelled([string]$what) { $this.Orders.Add("cancelled $what") }
-    [void] Show([object]$response) {
-        $this.Orders.Add("report $($response.Outcome) dependents=$($response.Dependents -join ',')")
-    }
-}
-
 class FakeManagePacksView {
     [System.Collections.Generic.List[string]]$Orders
     [string[]]$Ticked = @()
@@ -341,133 +293,6 @@ function Reset-ThemeAnswers {
 }
 
 try {
-    # ---- add_pack ----------------------------------------------------------
-
-    $addView = [FakeAddPackView]::new()
-    $selectView = [FakeSelectView]::new()
-    $selectView.Answer = $Instance
-    $presenter = [AddPackPresenter]::new($service, (New-ViewsRoot), "cli")
-    $presenter.Views = @{ "AddPack" = $addView }
-    $presenter.Picker.Views = @{ "SelectInstance" = $selectView }
-
-    # 1. An empty machine: nothing to pick is a fault, and the refusal is
-    # painted.
-    $fake.Distros = @()
-    $result = $presenter.Run("")
-    Check "add_pack on an empty machine is a fault" "$($result.Status)/$($result.Message)" "Nok/AddPack : no instance"
-    Check "  ... and the refusal was painted" $selectView.Rang $true
-    $fake.Distros = @($Instance)
-
-    # 2. The name given passes straight through: the question is not asked.
-    Reset-World
-    $selectView.Asked = $false
-    $fake.Installed = @("base")
-    $addView.PackName = ""
-    $addView.Orders.Clear()
-    $result = $presenter.Run($Instance)
-    Check "a given name skips the question" $selectView.Asked $false
-    Check "  ... and the escape is an abandonment" "$($result.Status)/$($result.Message)" "Ok/AddPack : cancelled"
-    Check "  ... after the already-in line" ($addView.Orders -join " | ") "already-in base | ask extra,solo | cancelled modified"
-
-    # 3. Everything offered is already there: the answer is said, nothing is
-    # asked.
-    $fake.Installed = @("base", "extra", "solo")
-    $addView.Orders.Clear()
-    $result = $presenter.Run("")
-    Check "a full catalogue is an answer" "$($result.Status)/$($result.Message)" "Ok/AddPack : cancelled"
-    Check "  ... said once" ($addView.Orders -join " | ") "complete $Instance"
-
-    # 4. The pick goes through the requirement first: extra requires base, and
-    # base is not there - the service is asked for one pack and installs two.
-    Reset-World
-    $fake.Installed = @()
-    $fake.Called.Clear()
-    $addView.Orders.Clear()
-    $addView.PackName = "extra"
-    $result = $presenter.Run("")
-    Check "the picked pack goes" "$($result.Status)/$($result.Message)" "Ok/AddPack : $Instance"
-    Check "  ... with its requirement first" `
-        (($fake.Called.IndexOf("copy-to $PacksDirectory/base")) -lt ($fake.Called.IndexOf("copy-to $PacksDirectory/extra"))) $true
-    Check "  ... and the report names what entered" ($addView.Orders -contains "report installed installed=base,extra") $true
-
-    # 5. A pack that fails names it, and its folder goes back out - the
-    # presenter hands the response over unchanged.
-    Reset-World
-    $fake.Installed = @()
-    $fake.FailScript = "install.sh"
-    $fake.Called.Clear()
-    $addView.Orders.Clear()
-    $addView.PackName = "base"
-    $result = $presenter.Run("")
-    Check "a failed install is reported" ($addView.Orders -contains "report failed installed=") $true
-    Check "  ... and its folder went back out" (@($fake.Called | Where-Object { $_ -eq "rm-folder $PacksDirectory/base" }).Count) 1
-    $fake.FailScript = ""
-
-    # ---- remove_pack -------------------------------------------------------
-
-    $removeView = [FakeRemovePackView]::new()
-    $selectView = [FakeSelectView]::new()
-    $selectView.Answer = $Instance
-    $presenter = [RemovePackPresenter]::new($service, (New-ViewsRoot), "cli")
-    $presenter.Views = @{ "RemovePack" = $removeView }
-    $presenter.Picker.Views = @{ "SelectInstance" = $selectView }
-
-    # 6. Nothing carried, and nothing removable by hand: two answers, said.
-    Reset-World
-    $fake.Installed = @()
-    $removeView.Orders.Clear()
-    $result = $presenter.Run("")
-    Check "nothing carried is an answer" "$($result.Status)/$($result.Message)" "Ok/RemovePack : cancelled"
-    Check "  ... said once" ($removeView.Orders -join " | ") "no-packs $Instance"
-
-    $fake.Installed = @("hidden")
-    $removeView.Orders.Clear()
-    $result = $presenter.Run("")
-    Check "nothing removable by hand is another" ($removeView.Orders -join " | ") "no-removable $Instance"
-
-    # 7. The pick and the door: the escape abandons, and a no to the question
-    # abandons without touching anything.
-    $fake.Installed = @("base", "extra")
-    $removeView.PackName = ""
-    $removeView.Orders.Clear()
-    $fake.Called.Clear()
-    $result = $presenter.Run("")
-    Check "the escape abandons" "$($result.Status)/$($result.Message)" "Ok/RemovePack : cancelled"
-    Check "  ... after the list" ($removeView.Orders -join " | ") "ask base,extra | cancelled modified"
-    Check "  ... and nothing was touched" (@($fake.Called | Where-Object { $_ -like "copy-to*" -or $_ -like "rm-folder*" -or $_ -like "script*" -or $_ -like "door-*" }).Count) 0
-
-    $removeView.PackName = "base"
-    $removeView.Yes = $false
-    $removeView.Orders.Clear()
-    $fake.Called.Clear()
-    $result = $presenter.Run("")
-    Check "a no at the door abandons" ($removeView.Orders -join " | ") "ask base,extra | removal base | cancelled modified"
-    Check "  ... and nothing was touched" (@($fake.Called | Where-Object { $_ -like "copy-to*" -or $_ -like "rm-folder*" -or $_ -like "script*" -or $_ -like "door-*" }).Count) 0
-
-    # 8. The yes goes: no remove.sh - the folder leaves, the cleanup travels,
-    # and the report is the service's.
-    Reset-World
-    $fake.Installed = @("base")
-    $removeView.Yes = $true
-    $removeView.Orders.Clear()
-    $fake.Called.Clear()
-    $fake.HasRemove = $false
-    $result = $presenter.Run("")
-    Check "the removal goes" "$($result.Status)/$($result.Message)" "Ok/RemovePack : $Instance"
-    Check "  ... the line of the going, then the report" ($removeView.Orders -join " | ") "ask base | removal base | removing base from $Instance | report removed dependents="
-    Check "  ... the folder left, and the cleanup travelled" (($fake.Called -join " | ").EndsWith("rm-folder $PacksDirectory/base | orphan-cleanup")) $true
-
-    # 9. A still-required pack does not leave: the conflict is painted, and
-    # nothing was touched.
-    Reset-World
-    $fake.Installed = @("base", "extra")
-    $fake.HasRemove = $true
-    $removeView.Orders.Clear()
-    $fake.Called.Clear()
-    $result = $presenter.Run("")
-    Check "a required pack is refused" ($removeView.Orders -contains "report conflict dependents=extra") $true
-    Check "  ... and its remove.sh never ran" (@($fake.Called | Where-Object { $_ -like "*remove.sh*" }).Count) 0
-
     # ---- manage_packs ------------------------------------------------------
 
     $manageView = [FakeManagePacksView]::new()
@@ -477,7 +302,7 @@ try {
     $presenter.Views = @{ "ManagePacks" = $manageView }
     $presenter.Picker.Views = @{ "SelectInstance" = $selectView }
 
-    # 10. Nothing to choose and nothing to add: the answer is said - a second
+    # 6. Nothing to choose and nothing to add: the answer is said - a second
     # service over a packs folder with no pack at all.
     Reset-World
     $EmptyPacks = Join-Path $World "packs-empty"
@@ -492,7 +317,7 @@ try {
     Check "a bare catalogue is an answer" "$($result.Status)/$($result.Message)" "Ok/ManagePacks : cancelled"
     Check "  ... said once" ($manageView.Orders -join " | ") "nothing-to-choose $Instance"
 
-    # 11. The lines: the offered ones unchecked first, then the carried ones
+    # 7. The lines: the offered ones unchecked first, then the carried ones
     # checked - extra is carried, so it is the third line and the only box.
     $fake.Installed = @("extra")
     $manageView.Escape = $true
@@ -501,7 +326,7 @@ try {
     Check "the escape abandons" "$($result.Status)/$($result.Message)" "Ok/ManagePacks : cancelled"
     Check "  ... the lines built and the boxes placed" ($manageView.Orders -join " | ") "ask rows=base,solo,extra checked=2 | cancelled modified"
 
-    # 12. Exactly that: the box of what is carried stays the only one ticked.
+    # 8. Exactly that: the box of what is carried stays the only one ticked.
     $manageView.Escape = $false
     $manageView.Ticked = @("extra")
     $manageView.Orders.Clear()
@@ -510,7 +335,7 @@ try {
     Check "the state already there is nothing to do" ($manageView.Orders -join " | ") "ask rows=base,solo,extra checked=2 | nothing-to-do $Instance"
     Check "  ... and nothing moved" (@($fake.Called | Where-Object { $_ -like "copy-to*" -or $_ -like "rm-folder*" -or $_ -like "script*" -or $_ -like "door-*" }).Count) 0
 
-    # 13. A tick more installs it - the plan is said, then the moves.
+    # 9. A tick more installs it - the plan is said, then the moves.
     Reset-World
     $fake.Installed = @("extra")
     $manageView.Ticked = @("base", "extra")
@@ -523,7 +348,7 @@ try {
         (($manageView.Orders.IndexOf("plan [base] / []")) -lt ($fake.Called.IndexOf("copy-to $PacksDirectory/base"))) $true
     Check "  ... and the report reads the listing" ($manageView.Orders -contains "report ok failed= installed=base removed=") $true
 
-    # 14. A pack that fails mid-course names the failli, and the report says
+    # 10. A pack that fails mid-course names the failli, and the report says
     # what stayed.
     Reset-World
     $fake.Installed = @("extra")
@@ -535,7 +360,7 @@ try {
     Check "a failed move is reported" ($manageView.Orders -contains "report failed failed=base installed= removed=") $true
     $fake.FailScript = ""
 
-    # 15. A still-required untick is refused by the service, and the refusal
+    # 11. A still-required untick is refused by the service, and the refusal
     # is a fault - painted by the error view, read as a Nok.
     Reset-World
     $fake.Installed = @("base", "extra")
@@ -559,7 +384,7 @@ try {
     $presenter.Views = @{ "SetAppearance" = $themeView; "Error" = $failureView }
     $presenter.Picker.Views = @{ "SelectInstance" = $selectView }
 
-    # 16. An empty machine: a fault; and the escape at the menu abandons
+    # 12. An empty machine: a fault; and the escape at the menu abandons
     # without a single call to the look.
     $fake.Distros = @()
     $result = $presenter.Run("")
@@ -575,7 +400,7 @@ try {
     Check "  ... after the menu and one last breath" ($themeView.Orders -join " | ") "clear | theme  | clear"
     Check "  ... and the look was never written" ($terminal.Called.Count) 0
 
-    # 17. The warning when our fragment is missing, and the font change: the
+    # 13. The warning when our fragment is missing, and the font change: the
     # in-use font is offered whatever it carries, the pick is written into
     # the profile, and the report is the service's list.
     Reset-World
@@ -598,7 +423,7 @@ try {
     Check "  ... the instance's file carries it" ((Get-Content (Join-Path $FakeFolder "instance.json") -Raw) -match "FiraCode NF") $true
     $terminal.Fragment = $true
 
-    # 18. The colours: each line painted of its scheme, and the pick written.
+    # 14. The colours: each line painted of its scheme, and the pick written.
     Reset-World
     Reset-ThemeAnswers $themeView
     $themeView.Orders.Clear()
@@ -618,7 +443,7 @@ try {
     Check "  ... the current one marked" (($themeView.Orders -join " | ").Contains("colour One Half Light current=One Half Dark")) $true
     Check "  ... and the profile written with it" ($terminal.Called -join " | ") "savefragment guid-bench font=MesloLGS NF scheme=One Half Light icon=||| | touch"
 
-    # 19. The letters: a refused shape is hinted, a good one taken up-cased,
+    # 15. The letters: a refused shape is hinted, a good one taken up-cased,
     # and Enter takes the suggestion - the recipe seeded at XX.
     Reset-World
     Seed-Recipe
@@ -647,7 +472,7 @@ try {
     $result = $presenter.Run("")
     Check "Entrée takes the suggestion" ($terminal.Called -contains "savefragment guid-bench font=MesloLGS NF scheme=One Half Dark icon=XX|#111111|#222222|#FFFFFF") $true
 
-    # 20. The tile's colours: the pair picked replaces top and bottom, and the
+    # 16. The tile's colours: the pair picked replaces top and bottom, and the
     # suggestion rides into the question.
     Reset-World
     Seed-Recipe
@@ -665,7 +490,7 @@ try {
     Check "  ... the pairs read are the service's" ($themeView.PairList) "Pair A"
     Check "  ... and the drawing written with the pair" ($terminal.Called -contains "savefragment guid-bench font=MesloLGS NF scheme=One Half Dark icon=XX|#0C0C0C|#1F1F1F|#FFFFFF") $true
 
-    # 21. By Default: the recipe emptied - make-icon fills it from the name.
+    # 17. By Default: the recipe emptied - make-icon fills it from the name.
     Reset-World
     Reset-ThemeAnswers $themeView
     $themeView.Orders.Clear()
@@ -678,7 +503,7 @@ try {
     Check "By Default goes" "$($result.Status)/$($result.Message)" "Ok/SetAppearance : $Instance"
     Check "  ... the drawing emptied, image included" ($terminal.Called -contains "savefragment guid-bench font=MesloLGS NF scheme=One Half Dark icon=|||") $true
 
-    # 22. The local file: a missing path and a wrong shape are refused, the
+    # 18. The local file: a missing path and a wrong shape are refused, the
     # right one is copied to the seat - and the profile is not rewritten.
     Reset-World
     Reset-ThemeAnswers $themeView
@@ -695,7 +520,7 @@ try {
     Check "  ... and the profile untouched" (@($terminal.Called | Where-Object { $_ -like "savefragment*" }).Count) 0
     Check "  ... the report saying the image went in" ($themeView.Orders -contains "report icon image") $true
 
-    # 23. A look asked without a Terminal profile to write: the service
+    # 19. A look asked without a Terminal profile to write: the service
     # refuses, and the refusal is a fault.
     Reset-World
     Reset-ThemeAnswers $themeView

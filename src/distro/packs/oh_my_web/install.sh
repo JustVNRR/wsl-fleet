@@ -2,7 +2,7 @@
 # ==============================================================================
 # THE OH_MY_WEB PACK - WHAT IT INSTALLS
 # ==============================================================================
-# `wsl-fleet.ps1 add_pack` copies the pack's folder into ~/.config/packs/oh_my_web, then
+# `wsl-fleet.ps1 manage_packs` copies the pack's folder into ~/.config/packs/oh_my_web, then
 # runs this script from inside it, as the instance's own user.
 #
 # Firefox comes from Mozilla's own repository (Ubuntu's `firefox` is a snap

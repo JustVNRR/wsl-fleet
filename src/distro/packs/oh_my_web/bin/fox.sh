@@ -39,7 +39,7 @@ as_root() {
 # the plain file of the pack's first shape - the migration.
 ensure_link() {
     [ -d "$PREF_DIR" ] ||
-        die "no $PREF_DIR: Firefox is not installed here - it arrives from Windows (.\wsl-fleet.ps1 add_pack)."
+        die "no $PREF_DIR: Firefox is not installed here - it arrives from Windows (.\wsl-fleet.ps1 manage_packs)."
     if [ -L "$PREF_FILE" ] && [ "$(readlink -- "$PREF_FILE")" = "$SLOT" ]; then
         return 0
     fi
@@ -58,7 +58,7 @@ ensure_link() {
 put_set() {
     local src=$here/../fox-privacy-$1.js
     [ -f "$src" ] ||
-        die "no $src: the pack's copy of the $1 profile is missing - put the pack's folder back (.\wsl-fleet.ps1 add_pack)."
+        die "no $src: the pack's copy of the $1 profile is missing - put the pack's folder back (.\wsl-fleet.ps1 manage_packs)."
     ensure_link
     if [ -f "$SLOT" ] && cmp -s "$src" "$SLOT"; then
         return 1

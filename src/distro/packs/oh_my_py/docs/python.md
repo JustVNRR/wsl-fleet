@@ -22,8 +22,8 @@
 ## Installing and removing it
 
 ```powershell
-.\wsl-fleet.ps1 add_pack      # pick the instance, then python
-.\wsl-fleet.ps1 remove_pack   # the reverse
+.\wsl-fleet.ps1 manage_packs  # pick the instance, then tick python
+.\wsl-fleet.ps1 manage_packs   # untick to take it back
 ```
 
 

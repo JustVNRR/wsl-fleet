@@ -25,9 +25,9 @@ on a foreign Debian the same pack carries the tools too. Its page is
 ```text
 assets/packs/<name>/         # seeded from src/distro/packs/
 ├── pack.conf              # what the shell and the installer read
-├── install.sh             # what `.\wsl-fleet.ps1 add_pack` runs inside the instance
+├── install.sh             # what `.\wsl-fleet.ps1 manage_packs` runs inside the instance
 ├── install_root.sh        # what needs root, run by the engine as WSL's root, before install.sh
-├── remove.sh              # what `.\wsl-fleet.ps1 remove_pack` runs before the folder goes
+├── remove.sh              # what `.\wsl-fleet.ps1 manage_packs` runs before the folder goes
 ├── remove_root.sh         # what needs root, run by remove.sh as one sudo
 ├── make/*.mk              # its targets, loaded as soon as the folder is there
 ├── zsh/*.zsh              # its shell files, read where they live (never copied)
@@ -48,7 +48,7 @@ assets/packs/<name>/         # seeded from src/distro/packs/
 
 | Declaration | What it says |
 | :--- | :--- |
-| `PACK_DESCRIPTION` | the line `add_pack` shows in its list of packs |
+| `PACK_DESCRIPTION` | the line `manage_packs` shows in its list of packs |
 | `PACK_REQUIRES` | the packs it is installed on top of |
 | `PACK_VISIBLE` | `no` keeps it out of every list: nobody chooses it |
 | `PACK_FAMILY` | the distribution family the pack's packages come from — a pack is only offered on a machine of the same one (default: `debian`) |
@@ -60,7 +60,7 @@ assets/packs/<name>/         # seeded from src/distro/packs/
 Only the first is always there. `PACK_IDENTIFYING_VARS` is read with `sed`, not
 by including the file: the shell needs it while it is still loading
 `.env.global`, before a pack may define anything. `PACK_DESCRIPTION` is read by
-`add_pack`, from Windows.
+`manage_packs`, from Windows.
 
 The packs a question shows are the machine's family's: the instance answers
 from its own `/etc/os-release`, Ubuntu and Linux Mint fold onto `debian` —
@@ -71,7 +71,7 @@ as one this checkout does not carry.
 
 The folder **is** the state. The shell loads `packs/*/make/*.mk` and asks
 nothing else: a pack is installed exactly when its folder is in
-`~/.config/packs`, which is where `.\wsl-fleet.ps1 add_pack` puts it — the files and
+`~/.config/packs`, which is where `.\wsl-fleet.ps1 manage_packs` puts it — the files and
 the tool together. Nothing is recorded anywhere, so nothing can disagree with
 what is on the machine.
 
@@ -93,12 +93,12 @@ module, beside the macro it names — and `fnew` names the row's pack on the mak
 command line. A pack that declares nothing names nothing: its projects are
 copied and left alone.
 
-Removing is the same story from the other end: `.\wsl-fleet.ps1 remove_pack` runs the
+Removing is the same story from the other end: `.\wsl-fleet.ps1 manage_packs` runs the
 pack's own `remove.sh` first, then deletes the folder, then takes back the
 dependencies that came in with the pack and that no `remove.sh` ever named —
 the bulk of the weight. What the install wrote in your files — a login, a `.env`
 you filled in — stays, because it is yours and not the pack's. The rule that
-decides what may go is in [Instance commands](wsl/commands.md#remove_pack).
+decides what may go is in [Instance commands](wsl/commands.md#manage_packs).
 
 Several packs at once go through `.\wsl-fleet.ps1 manage_packs`, which is a checklist
 of every pack this repository carries: the ones the instance has arrive checked,
@@ -112,7 +112,7 @@ since every visible pack requires it — and installs the answer once the
 instance exists.
 
 They are all documented in
-[Instance commands](wsl/commands.md#add_pack).
+[Instance commands](wsl/commands.md#manage_packs).
 
 ## The shell
 
@@ -132,8 +132,8 @@ What it requires arrives **before** it, a pack lands on what it needs, and it
 leaves **after** it, when the last pack that required it goes.
 
 The second half is what makes an invisible pack possible. `PACK_VISIBLE := no`
-is a pack in no list: not in `add_pack`'s, not in `manage_packs`' checklist, not
-in `gmake packs_list`. You cannot choose it, and you cannot remove it by hand —
+is a pack in no list: not in `manage_packs`' checklist, not in
+`gmake packs_list`. You cannot choose it, and you cannot remove it by hand —
 either one would pull the base out from under a pack still installed. It arrives
 with the pack that requires it, it leaves with the last one that does, and it is
 never alone.
@@ -141,7 +141,7 @@ never alone.
 The rule runs the other way too, and that half is the guard: a pack still
 installed cannot lose one it requires. Unchecking it in the checklist is
 refused — the claimant is named, and nothing of the answer is applied — and
-`remove_pack` refuses the choice the same way. The demanding pack goes out in
+`manage_packs` refuses the choice the same way. The demanding pack goes out in
 the same pass, or both stay. And the cascade never takes a *visible* pack
 along: a visible one leaves only because somebody unticked it — it is the
 invisible ones that follow their last claimant.
@@ -179,7 +179,7 @@ the pack, and `remove.sh` reads that note. On the built image every declared
 package is already there, the note is empty, and a removal touches no package
 at all — the foundations (`sudo`, `tar`, `gzip`) are never on the table. A pack
 folder from before the note takes nothing back: the folder leaves alone. And
-when the catalogue still carries the pack, `remove_pack` runs the catalogue's
+when the catalogue still carries the pack, `manage_packs` runs the catalogue's
 current `remove.sh` — the instance's copy is a snapshot of its install, and a
 removal blocked by yesterday's script would have no way out.
 
@@ -193,7 +193,7 @@ Two things a `remove.sh` never does:
 
 - **`autoremove` from inside a `remove.sh`.** apt removes the package it is
   given and leaves its dependencies alone — taking `tesseract-ocr` away leaves
-  `libtesseract5` behind. Those are taken back by `remove_pack`, not by the
+  `libtesseract5` behind. Those are taken back by `manage_packs`, not by the
   pack: "does anything still need this?" is a question about the whole
   instance, and a pack cannot see the instance it lands in.
 - **Remove a library.** apt takes the programs that depend on it along when a
@@ -206,7 +206,7 @@ name it either — removing it would take a neighbour's program along. The pack
 installs it beside the program that wants it, and never in `PACK_PACKAGES`;
 its `remove.sh` marks it automatic on the way out
 (`apt-mark auto`), which makes it an orphan the moment the pack is gone, and the
-cleanup `remove_pack` runs afterwards takes it back. `oh_my_web` is the case that
+cleanup `manage_packs` runs afterwards takes it back. `oh_my_web` is the case that
 exists: Firefox loads `libavcodec60` for H.264 and `libpulse0` for the sound,
 and nothing declares either.
 

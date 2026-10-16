@@ -2,7 +2,7 @@
 # ==============================================================================
 # THE OH_MY_PEG PACK - WHAT IT INSTALLS
 # ==============================================================================
-# `wsl-fleet.ps1 add_pack` copies this pack's folder into ~/.config/packs/oh_my_peg, then
+# `wsl-fleet.ps1 manage_packs` copies this pack's folder into ~/.config/packs/oh_my_peg, then
 # runs this script from inside it, as the instance's own user.
 #
 # Everything the pack needs root for is in install_root.sh, beside this file,

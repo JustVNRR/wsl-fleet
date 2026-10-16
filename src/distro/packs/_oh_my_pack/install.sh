@@ -2,7 +2,7 @@
 # ==============================================================================
 # THE TEMPLATE PACK - WHAT IT INSTALLS
 # ==============================================================================
-# `wsl-fleet.ps1 add_pack` copies this pack's folder into ~/.config/packs/template,
+# `wsl-fleet.ps1 manage_packs` copies this pack's folder into ~/.config/packs/template,
 # then runs this script from inside it, as the instance's own user.
 #
 # The template does nothing: it says it ran.

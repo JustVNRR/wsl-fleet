@@ -2,7 +2,7 @@
 # ==============================================================================
 # THE TEMPLATE PACK - WHAT NEEDS ROOT
 # ==============================================================================
-# `wsl-fleet.ps1 add_pack` copies this pack's folder into ~/.config/packs/template,
+# `wsl-fleet.ps1 manage_packs` copies this pack's folder into ~/.config/packs/template,
 # then runs this script before install.sh, as WSL's root. What apt must
 # install goes through PACK_PACKAGES instead; this file is for the rest.
 #

@@ -2,7 +2,7 @@
 # ==============================================================================
 # THE OH_MY_PY PACK - WHAT IT REMOVES
 # ==============================================================================
-# `wsl-fleet.ps1 remove_pack` runs this before deleting the pack's folder: what the
+# `wsl-fleet.ps1 manage_packs` runs this before deleting the pack's folder: what the
 # install added leaves the machine, and only that.
 #
 # The apt packages go one at a time, and one another installed pack still
@@ -14,7 +14,7 @@
 # interpreter, the tools' environments, the cache. The whole tree goes
 # together: its shims point into it, and half of it is worth nothing.
 #
-# Two things this never does: remove a library, and autoremove - remove_pack
+# Two things this never does: remove a library, and autoremove - manage_packs
 # takes the dependencies back afterwards.
 
 set -euo pipefail

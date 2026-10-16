@@ -2,7 +2,7 @@
 # ==============================================================================
 # THE OH_MY_CODE PACK - WHAT IT REMOVES
 # ==============================================================================
-# `wsl-fleet.ps1 remove_pack` runs this before deleting the pack's folder: what the
+# `wsl-fleet.ps1 manage_packs` runs this before deleting the pack's folder: what the
 # install added leaves the machine, and only that.
 #
 # Three things to take back: the launcher, the versions behind it, and the

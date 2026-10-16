@@ -8,7 +8,7 @@
 #
 # It lists what the user CHOSE: a pack marked PACK_VISIBLE := no is a shared
 # dependency of the packs that require it, so the list answers "what did I ask
-# for?". What it cannot say is what is AVAILABLE - that is `.\wsl-fleet.ps1 add_pack`,
+# for?". What it cannot say is what is AVAILABLE - that is `.\wsl-fleet.ps1 manage_packs`,
 # from Windows, which is also where a pack arrives or leaves.
 
 packs_list: ## List the packs this instance carries

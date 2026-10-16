@@ -2,7 +2,7 @@
 # ==============================================================================
 # THE HIDE_MY_SCAFF PACK - WHAT IT INSTALLS
 # ==============================================================================
-# `wsl-fleet.ps1 add_pack` copies this pack's folder into ~/.config/packs/hide_my_scaff,
+# `wsl-fleet.ps1 manage_packs` copies this pack's folder into ~/.config/packs/hide_my_scaff,
 # then runs this script from inside it, as the instance's own user.
 #
 # One tool: uv, under ~/.local - the same binary the oh_my_py pack uses, and it

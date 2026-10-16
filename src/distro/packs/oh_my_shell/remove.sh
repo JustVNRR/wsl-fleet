@@ -2,7 +2,7 @@
 # ==============================================================================
 # THE OH_MY_SHELL PACK - WHAT IT REMOVES
 # ==============================================================================
-# `wsl-fleet.ps1 remove_pack` runs this before deleting the pack's folder: what the
+# `wsl-fleet.ps1 manage_packs` runs this before deleting the pack's folder: what the
 # install added leaves the machine, and only that.
 #
 # The packages come from the note the install wrote beside this file -
@@ -21,7 +21,7 @@
 # .env files the gmake keeps your variables in, the history, the cache - is
 # not the pack's to take and stays.
 #
-# Two things this never does: remove a library, and autoremove - remove_pack
+# Two things this never does: remove a library, and autoremove - manage_packs
 # takes the dependencies back afterwards.
 
 set -euo pipefail

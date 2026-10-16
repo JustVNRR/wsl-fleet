@@ -81,7 +81,7 @@ Each comes back as a trailing comment on the pair's line of `/etc/wsl.conf` —
 see [the status command](#the-status-command).
 
 Turning the drives off does not cut an instance off from its packs:
-`.\wsl-fleet.ps1 add_pack` travels through Windows' own share when nothing is mounted.
+`.\wsl-fleet.ps1 manage_packs` travels through Windows' own share when nothing is mounted.
 
 When it is on: services started with the instance, `journalctl`, timers.
 

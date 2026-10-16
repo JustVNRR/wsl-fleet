@@ -5,8 +5,6 @@ using module .\Presenters\Instance\DeleteArchivePresenter.psm1
 using module .\Presenters\Instance\CompactPresenter.psm1
 using module .\Presenters\Instance\RestorePresenter.psm1
 using module .\Presenters\Instance\DuplicatePresenter.psm1
-using module .\Presenters\Instance\AddPackPresenter.psm1
-using module .\Presenters\Instance\RemovePackPresenter.psm1
 using module .\Presenters\Instance\ManagePacksPresenter.psm1
 using module .\Presenters\Instance\SetAppearancePresenter.psm1
 using module .\Presenters\Instance\RegisterDockerPresenter.psm1
@@ -45,8 +43,6 @@ $presenters = @{
     Compact       = [CompactPresenter]::new($instanceService, $ViewsRoot, "cli")
     Restore       = [RestorePresenter]::new($instanceService, $ViewsRoot, "cli")
     Duplicate     = [DuplicatePresenter]::new($instanceService, $ViewsRoot, "cli")
-    AddPack       = [AddPackPresenter]::new($instanceService, $ViewsRoot, "cli")
-    RemovePack    = [RemovePackPresenter]::new($instanceService, $ViewsRoot, "cli")
     ManagePacks   = [ManagePacksPresenter]::new($instanceService, $ViewsRoot, "cli")
     SetAppearance = [SetAppearancePresenter]::new($instanceService, $ViewsRoot, "cli")
     RegisterDocker   = [RegisterDockerPresenter]::new($instanceService, $ViewsRoot, "cli")
@@ -64,8 +60,6 @@ $gestures = [ordered]@{
     "build"          = { param($Name, $Presenters) $Presenters.Build.Run() }
     "restart"        = { param($Name, $Presenters) $Presenters.Restart.Run($Name) }
     "shell"          = { param($Name, $Presenters) $Presenters.Open.Run($Name) }
-    "add_pack"       = { param($Name, $Presenters) $Presenters.AddPack.Run($Name) }
-    "remove_pack"    = { param($Name, $Presenters) $Presenters.RemovePack.Run($Name) }
     "manage_packs"   = { param($Name, $Presenters) $Presenters.ManagePacks.Run($Name) }
     "theme"          = { param($Name, $Presenters) $Presenters.SetAppearance.Run($Name) }
     "register_docker"   = { param($Name, $Presenters) $Presenters.RegisterDocker.Run($Name) }
@@ -87,8 +81,6 @@ $menu = $menu.Add("list",         "list our instances and the archives",      $g
 $menu = $menu.Add("build",        "build an instance from the image",         $gestures["build"])
 $menu = $menu.Add("restart",      "restart an instance",                      $gestures["restart"])
 $menu = $menu.Add("shell",        "open a shell inside an instance",          $gestures["shell"])
-$menu = $menu.Add("add_pack",     "install a pack into an instance",          $gestures["add_pack"])
-$menu = $menu.Add("remove_pack",  "uninstall a pack from an instance",        $gestures["remove_pack"])
 $menu = $menu.Add("manage_packs", "choose the packs an instance should carry", $gestures["manage_packs"])
 $menu = $menu.Add("theme",        "choose the icon, font and colours",        $gestures["theme"])
 $menu = $menu.Add("register_docker",   "register an instance with Docker Desktop",   $gestures["register_docker"])

@@ -163,35 +163,6 @@ class GetPacksResponseDto {
     [string[]]$Removable = @()
 }
 
-class AddPackDto {
-
-    [string]$InstanceName
-    [string]$PackName
-}
-
-class AddPackResponseDto {
-
-    [string]$InstanceName
-    [string]$Outcome
-    [int]$ExitCode
-    [string[]]$Installed = @()
-    [string[]]$Skipped = @()
-}
-
-class RemovePackDto {
-
-    [string]$InstanceName
-    [string]$PackName
-}
-
-class RemovePackResponseDto {
-
-    [string]$InstanceName
-    [string]$Outcome
-    [int]$ExitCode
-    [string[]]$Dependents = @()
-}
-
 class ManagePacksDto {
 
     [string]$InstanceName

@@ -1,17 +1,9 @@
-# ==============================================================================
-# ADDPACK — LE PRESENTER
-# ==============================================================================
-# Ce dont ce fichier nomme, déclaré ici : un module résout ce qu'il a tiré
-# lui-même.
 using module ..\ActionResult.psm1
 using module ..\BasePresenter.psm1
 using module .\shared\SelectInstancePresenter.psm1
 using module ..\..\Services\InstanceService.psm1
 using module ..\..\Dtos\InstanceDto.psm1
 
-# Le pack qui entre : le catalogue lu ici, la liste affichée par la vue, le
-# choix relu — le vide et l'Échap lus ici, le Dto bâti ici, un seul appel au
-# service. L'ActionResult est la seule sortie.
 class AddPackPresenter : BasePresenter {
     hidden [InstanceService]$Service
 
@@ -44,8 +36,6 @@ class AddPackPresenter : BasePresenter {
             return [ActionResult]::Nok("AddPack : $name - $($_.Exception.Message)")
         }
 
-        # Un catalogue déjà tout installé est une réponse : la vue la dit, le
-        # geste s'arrête là — rien à demander.
         if (@($packs.Candidate).Count -eq 0) {
             $view.ShowAlreadyComplete($name)
             return [ActionResult]::Ok("AddPack : cancelled")

@@ -1,34 +1,13 @@
-# ==============================================================================
-# LA FENÊTRE PRINCIPALE — LE VIEWMODEL
-# ==============================================================================
-# Ce dont ce fichier nomme, déclaré ici : un module résout lui-même ce qu'il
-# tire. Rien du WPF ici — que du PowerShell et des services : le ViewModel se
-# charge et se teste sans fenêtre.
-#
-# Il porte l'écran : l'état bindable (les lignes, la racine, la ligne d'état,
-# la bande) et les commandes (le rafraîchissement, l'entête, les gestes des
-# lignes). Il a les SERVICES en main — c'est lui l'intermédiaire ; les portes
-# liées de l'ancien monde n'ont plus lieu d'être.
-#
-# Les longues : le dialogue d'abord (la vue du geste, résolue par son nom au
-# guet d'assemblée — le ViewModel ne connaît pas le WPF), puis l'ouvrier dans
-# un processus à part — caché pour les six longs (journal et sentinelle),
-# visible pour les packs, la naissance et le migrate. Le battement est chez
-# la vue : un minuteur qui toppe Tick — le ViewModel regarde l'enfant de là.
 using module .\BaseViewModel.psm1
 using module ..\Tools\Helpers.psm1
 using module ..\Services\LoggerService.psm1
 using module ..\Dtos\InstanceDto.psm1
 
-# Une ligne du tableau : ce qu'elle montre, et si elle travaille. Le petit
-# ruban remplace ses icônes pendant qu'un geste court.
 class InstanceRowViewModel : BaseViewModel {
     [string]$Name = ""
     [string]$Size = ""
     [bool]$IsArchive = $false
     [bool]$IsBusy = $false
-    # The Docker Desktop state, read with the index - the docker gesture
-    # decides its direction on it.
     [string]$Docker = ""
 
     InstanceRowViewModel([object]$row) {
@@ -43,9 +22,6 @@ class InstanceRowViewModel : BaseViewModel {
     }
 }
 
-# La fenêtre de l'appli : son état, ses commandes. Le ctor ne touche à rien
-# qui vive sur le disque — le chargement est une méthode, la vue l'appelle
-# quand elle est prête.
 class MainWindowViewModel : BaseViewModel {
     hidden [object]$_instance
     hidden [object]$_fleet
@@ -54,11 +30,8 @@ class MainWindowViewModel : BaseViewModel {
     hidden [string]$_assets = ""
     hidden [string]$_runners = ""
     hidden [object]$_log = $null
-    # One error box at a time: a box that fails on its own must not call
-    # itself again for ever.
     hidden [bool]$_popping = $false
 
-    # L'état bindable : de VRAIES propriétés — WPF ne lit que celles-là.
     [object[]]$Rows = @()
     [string]$Root = ""
     [bool]$Busy = $false
@@ -66,7 +39,6 @@ class MainWindowViewModel : BaseViewModel {
     [string]$ColourSet = ""
     [string]$Variant = "Dark"
 
-    # Le guet : l'ouvrier caché (le journal le dit), et la console visible.
     hidden [object]$Worker = $null
     hidden [string]$WorkerVerb = ""
     hidden [string]$WorkerName = ""
@@ -120,9 +92,6 @@ class MainWindowViewModel : BaseViewModel {
         $this.DeleteArchiveCommand = $this.NewCommand({ param($vm, $rowName) $vm.DeleteArchive($rowName) })
     }
 
-    # --- l'état ---------------------------------------------------------------
-
-    # La relecture : la racine et les lignes.
     [void] Load() {
         try { $this.Root = "$($this._fleet.GetRoot())" } catch { }
         try {
@@ -141,10 +110,6 @@ class MainWindowViewModel : BaseViewModel {
         }
     }
 
-    # The one door every message goes through: the entry is built here - when,
-    # level, words - and the log takes it; a refusal is an error, everything
-    # else is news. An error also shows its box, once - a box that fails on
-    # its own must not call itself again for ever.
     [void] SetStatus([string]$message, [bool]$alert) {
         if (-not $this._log) { return }
         $entry = [LogEntryDto]::new()
@@ -158,20 +123,16 @@ class MainWindowViewModel : BaseViewModel {
         }
     }
 
-    # La bande et les mains liées, pour tout ce qui dure.
     [void] SetBusy([bool]$busy, [string]$message) {
         $this.Set("Busy", $busy)
         $this.Set("Free", (-not $busy))
         if ($message) { $this.SetStatus($message, $false) }
     }
 
-    # Le filet de la vue, branché sur la ligne d'état.
     [void] Fail([string]$message) {
         $this.SetStatus($message, $true)
     }
 
-    # Le monde en mémoire suit la racine écrite — après un migrate, les
-    # services re-pointent avant que la liste ne se relise.
     [void] ReRoot() {
         try {
             $target = "$($this._fleet.GetRoot())"
@@ -180,13 +141,7 @@ class MainWindowViewModel : BaseViewModel {
         } catch { }
     }
 
-    # --- le thème -------------------------------------------------------------
-
-    # L'autre version du thème : le choix est gardé, et la vue se rhabille
-    # sur le cri (Appearance) — c'est elle qui sait porter une face.
     [void] ToggleTheme() {
-        # $other : une locale ne peut pas porter le nom d'une propriété
-        # réelle (mesuré au parse).
         $other = if ($this.Variant -eq "Light") { "Dark" } else { "Light" }
         try { $this._wpf.SetVariant($other) } catch {
             $this.SetStatus("Could not keep the $other version: $($_.Exception.Message)", $true)
@@ -199,9 +154,6 @@ class MainWindowViewModel : BaseViewModel {
         $this.SetStatus("The window wears '$setName', $worn version.", $false)
     }
 
-    # --- les gestes des lignes ------------------------------------------------
-
-    # Ouvrir un shell : sur place, le service s'en charge.
     [void] Open([string]$name) {
         try {
             $null = $this._instance.Open($name)
@@ -212,7 +164,6 @@ class MainWindowViewModel : BaseViewModel {
         $this.SetStatus("Open : $name", $false)
     }
 
-    # Les packs : leur console est le déroulé — le déroulé EST le log.
     [void] ManagePacks([string]$name) {
         try { $packs = $this._instance.GetPacks($name) } catch {
             $this.SetStatus("ManagePacks : $name - $($_.Exception.Message)", $true)
@@ -224,7 +175,6 @@ class MainWindowViewModel : BaseViewModel {
         $this.SetStatus("Editing '$name's packs in a terminal.", $false)
     }
 
-    # L'apparence d'une instance : le dialogue, puis l'application en direct.
     [void] SetAppearance([string]$name) {
         try {
             $appearance = $this._instance.GetAppearance($name)
@@ -250,8 +200,6 @@ class MainWindowViewModel : BaseViewModel {
         $this.SetStatus("SetAppearance : $($dto.InstanceName)", $false)
     }
 
-    # --- les six longs : le dialogue, puis l'ouvrier caché --------------------
-
     [void] Archive([string]$name) {
         $all = @($this._instance.GetAll())
         $dto = $this.ShowFace("Archive", @($name, $all))
@@ -273,9 +221,6 @@ class MainWindowViewModel : BaseViewModel {
         $this.StartLong("Compact", $name, $first, "Compacting '$name'...")
     }
 
-    # Docker Desktop: the row's state decides the direction, the face carries
-    # the sentence and the restart box, the runner the write and the restart.
-    # A state that cannot be read stops here, said.
     [void] DockerDesktop([string]$name) {
         $state = ""
         foreach ($row in $this.Rows) {
@@ -313,14 +258,6 @@ class MainWindowViewModel : BaseViewModel {
         $this.StartLong("DeleteArchive", "$named", "", "Deleting the archive '$named'...")
     }
 
-    # Le lancement d'une chose longue : le journal vidé, l'ouvrier caché, la
-    # ligne qui s'efface derrière sa bande. Le battement tourne déjà (le
-    # minuteur de la vue toppe Tick) — rien à poser ici. La ligne est
-    # assemblée à la main, chaque valeur citée : un tableau est joint
-    # aveuglément, et un nom qui casse la ligne est refusé ici, avant.
-    # Une méthode de classe ne connaît pas les valeurs par défaut : la forme à
-    # quatre arguments EST la surcharge (mesuré — « aucune surcharge avec le
-    # nombre d'arguments 4 »).
     hidden [void] StartLong([string]$verb, [string]$name, [string]$arg1, [string]$message) {
         $this.StartLong($verb, $name, $arg1, $message, "")
     }
@@ -354,9 +291,6 @@ class MainWindowViewModel : BaseViewModel {
         }
     }
 
-    # Une console qu'on regarde : le déroulé EST le log. La fenêtre guette sa
-    # sortie — la racine a pu changer (le migrate), l'instance naître (la
-    # build).
     hidden [void] LaunchVisible([string]$verb, [string]$name, [string]$arg1, [string]$arg2) {
         $workerPath = Join-Path $this._runners "$($verb)Runner.ps1"
         if (-not (Test-ProcessArguments @($verb, $name, $arg1, $arg2, $this._assets, $this.Root))) {
@@ -373,10 +307,6 @@ class MainWindowViewModel : BaseViewModel {
         }
     }
 
-    # Un tour de guet : l'ouvrier caché d'abord — vivant, il le dit (le compte
-    # prouve que le minuteur bat) ; sorti, le journal dit la fin, et quoi qu'il
-    # arrive la bande retombe, la liste se relit. Puis la console visible,
-    # rendue : le monde en mémoire re-root, puis la liste.
     [void] Tick() {
         if ($null -ne $this.Worker) {
             if (-not $this.Worker.HasExited) {
@@ -385,8 +315,6 @@ class MainWindowViewModel : BaseViewModel {
             }
 
             $ending = ""
-            # $alarm : une locale ne peut pas porter le nom d'une propriété
-            # réelle (mesuré au parse).
             $alarm = $false
             $keepLog = $false
             $log = Join-Path $env:TEMP "wsl-fleet-gui-job.log"
@@ -429,8 +357,6 @@ class MainWindowViewModel : BaseViewModel {
         }
     }
 
-    # La ligne dit qu'elle travaille : ses icônes cèdent la place au petit
-    # ruban. Cosmétique, et gardé — la chose ne doit jamais en dépendre.
     hidden [void] SpinRow([string]$name, [bool]$on) {
         try {
             foreach ($row in $this.Rows) {
@@ -439,11 +365,6 @@ class MainWindowViewModel : BaseViewModel {
         } catch { }
     }
 
-    # --- l'entête : la naissance et les Réglages ------------------------------
-
-    # La naissance : le dialogue (ses listes, ses portes liées au service),
-    # puis le Dto en clair dans un fichier — le dessin est trop pour une
-    # ligne de commande — et l'ouvrier visible, guetté.
     [void] Add() {
         $dto = $this.ShowFace("Build", @($this._instance))
         if (-not $dto) { return }
@@ -465,10 +386,6 @@ class MainWindowViewModel : BaseViewModel {
         $this.LaunchVisible("Build", "$($dto.Name)", $json, "")
     }
 
-    # Les Réglages : le dialogue (son ViewModel, les services en main) rend
-    # ce qui fut choisi. Le look s'applique au service, et la vue se rhabille
-    # sur le cri (Appearance). Un dossier d'arrivée confirmé : l'ouvrier
-    # visible (MigrateRunner) et sa console.
     [void] Settings() {
         $picked = $this.ShowFace("Settings", @($this._wpf, $this._catalogue, $this._fleet, $this._assets))
         if (-not $picked) { return }
@@ -499,10 +416,6 @@ class MainWindowViewModel : BaseViewModel {
         $this.SetStatus("Window face: '$($picked.FontFamily)' at $($picked.FontSize) pt, theme '$setName'. Popups follow on their next open.", $false)
     }
 
-    # --- les dialogues --------------------------------------------------------
-
-    # La vue d'un geste, par son nom — la porte d'ouverture, posée par
-    # l'entrée : le ViewModel ne connaît ni le nom des vues ni leur dossier.
     hidden [object] ShowFace([string]$gesture, [object[]]$arguments) {
         return $this.OpenBox($gesture, $arguments)
     }

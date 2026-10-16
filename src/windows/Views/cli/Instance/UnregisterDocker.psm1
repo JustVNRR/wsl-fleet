@@ -1,13 +1,6 @@
-# ==============================================================================
-# UNREGISTERDOCKER — THE CLI VIEW
-# ==============================================================================
-# Ce dont ce fichier nomme, déclaré ici : un module résout ce qu'il a tiré
-# lui-même.
 using module ..\BaseViewCli.psm1
 
 class CliUnregisterDockerView : BaseViewCli {
-    # The view answers and paints: the candidates, the refusals and the Dto
-    # are the presenter's to decide.
 
     [void] ShowNoCandidates() {
         Write-Host ""
@@ -32,14 +25,11 @@ class CliUnregisterDockerView : BaseViewCli {
         return $this.Confirm("Take '$name' out of Docker Desktop?", $false)
     }
 
-    # The restart question, its price said: running containers stop with it.
     [bool] AskRestartDocker() {
         Write-Host ""
         return $this.Confirm("Restart Docker Desktop now? Running containers will stop.", $false)
     }
 
-    # The report: the name out, then what the restart became - restarted,
-    # refused (the name still leaves at the next start), or not asked.
     [void] Show([object]$response) {
         Write-Host ""
         Write-Host "       '$($response.InstanceName)' is out of Docker Desktop." -ForegroundColor $this.Colour("success")

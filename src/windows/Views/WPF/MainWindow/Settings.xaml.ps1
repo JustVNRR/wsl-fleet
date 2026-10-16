@@ -1,22 +1,8 @@
-# ==============================================================================
-# SETTINGS — LA VUE WPF
-# ==============================================================================
-# Ce dont ce fichier nomme, déclaré ici : un module résout ce qu'il a tiré
-# lui-même.
 using module ..\BaseViewWpf.psm1
 using module ..\..\..\Dtos\WpfDto.psm1
 using module ..\..\..\ViewModels\SettingsViewModel.psm1
 
-# La fenêtre Réglages : le DataContext est le SettingsViewModel — la racine,
-# les trois listes, le catalogue et leurs mains se bindent en XAML. Ici, ce
-# que WPF demande : la FACE EN DIRECT (la vue se repeint sur les choix — la
-# famille se construit en objet, mesuré), les sélecteurs de fichiers et la
-# lecture de la famille d'une police (WPF seul sait la dire), le jugement d'un
-# thème téléversé (WPF seul sait lire un dictionnaire), les portes rouges, la
-# porte de fermeture — et le contexte des fenêtres rafraîchi en sortant, sur
-# le look rendu.
 class WpfSettingsView : BaseViewWpf {
-    # L'Entrée mangée après chaque sélecteur de fichier (mesuré).
     hidden [bool]$EatEnter = $false
     hidden [object]$Vm = $null
     hidden [string]$AssetsDir = ""
@@ -26,8 +12,6 @@ class WpfSettingsView : BaseViewWpf {
         $this.AssetsDir = $assetsDir
         $this.Vm = [SettingsViewModel]::new($wpfService, $catalogueService, $fleetService, $assetsDir)
 
-        # La porte d'ouverture : la vue dit où et comment on trouve une boîte
-        # (son propre dossier), le ViewModel ne dit que « ouvre la boîte X ».
         $viewsRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
         $this.Vm.Ouverture = {
             param($gesture, $arguments)
@@ -43,12 +27,8 @@ class WpfSettingsView : BaseViewWpf {
         $this.Dress($null, 15)
         $this.DataContext = $this.Vm
 
-        # La porte de fermeture — METHODE 1 : le ViewModel dit « j'ai fini »,
-        # la vue ferme.
         $this.Vm.DemandeFermeture = { param($result) $self.Result = $result; $self.Close() }
 
-        # La face en direct : le thème s'échange sous la fenêtre, la police
-        # suit, la taille se redresse.
         $this.Vm.add_PropertyChanged({
             param($source, $e)
             switch ("$($e.PropertyName)") {
@@ -70,8 +50,6 @@ class WpfSettingsView : BaseViewWpf {
             }
         })
 
-        # Les choix : liens à sens unique — la vue relaie chaque sélection au
-        # ViewModel, qui crie et fait repeindre la face.
         $this.Find("LstGuiFonts").Add_SelectionChanged({ param($source, $e) if ([int]$source.SelectedIndex -ge 0) { $self.Vm.SetFontIndex([int]$source.SelectedIndex) } })
         $this.Find("LstGuiSizes").Add_SelectionChanged({ param($source, $e) if ([int]$source.SelectedIndex -ge 0) { $self.Vm.SetSizeIndex([int]$source.SelectedIndex) } })
         $this.Find("LstGuiColours").Add_SelectionChanged({ param($source, $e) if ([int]$source.SelectedIndex -ge 0) { $self.Vm.SetColourIndex([int]$source.SelectedIndex) } })
@@ -79,9 +57,6 @@ class WpfSettingsView : BaseViewWpf {
 
         $this.Find("BtnGuiRootEdit").Add_Click({ $self.Vm.EditRoot() })
 
-        # Une police téléversée : le fichier posé par le ViewModel (au
-        # service), la famille lue LÀ (WPF seul sait la dire), et la ligne
-        # ajoutée.
         $this.Find("BtnGuiFontUpload").Add_Click({
             $dialog = New-Object Microsoft.Win32.OpenFileDialog
             $dialog.Title = "A font file for the window"
@@ -104,9 +79,6 @@ class WpfSettingsView : BaseViewWpf {
             $self.Vm.AddFont($familyName)
         })
 
-        # Un thème téléversé : le fichier doit se charger comme dictionnaire
-        # (WPF seul sait le dire), un nom pris se remplace après accord. Un
-        # refus s'écrit sur la ligne rouge, il ne tue pas la fenêtre.
         $this.Find("BtnGuiThemeUpload").Add_Click({
             $dialog = New-Object Microsoft.Win32.OpenFileDialog
             $dialog.Title = "A theme file for the windows"
@@ -129,8 +101,6 @@ class WpfSettingsView : BaseViewWpf {
             $self.Vm.UploadTheme($dialog.FileName, "$name")
         })
 
-        # Le téléchargement : le fichier du thème — ou, pour « Default », le
-        # chart que cette fenêtre connaît.
         $this.Find("BtnGuiThemeDownload").Add_Click({
             $name = $self.Vm.SelectedColour()
             $proposed = $self.Vm.ThemeFileFor($name)
@@ -144,8 +114,6 @@ class WpfSettingsView : BaseViewWpf {
             $self.Vm.ExportTheme($name, $save.FileName)
         })
 
-        # La corbeille d'un thème : confirmée, le ViewModel l'ôte, la liste
-        # suit.
         $this.Find("BtnGuiThemeDelete").Add_Click({
             $name = $self.Vm.SelectedColour()
             if (-not $name) { return }
@@ -153,14 +121,10 @@ class WpfSettingsView : BaseViewWpf {
             $self.Vm.DeleteTheme($name)
         })
 
-        # Le crayon d'un thème : son fichier ouvert comme Windows ouvre les
-        # fichiers. Un refus s'écrit sur la ligne rouge.
         $this.Find("BtnGuiThemeEdit").Add_Click({
             $self.Vm.OpenTheme($self.Vm.SelectedColour())
         })
 
-        # Le catalogue : ouvrir le dossier, dupliquer (sa petite fenêtre),
-        # supprimer (la porte rouge d'abord).
         $this.Find("BtnGuiPackEdit").Add_Click({ $self.Vm.OpenPack() })
         $this.Find("BtnGuiPackDuplicate").Add_Click({ $self.Vm.DuplicatePack() })
         $this.Find("BtnGuiPackDelete").Add_Click({
@@ -175,9 +139,6 @@ class WpfSettingsView : BaseViewWpf {
         $this.FitToContent($null)
         $null = $this.OpenAs($null)
 
-        # Le look choisi — le ViewModel le rend entier — et le dossier
-        # d'arrivée, s'il y en a un. Le contexte des fenêtres se rafraîchit
-        # ici : les prochaines s'ouvriront avec la face choisie.
         $picked = $this.Vm.Picked()
         $look = [WpfThemeDto]::new()
         $look.FontFamily = $picked.FontFamily
@@ -188,8 +149,6 @@ class WpfSettingsView : BaseViewWpf {
         return $picked
     }
 
-    # La face se repeint sur les choix du ViewModel — la famille en OBJET
-    # (une chaîne ne se résout pas, mesuré).
     hidden [void] RepaintFace() {
         $family = $this.Vm.SelectedFont()
         if ($family) { $this.FontFamily = [Windows.Media.FontFamily]::new("$family") }

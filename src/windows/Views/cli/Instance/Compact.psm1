@@ -1,29 +1,20 @@
-# ==============================================================================
-# COMPACT — LA VUE DU CLI
-# ==============================================================================
-# Ce dont ce fichier nomme, déclaré ici : un module qu'il a tiré lui-même.
 using module ..\BaseViewCli.psm1
 using module ..\..\..\Tools\Helpers.psm1
 
 class CliCompactView : BaseViewCli {
-    # La vue ne décide plus : la copie de sûreté est une question que le
-    # presenter pose, l'écrasement une ligne qu'il a lue — ici, les affichages.
 
     [void] ShowBeforeQuestions() {
         Write-Host ""
     }
 
-    # Pas de copie : la ligne le dit, et le compact continue.
     [void] ShowNoArchive() {
         Write-Host "  No archive - compacting on its own." -ForegroundColor $this.Colour("muted")
     }
 
-    # L'écrasement, dit — le presenter l'a lu de l'index.
     [void] ShowReplacingArchive([string]$name) {
         Write-Host "  '$name' exists: replacing its archive." -ForegroundColor $this.Colour("warning")
     }
 
-    # Les avis du geste qui part.
     [void] ShowCompacting([string]$name, [bool]$archiveFirst) {
         Write-Host ""
         Write-Host "  WARNING: THE INSTANCE WILL BE STOPPED." -ForegroundColor $this.Colour("warning")
@@ -36,10 +27,6 @@ class CliCompactView : BaseViewCli {
         Write-Host "==> Compacting the virtual disk..." -ForegroundColor $this.Colour("info")
     }
 
-    # Le rapport : la bannière, les tailles mesurées par le service — ce que
-    # le disque pesait, ce qu'il pèse, ce qu'il a rendu —, la copie d'abord
-    # quand elle a été prise, et le départ rendu quand l'instance était
-    # debout.
     [void] Show([object]$response) {
         Write-Host ""
         Write-Host "============================================================" -ForegroundColor $this.Colour("success")

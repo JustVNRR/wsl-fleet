@@ -1,37 +1,15 @@
-# ==============================================================================
-# LA NAISSANCE — LE VIEWMODEL
-# ==============================================================================
-# Ce dont ce fichier nomme, déclaré ici : un module résout lui-même ce qu'il
-# tire.
-# Le formulaire de la naissance : le nom et le compte vérifiés en direct (la
-# ligne rouge sous la boîte, CREATE qui suit), la route — Dockerfile, image,
-# registre — chacune avec sa liste, son téléversement, son téléchargement et
-# sa corbeille (les recettes du dépôt ne se suppriment pas : la corbeille ne
-# touche qu'aux téléversées), l'onboarding, et les deux cases. CREATE vérifie,
-# lit la famille de la source choisie, ouvre la fenêtre des packs PAR-DESSUS,
-# puis pose son BuildDto et demande la fermeture — la vue se ferme là-dessus.
-#
-# Il a le service en main : il lit ses listes lui-même, téléverse, retire et
-# vérifie le registre — les portes liées de l'ancien monde n'ont plus lieu
-# d'être. Les sélecteurs de fichiers sont chez la vue (graphisme), qui
-# rappelle ici avec le chemin choisi.
 using module .\BaseViewModel.psm1
 using module ..\Dtos\InstanceDto.psm1
 
 class BuildViewModel : BaseViewModel {
     hidden [object]$_instance
 
-    # L'état bindable : de VRAIES propriétés de classe — WPF ne lit que
-    # celles-là. Les verdicts (cachés) nourrissent le droit de CREATE.
     [string]$Name = ""
     [string]$NameError = ""
     [string]$User = ""
     [string]$UserError = ""
 
     [int]$RoadIndex = 0
-    # Les listes montrent leurs NOMS, en chaînes (WPF les affiche sûrement —
-    # mesuré : un DisplayMemberPath sur nos objets reste muet), les lignes
-    # gardent le reste.
     [object[]]$Dockerfiles = @()
     [string[]]$DockerfileNames = @()
     [int]$DockerfileIndex = -1
@@ -67,7 +45,6 @@ class BuildViewModel : BaseViewModel {
     hidden [bool]$_nameOk = $false
     hidden [bool]$_userOk = $false
 
-    # Le Dto de la naissance, posé par CREATE — la vue le lit en se fermant.
     [object]$Result = $null
 
     [System.Windows.Input.ICommand]$CreateCommand
@@ -87,8 +64,6 @@ class BuildViewModel : BaseViewModel {
         if ($this.DockerImages.Count -gt 0) { $this.ImageIndex = 0 }
         if ($this.Recipes.Count -gt 0) { $this.RecipeIndex = 0 }
 
-        # Le compte proposé : le nom Windows, nettoyé — la même règle qu'au
-        # cli.
         $proposal = "$env:USERNAME".ToLower()
         $proposal = $proposal.Normalize([Text.NormalizationForm]::FormD) -replace '\p{Mn}', ''
         $proposal = $proposal -replace '[^a-z0-9_-]+', '-'
@@ -96,8 +71,6 @@ class BuildViewModel : BaseViewModel {
         if (-not ($proposal -cmatch '^[a-z][a-z0-9_-]*$')) { $proposal = "" }
         $this.User = $proposal
 
-        # Le droit se lit par une MÉTHODE : un bloc ne voit pas les
-        # propriétés de la coquille sur l'objet nu (mesuré).
         $this.CreateCommand = $this.NewCommand(
             { param($vm) $vm.Create() },
             { param($vm) $vm.CanCreate() })
@@ -107,9 +80,6 @@ class BuildViewModel : BaseViewModel {
         $this.SyncLists()
     }
 
-    # Les liens XAML sont à sens unique : la vue relaie chaque saisie ici —
-    # garde, validation, effet sur la route et cri des mains vivent d'un
-    # seul côté.
     [void] SetName([string]$value) {
         if ($this.Name -cne "$value") {
             $this.Name = "$value"
@@ -177,9 +147,6 @@ class BuildViewModel : BaseViewModel {
     [void] SetRegisterDocker([bool]$value) { $this.RegisterDocker = [bool]$value; $this.OnPropertyChanged("RegisterDocker") }
     [void] SetRunOnboarding([bool]$value) { $this.RunOnboarding = [bool]$value; $this.OnPropertyChanged("RunOnboarding") }
 
-    # Les listes et leurs mains : les noms que les listes montrent (en
-    # chaînes), la corbeille qui ne vit que sur une téléversée, le
-    # téléchargement sur n'importe quelle ligne choisie.
     hidden [void] SyncLists() {
         $this.DockerfileNames = @($this.Dockerfiles | ForEach-Object { "$($_.Name)" })
         $this.OnboardingNames = @($this.Onboardings | ForEach-Object { "$($_.Name)" })
@@ -205,8 +172,6 @@ class BuildViewModel : BaseViewModel {
         $this.OnPropertyChanged("CanDownloadImage")
     }
 
-    # La ligne choisie d'une liste — la vue la lit pour sa porte rouge et son
-    # nom proposé.
     [object] SelectedRow([string]$listName) {
         $rows = switch ($listName) { "Dockerfiles" { $this.Dockerfiles } "Onboardings" { $this.Onboardings } "Recipes" { $this.Recipes } default { $this.DockerImages } }
         $at = switch ($listName) { "Dockerfiles" { $this.DockerfileIndex } "Onboardings" { $this.OnboardingIndex } "Recipes" { $this.RecipeIndex } default { $this.ImageIndex } }
@@ -219,7 +184,6 @@ class BuildViewModel : BaseViewModel {
         $this.RemoveRecipe($listName, $at)
     }
 
-    # CREATE suit les deux verdicts — le droit de la commande, lu par elle.
     [bool] CanCreate() {
         return ($this._nameOk -and $this._userOk)
     }
@@ -229,7 +193,6 @@ class BuildViewModel : BaseViewModel {
         return [bool]$rows[$at].Uploaded
     }
 
-    # Le nom : forme, pris — la ligne rouge et le droit de CREATE.
     [void] ValidateName() {
         $problem = ""
         if (-not $this.Name) { $problem = "Give a name." }
@@ -247,7 +210,6 @@ class BuildViewModel : BaseViewModel {
         $this.CreateCommand.RaiseCanExecuteChanged()
     }
 
-    # Le compte : la forme, quand l'onboarding tourne.
     [void] ValidateUser() {
         $problem = ""
         if ("$($this.User)" -cnotmatch '^[a-z][a-z0-9_-]*$') { $problem = "Lowercase letters, digits, '_' and '-' only, starting with a letter." }
@@ -258,8 +220,6 @@ class BuildViewModel : BaseViewModel {
         $this.CreateCommand.RaiseCanExecuteChanged()
     }
 
-    # La route : l'onboarding suit — une image (téléversée ou du registre)
-    # est présumée complète, un Dockerfile garde la case.
     [void] RoadMoved() {
         $this.RunOnboarding = -not ($this.RoadIndex -eq 1 -or $this.RoadIndex -eq 2 -or $this.RoadIndex -eq 3)
         $this.ShowDockerfile = ($this.RoadIndex -eq 0)
@@ -272,8 +232,6 @@ class BuildViewModel : BaseViewModel {
         $this.OnPropertyChanged("ShowRegistry")
         $this.OnPropertyChanged("ShowRecipe")
     }
-
-    # --- les téléversements, les retraits, les sorties -----------------------
 
     [void] AddDockerfile([string]$source) {
         $this.AddRecipe("dockerfiles", $source, "Dockerfile", "Dockerfiles")
@@ -312,8 +270,6 @@ class BuildViewModel : BaseViewModel {
         }
         $this.OnPropertyChanged($listName)
         $this.SyncLists()
-        # The index is announced after the names: the combo resets its
-        # selection as the names land, and this puts it back.
         $this.OnPropertyChanged("DockerfileIndex")
         $this.OnPropertyChanged("OnboardingIndex")
         $this.OnPropertyChanged("ImageIndex")
@@ -331,8 +287,6 @@ class BuildViewModel : BaseViewModel {
         $this.RemoveRecipe("DockerImages", $this.ImageIndex)
     }
 
-    # A fresh recipe: the popup's name, the service makes the folder under it,
-    # the list follows.
     [void] NewRecipe() {
         $chosen = $this.OpenBox("RecipeName", @())
         if (-not $chosen) { return }
@@ -343,13 +297,9 @@ class BuildViewModel : BaseViewModel {
         $this.RecipeIndex = $this.Recipes.Count - 1
         $this.OnPropertyChanged("Recipes")
         $this.SyncLists()
-        # The index is announced after the names: the combo resets its
-        # selection as the names land, and this puts it back.
         $this.OnPropertyChanged("RecipeIndex")
     }
 
-    # The selected row's path, opened in the code editor - any list that
-    # offers the button, a repo's own row included.
     [void] EditSource([string]$listName) {
         $row = $this.SelectedRow($listName)
         if (-not $row) { return }
@@ -375,16 +325,12 @@ class BuildViewModel : BaseViewModel {
         }
         $this.OnPropertyChanged($listName)
         $this.SyncLists()
-        # The index is announced after the names: the combo resets its
-        # selection as the names land, and this puts it back.
         $this.OnPropertyChanged("DockerfileIndex")
         $this.OnPropertyChanged("OnboardingIndex")
         $this.OnPropertyChanged("ImageIndex")
         $this.OnPropertyChanged("RecipeIndex")
     }
 
-    # Le nom proposé au téléchargement : celui du téléversement, l'empreinte
-    # au nom de l'emplacement retirée. La vue ouvre son sélecteur dessus.
     [string] DownloadName([string]$listName) {
         $rows = switch ($listName) { "Dockerfiles" { $this.Dockerfiles } "Onboardings" { $this.Onboardings } default { $this.DockerImages } }
         $at = switch ($listName) { "Dockerfiles" { $this.DockerfileIndex } "Onboardings" { $this.OnboardingIndex } default { $this.ImageIndex } }
@@ -407,11 +353,6 @@ class BuildViewModel : BaseViewModel {
         } catch { }
     }
 
-    # --- CREATE ---------------------------------------------------------------
-
-    # CREATE : la vérification entière, la famille, la fenêtre des packs
-    # PAR-DESSUS (Cancel y revient, le formulaire intact), puis le Dto et le
-    # la demande de fermeture.
     [void] Create() {
         $this.ValidateName()
         if ($this.RunOnboarding) { $this.ValidateUser() } else { $this._userOk = $true }
@@ -423,8 +364,6 @@ class BuildViewModel : BaseViewModel {
         $this.RecipeError = if ($this.RoadIndex -eq 3 -and $this.RecipeIndex -lt 0) { "Create a recipe first with the + button." } else { "" }
         $this.OnPropertyChanged("RecipeError")
 
-        # Le registre est demandé — pas de pull — et un nom inconnu se refuse
-        # ici, sur la ligne rouge, pas à la naissance.
         $this.RegistryError = ""
         if ($this.RoadIndex -eq 2) {
             $ref = "$($this.RegistryRef)".Trim()
@@ -441,9 +380,6 @@ class BuildViewModel : BaseViewModel {
 
         if (-not $this._nameOk -or -not $this._userOk -or $this.ImageError -or $this.RegistryError -or $this.RecipeError) { return }
 
-        # La famille : lue sur la ligne choisie (le FROM est déjà lu) —
-        # la fenêtre des packs s'ouvre par-dessus, le formulaire figé
-        # derrière ; Cancel y revient, intact.
         $family = ""
         if ($this.RoadIndex -eq 0 -and $this.DockerfileIndex -ge 0) { $family = "$($this.Dockerfiles[$this.DockerfileIndex].Family)" }
         if ($this.RoadIndex -eq 3 -and $this.RecipeIndex -ge 0) { $family = "$($this.Recipes[$this.RecipeIndex].Family)" }

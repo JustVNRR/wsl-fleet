@@ -1,17 +1,9 @@
-# ==============================================================================
-# UNREGISTERDOCKER — THE PRESENTER
-# ==============================================================================
-# Ce dont ce fichier nomme, déclaré ici : un module résout ce qu'il a tiré
-# lui-même.
 using module ..\ActionResult.psm1
 using module ..\BasePresenter.psm1
 using module .\shared\SelectInstancePresenter.psm1
 using module ..\..\Services\InstanceService.psm1
 using module ..\..\Dtos\InstanceDto.psm1
 
-# The other direction, same traversal: the instances Docker Desktop carries,
-# filtered here; the pick and the two questions read in the view; the Dto
-# built here; one call to the service. The ActionResult is the only way out.
 class UnregisterDockerPresenter : BasePresenter {
     hidden [InstanceService]$Service
 

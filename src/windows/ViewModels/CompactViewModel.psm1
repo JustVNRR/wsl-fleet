@@ -1,13 +1,6 @@
-# ==============================================================================
-# LA COMPACITÉ — LE VIEWMODEL
-# ==============================================================================
-# Ce dont ce fichier nomme, déclaré ici : un module résout lui-même ce qu'il
-# tire.
 using module .\BaseViewModel.psm1
 using module ..\Dtos\InstanceDto.psm1
 
-# La porte de la compacité : la phrase avec le nom, l'avertissement d'arrêt,
-# et la même case « archiver d'abord » que la corbeille.
 class CompactViewModel : BaseViewModel {
     hidden [string]$_name = ""
     [string]$Lead = ""
@@ -22,7 +15,6 @@ class CompactViewModel : BaseViewModel {
         $this.ConfirmCommand = $this.NewCommand({ param($vm) $vm.Confirm() })
     }
 
-    # Le lien XAML est à sens unique : la vue relaie la bascule ici.
     [void] SetArchiveFirst([bool]$value) {
         if ($this.ArchiveFirst -ne $value) {
             $this.ArchiveFirst = $value

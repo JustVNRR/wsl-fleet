@@ -1,20 +1,8 @@
-# ==============================================================================
-# BUILD — LE PRESENTER
-# ==============================================================================
-# Ce dont ce fichier nomme, déclaré ici : un module résout ce qu'il a tiré
-# lui-même.
 using module ..\ActionResult.psm1
 using module ..\BasePresenter.psm1
 using module ..\..\Services\InstanceService.psm1
 using module ..\..\Dtos\InstanceDto.psm1
 
-# La naissance, dans l'ordre de l'ancienne : le nom, la route et sa source,
-# les packs, l'onboarding, le compte, et les deux dernières questions — la
-# route Dockerfile seule porte le « garder l'image ». Toutes les boucles, les
-# règles et les lectures vivent ici ; la vue affiche et lit. Rien n'est écrit
-# avant la fin, et la naissance est le seul appel : le Dto bâti, la sonde de
-# Docker, le service, puis le shell promis. L'ActionResult est la seule
-# sortie.
 class BuildPresenter : BasePresenter {
     hidden [InstanceService]$Service
 
@@ -33,7 +21,6 @@ class BuildPresenter : BasePresenter {
             return [ActionResult]::Nok("Build : $($_.Exception.Message)")
         }
 
-        # 1. Le nom : la forme vérifiée, l'indice montré, le vide qui annule.
         $view.ClearScreen()
         $name = ""
         while ($true) {
@@ -47,8 +34,6 @@ class BuildPresenter : BasePresenter {
             $view.ShowNameHint()
         }
 
-        # 2. La route, puis sa source. Un nom de registre se vérifie sur-le-
-        # champ — le refus s'affiche et la question se repose.
         $view.ClearScreen()
         $road = $view.AskRoad()
         if (-not $road) {
@@ -87,9 +72,6 @@ class BuildPresenter : BasePresenter {
                 return [ActionResult]::Nok("Build : no Dockerfile")
             }
 
-            # One row is the answer on the two file roads; the recipe road
-            # shows its menu even for a single row - the name and the date it
-            # carries are what the user came to see.
             $picked = if ($rows.Count -eq 1 -and $road.Type -ne [WslBuildType]::Recipe) { $rows[0] } else { $view.AskSource("$($road.Label)", $rows) }
             if (-not $picked) {
                 $view.ShowCancelled("modified")
@@ -98,7 +80,6 @@ class BuildPresenter : BasePresenter {
 
             $view.ClearScreen()
             if ($road.Type -eq [WslBuildType]::Recipe) {
-                # The folder is the context; its Dockerfile is what is built.
                 $context = "$($picked.Path)"
                 $buildPath = Join-Path $context "Dockerfile"
                 $family = "$($picked.Family)"
@@ -111,10 +92,6 @@ class BuildPresenter : BasePresenter {
             }
         }
 
-        # 3. Les packs : la famille de la source filtre les lignes, le socle
-        # se pré-coche quand elle est connue, et une famille illisible est
-        # dite — les packs restent en portée. Échap ou rien coché = aucun,
-        # la naissance continue.
         $packNames = @()
         if ($packs.Count -gt 0) {
             $offered = if ($family) { @($packs | Where-Object { $_.Family -eq $family }) } else { @($packs) }
@@ -132,8 +109,6 @@ class BuildPresenter : BasePresenter {
             }
         }
 
-        # 4. L'onboarding — le premier des assets est proposé, la liste
-        # choisit lequel ; sans aucun, c'est dit et la naissance continue.
         $onboarding = ""
         $boots = @($sources.Onboardings)
         if ($boots.Count -eq 0) {
@@ -149,8 +124,6 @@ class BuildPresenter : BasePresenter {
             }
         }
 
-        # 5. Le compte : l'onboarding le crée, donc il ne se demande qu'avec
-        # un onboarding — le nom Windows est proposé quand il se nettoie en un.
         $user = ""
         if ($onboarding) {
             $proposal = "$env:USERNAME".ToLower()
@@ -165,23 +138,17 @@ class BuildPresenter : BasePresenter {
             while ($true) {
                 $answer = $view.AskUserName($prompt)
                 if (-not $answer -and $proposal) { $answer = $proposal }
-                # -cmatch, pas -match : PowerShell ignore la casse, et 'Root'
-                # passerait ici pour être refusé dedans.
                 if ($answer -cmatch '^[a-z][a-z0-9_-]*$') { $user = $answer; break }
                 $view.ShowUserHint()
             }
         }
 
-        # 6. Les deux dernières, tout en bas : ce que l'image de travail
-        # devient (la route Dockerfile seule en a une), et Docker Desktop.
         $keep = $false
         if ($road.Type -in @([WslBuildType]::Dockerfile, [WslBuildType]::Recipe)) {
             $keep = $view.AskKeepImage()
         }
         $register = $view.AskRegisterDocker($name)
 
-        # 7. Les réponses, dans la forme du service. L'apparence n'est pas
-        # demandée ici — la naissance pose ses défauts.
         $dto = [BuildDto]::new()
         $dto.Name = $name
         $dto.User = $user
@@ -193,12 +160,6 @@ class BuildPresenter : BasePresenter {
         $dto.KeepImage = $keep
         $dto.RegisterDocker = $register
 
-        # Le docker doit répondre avant la FABRICATION — l'ancienne sondait
-        # là : le questionnaire d'abord, puis la sonde, puis la naissance.
-        # Le démarrage est direct : le service ne relance rien s'il tourne
-        # déjà, et son verdict décide — refusé, la naissance s'arrête dite,
-        # le refus peint, au lieu de s'écraser en plein docker build (vécu
-        # sur sa machine).
         if (-not ($this.Service.StartDocker())) {
             $view.ShowAbort(@("Docker is not responding.", "Start Docker Desktop, then try again."))
             return [ActionResult]::Nok("Build : Docker is not responding.")
@@ -210,9 +171,6 @@ class BuildPresenter : BasePresenter {
             return [ActionResult]::Nok("Build : $($dto.Name) - $($_.Exception.Message)")
         }
         $view.Show($response)
-        # La naissance passée, le shell qu'elle a promis s'ouvre — le cli
-        # seul : la fenêtre a son ouvrier, qui fait de même à sa fin. Un
-        # shell qui ne s'ouvre pas ne défait pas la naissance.
         try { $null = $this.Service.Open($dto.Name) } catch { }
         return [ActionResult]::Ok("Build : $($dto.Name)")
     }

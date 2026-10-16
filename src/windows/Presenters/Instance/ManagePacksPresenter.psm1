@@ -1,18 +1,9 @@
-# ==============================================================================
-# MANAGEPACKS — LE PRESENTER
-# ==============================================================================
-# Ce dont ce fichier nomme, déclaré ici : un module résout ce qu'il a tiré
-# lui-même.
 using module ..\ActionResult.psm1
 using module ..\BasePresenter.psm1
 using module .\shared\SelectInstancePresenter.psm1
 using module ..\..\Services\InstanceService.psm1
 using module ..\..\Dtos\InstanceDto.psm1
 
-# La checklist : les lignes réunies ici — les offrables décochés, les portés
-# cochés — le choix coché relu ici, ce qui entre et ce qui sort calculé ici,
-# le Dto bâti ici, un seul appel au service. L'ActionResult est la seule
-# sortie.
 class ManagePacksPresenter : BasePresenter {
     hidden [InstanceService]$Service
 
@@ -47,9 +38,6 @@ class ManagePacksPresenter : BasePresenter {
 
         $installed = @($packs.Installed)
 
-        # Les lignes : les offrables qui manquent d'abord, décochés, puis les
-        # portés qu'un utilisateur choisit, cochés — la place de chaque ligne
-        # EST sa case.
         $rows = @()
         $checkedIndexes = @()
         $taken = @{}
@@ -75,7 +63,6 @@ class ManagePacksPresenter : BasePresenter {
         }
         $ticked = @($chosen | ForEach-Object { "$($_.Name)" })
 
-        # Coché et pas porté entre ; porté et pas coché sort.
         $toAdd = @($ticked | Where-Object { $installed -notcontains $_ })
         $toRemove = @(@($packs.Removable) | Where-Object { $ticked -notcontains "$_" })
 

@@ -8,8 +8,7 @@
     <TextBlock Margin="0,10,0,0" TextWrapping="Wrap">   - its install folder,</TextBlock>
     <TextBlock Margin="0,10,0,0" TextWrapping="Wrap">   - its virtual disk (VHDX), and its content.</TextBlock>
     <TextBlock Margin="0,10,0,10" TextWrapping="Wrap">This operation CANNOT be undone.</TextBlock>
-    <!-- Les saisies : liens à sens unique — la vue relaie les écritures
-         (voir le .xaml.ps1). -->
+    
     <CheckBox Name="ChkArchive" IsChecked="{Binding ArchiveFirst, Mode=OneWay}" TabIndex="0" Margin="0,12,0,0" Content="Archive it first"/>
     <TextBlock Margin="0,14,0,10" TextWrapping="Wrap" Text="To confirm DESTRUCTION, type the name of the instance:"/>
     <TextBox Name="TxtName" Text="{Binding Typed, Mode=OneWay}" TabIndex="1" Margin="0,6,0,0"/>

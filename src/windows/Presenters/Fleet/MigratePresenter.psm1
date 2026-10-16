@@ -1,18 +1,8 @@
-# ==============================================================================
-# MIGRATE — LE PRESENTER
-# ==============================================================================
-# Ce dont ce fichier nomme, déclaré ici : un module résout ce qu'il a tiré
-# lui-même.
 using module ..\ActionResult.psm1
 using module ..\BasePresenter.psm1
 using module ..\..\Services\FleetService.psm1
 using module ..\..\Tools\Helpers.psm1
 
-# Le déménagement : une seule question — le dossier d'arrivée, posée avec la
-# racine en main — et les deux refus qui ne coûtent rien, lus ICI : le dossier
-# qui EST la racine, et la cible que Test-FleetTarget refuse. Une cible DONNÉE
-# (le lancement depuis la fenêtre) passe les deux — comme avant. Puis le
-# voyage entier, au service. L'ActionResult est la seule sortie.
 class MigratePresenter : BasePresenter {
     hidden [FleetService]$Service
 

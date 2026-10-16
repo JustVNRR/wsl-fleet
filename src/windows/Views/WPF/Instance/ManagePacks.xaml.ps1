@@ -1,15 +1,6 @@
-# ==============================================================================
-# MANAGEPACKS — LA VUE WPF
-# ==============================================================================
-# Ce dont ce fichier nomme, déclaré ici : un module résout ce qu'il a tiré
-# lui-même.
 using module ..\BaseViewWpf.psm1
 using module ..\..\..\ViewModels\ManagePacksViewModel.psm1
 
-# La checklist, la fenêtre : le DataContext est le ManagePacksViewModel — les
-# cases, les deux lignes du cli et APPLY se bindent en XAML. Ici, le strict
-# nécessaire : le chargement, la porte de fermeture, et le Dto rendu. Rien à
-# choisir : Ask rend $null sans même ouvrir (une réponse, pas une annulation).
 class WpfManagePacksView : BaseViewWpf {
     hidden [object]$Vm = $null
 
@@ -27,14 +18,8 @@ class WpfManagePacksView : BaseViewWpf {
         $this.Dress($null, 15)
         $this.DataContext = $this.Vm
 
-        # La porte de fermeture — METHODE 1 : le ViewModel dit « j'ai fini »,
-        # la vue ferme.
         $this.Vm.DemandeFermeture = { param($result) $self.Result = $result; $self.Close() }
 
-        # Les cases se construisent à la main — des chaînes, jamais un
-        # gabarit d'items (muet sur nos objets, mesuré). Le relais ROUTÉ
-        # attrape chaque bascule (le même que l'ancien tableau utilisait
-        # pour les clics) et la porte au ViewModel de la ligne, qui recompte.
         $toggled = [System.Windows.RoutedEventHandler]{
             param($source, $e)
             $box = $e.OriginalSource

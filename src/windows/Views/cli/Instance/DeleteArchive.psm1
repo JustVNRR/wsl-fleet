@@ -1,16 +1,7 @@
-# ==============================================================================
-# DELETEARCHIVE — LA VUE DU CLI
-# ==============================================================================
-# Ce dont ce fichier nomme, déclaré ici : un module résout ce qu'il a tiré
-# lui-même.
 using module ..\BaseViewCli.psm1
 
 class CliDeleteArchiveView : BaseViewCli {
-    # La vue ne décide plus : le nom vient de la ligne de commande, le
-    # presenter a constaté son absence ou sa présence — ici, les lignes.
 
-    # Sans nom, rien à faire : le refus, peint ici — le presenter sort en
-    # faute.
     [void] ShowNoName() {
         Write-Host ""
         Write-Host "[ABORT] No archive name was given." -ForegroundColor $this.Colour("error")
@@ -23,7 +14,6 @@ class CliDeleteArchiveView : BaseViewCli {
         Write-Host "==> Deleting the archive '$name'..." -ForegroundColor $this.Colour("info")
     }
 
-    # Le rapport : la bannière et l'irréversible, le nom rendu par le service.
     [void] Show([object]$response) {
         Write-Host ""
         Write-Host "============================================================" -ForegroundColor $this.Colour("success")

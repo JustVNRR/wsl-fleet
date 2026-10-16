@@ -25,12 +25,6 @@ class ServiceFactory {
         )
     }
 
-    # La racine : la flotte la dit — bâtie sur un foyer de passage le temps
-    # de la lire (le fichier de mémoire, le registre : des chemins absolus,
-    # rien à voir avec ce foyer), puis rendue. C'est ici, pas chez l'entrée :
-    # un dépôt joint ses dossiers à la racine et refuse un chemin vide.
-    # The log: home and name decided here, once - %LOCALAPPDATA% survives
-    # cleanups, where %TEMP% takes the file with it.
     static [LoggerService] CreateLoggerService() {
         $base = "$env:LOCALAPPDATA"
         if (-not $base) { $base = [IO.Path]::GetTempPath() }
@@ -42,9 +36,6 @@ class ServiceFactory {
         return $fleet.GetRoot()
     }
 
-    # La flotte : les mêmes dépôts, et le service des instances par-dessus —
-    # c'est lui qui archive et désinscrit une par une, SetRoot ne touchant
-    # que ce qui est à la flotte.
     static [FleetService] CreateFleetService([string]$root, [string]$assets, [string]$distroTree) {
         $instances = [InstanceRepository]::new($root)
         $archives = [ArchiveRepository]::new((Join-Path $root "archives"))
@@ -59,12 +50,10 @@ class ServiceFactory {
         return [FleetService]::new($config, $wsl, $instances, $archives, $service)
     }
 
-    # La face de la fenêtre : le fichier du look et le Terminal.
     static [WpfService] CreateWpfService([string]$assets) {
         return [WpfService]::new([ConfigRepository]::new($assets), [TerminalRepository]::new($assets))
     }
 
-    # Le catalogue des packs : le modèle et son dépôt.
     static [PackCatalogService] CreatePackCatalogService([string]$assets) {
         return [PackCatalogService]::new([WslPackCatalog]::new(), [PackCatalogRepository]::new((Join-Path $assets "packs")))
     }

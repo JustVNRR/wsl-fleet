@@ -1,13 +1,6 @@
-# ==============================================================================
-# THE ERROR BOX — THE WPF VIEW
-# ==============================================================================
-# Ce dont ce fichier nomme, déclaré ici : un module résout ce qu'il a tiré
-# lui-même.
 using module ..\BaseViewWpf.psm1
 using module ..\..\..\ViewModels\ErrorViewModel.psm1
 
-# The error box: the entry's words, when and at which level it came, one OK.
-# Nothing is answered - it is read and closed.
 class WpfErrorView : BaseViewWpf {
     hidden [object]$Vm = $null
 
@@ -24,7 +17,6 @@ class WpfErrorView : BaseViewWpf {
         $this.Dress($null, 15)
         $this.DataContext = $this.Vm
 
-        # Un seul bouton : Entrée ou Échap le pressent, clic idem.
         $this.Find("BtnErrorOk").Add_Click({ $self.Close() })
 
         $this.FitToContent($null)

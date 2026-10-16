@@ -1,12 +1,5 @@
-# ==============================================================================
-# LE OUI/NON — LE VIEWMODEL
-# ==============================================================================
-# Ce dont ce fichier nomme, déclaré ici : un module résout ce qu'il a tiré
-# lui-même.
 using module .\BaseViewModel.psm1
 
-# La plus petite boîte : un titre, une question, la ligne rouge quand il y en
-# a une. CONFIRM rend oui, la porte de fermeture porte la réponse.
 class ConfirmViewModel : BaseViewModel {
     [string]$Title = "Wsl Fleet"
     [string]$Question = ""

@@ -1,53 +1,12 @@
-# ==============================================================================
-# WHAT A LINE SAYS, AND THE COLOUR IT TAKES
-# ==============================================================================
-# A command never names a colour. It says what kind of line this is:
-#
-#   Write-Host "  Start Docker Desktop, then run this again." -ForegroundColor ([ThemeCli]::GetColor("hint"))
-#
-# Six kinds are lines - error, warning, success, info, muted, hint - and the
-# seventh, danger, is the banner's: a box rather than a line.
-#
-# The colour is read from the colour scheme of the Windows Terminal profile
-# this command runs in: of the two versions a scheme keeps of each colour, the
-# one read on its background is used. Where a scheme offers nothing readable
-# for a kind, that kind is written in the colour the scheme writes its own text
-# in - the one colour it guarantees.
-#
-# With nothing to read - a console window, VS Code, a test, CI - the sixteen
-# names a console has always had are used.
-#
-# Two doors, and everything else below builds them - hidden: GetColor, the
-# colour of a kind, and GetBannerColors, the banner's pair - its box, and the
-# ink read on that box, the one question that reads two colours together. A
-# class method takes no ValidateSet (measured), so GetColor checks the kind
-# itself: an unknown one throws, rather than answering Black in silence.
-# ==============================================================================
 class ThemeCli {
-    # -----------------------------------------------------------------------
-    # Where the scheme is read
-    # -----------------------------------------------------------------------
-    # The files Windows Terminal's profiles are written in - the same three
-    # Update-TerminalSettings names when it asks a window to read them again.
     hidden static [string[]]$TerminalSettings = @(
         "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json",
         "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminalPreview_8wekyb3d8bbwe\LocalState\settings.json",
         "$env:LOCALAPPDATA\Microsoft\Windows Terminal\settings.json"
     )
 
-    # And the ones this repository writes for its instances: one per instance,
-    # by name, layered over the profile WSL made for it.
     hidden static [string]$OurFragments = (Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-fleet")
 
-    # -----------------------------------------------------------------------
-    # Where a scheme keeps the sixteen names
-    # -----------------------------------------------------------------------
-    # The sixteen names are two versions of eight colours; a scheme writes them
-    # one key each, or as a list of sixteen - in ANSI order, which is NOT the
-    # order a console numbers them in: red is the second row of the list and
-    # the fourth value of [ConsoleColor]. Reading the list by console number
-    # would paint every error green, and this table is the only place the two
-    # orders meet.
     hidden static [System.Collections.IDictionary]$SlotNames = [ordered]@{
         "Black"       = @{ Key = "black";        Index = 0 }
         "DarkRed"     = @{ Key = "red";          Index = 1 }
@@ -67,11 +26,6 @@ class ThemeCli {
         "White"       = @{ Key = "brightWhite";  Index = 15 }
     }
 
-    # -----------------------------------------------------------------------
-    # The kind of line, and the colour it asks for
-    # -----------------------------------------------------------------------
-    # What a kind is written in when there is no scheme to read: the names this
-    # project used before, which every console resolves its own way.
     hidden static [System.Collections.IDictionary]$WithoutScheme = [ordered]@{
         error   = "Red"
         warning = "Yellow"
@@ -82,9 +36,6 @@ class ThemeCli {
         danger  = "DarkRed"
     }
 
-    # warning and hint part company here: a warning takes the colour a scheme
-    # keeps for cautions; a hint says what to do next and takes the colour that
-    # scheme writes its text in.
     hidden static [System.Collections.IDictionary]$FamilyOf = [ordered]@{
         error   = "red"
         warning = "yellow"
@@ -95,9 +46,6 @@ class ThemeCli {
         danger  = "red"
     }
 
-    # The two versions a scheme keeps, named as a console names them. The last
-    # one wins a tie - the bright version, the one this project has always
-    # used, wherever a scheme gives the two the same value.
     hidden static [System.Collections.IDictionary]$VersionOfColour = [ordered]@{
         red    = @("DarkRed", "Red")
         yellow = @("DarkYellow", "Yellow")
@@ -107,21 +55,11 @@ class ThemeCli {
         quiet  = @("DarkGray")
     }
 
-    # Below this a line is not read, it is guessed - so a colour under it is
-    # refused and the scheme's text colour is used. It sits under the quiet
-    # grey of One Half Dark, the scheme this project has been read in.
     hidden static [double]$UnreadableBelow = 2.0
 
-    # The scheme is read once per command, not once per line: a command prints
-    # one line or two hundred, and both cost the same.
     hidden static [bool]$ThemeRead = $false
     hidden static [object]$Theme = $null
 
-    # -----------------------------------------------------------------------
-    # The colours
-    # -----------------------------------------------------------------------
-
-    # The colour of a kind of line. Every command asks this and nothing else.
     static [ConsoleColor] GetColor([string]$kind) {
         if (-not [ThemeCli]::WithoutScheme.Contains($kind)) {
             throw "Unknown kind '$kind' - one of: $([ThemeCli]::WithoutScheme.Keys -join ', ')."
@@ -135,10 +73,6 @@ class ThemeCli {
             $Candidates, [ThemeCli]::GetTextColour($Look)))
     }
 
-    # The banner's pair: its box, and the ink read on that box - the scheme's
-    # red as background, and whichever of the light names is read on that red,
-    # not on the terminal behind it. No theme: the console's dark red, white
-    # on it.
     static [object] GetBannerColors() {
         $Box = [ThemeCli]::GetColor("danger")
         $Ink = "White"
@@ -152,9 +86,6 @@ class ThemeCli {
         return [PSCustomObject]@{ Box = $Box; Ink = $Ink }
     }
 
-    # The scheme of this window, and nothing when it cannot be read: not in
-    # Windows Terminal, a profile with no scheme and no defaults, a scheme no
-    # file holds, or a colour missing from it.
     hidden static [object] GetTheme() {
         if ([ThemeCli]::ThemeRead) { return [ThemeCli]::Theme }
         [ThemeCli]::ThemeRead = $true
@@ -176,11 +107,6 @@ class ThemeCli {
         return [ThemeCli]::Theme
     }
 
-    # The scheme the profile we are printing in wears. Windows Terminal names
-    # that profile in WT_PROFILE_ID; what it wears is written either in the
-    # user's own settings or in the fragment this repository writes for an
-    # instance, and a profile that says nothing itself takes the scheme of the
-    # profile defaults.
     hidden static [object] GetWindowColorScheme([string]$Guid) {
         $Settings = @()
         foreach ($Path in [ThemeCli]::TerminalSettings) {
@@ -205,9 +131,6 @@ class ThemeCli {
         return $null
     }
 
-    # The user's own version of the scheme first - they wrote it, and Terminal
-    # lets it win - then the one inside Terminal's package. Read last: asking
-    # for a package costs a fifth of a second.
     hidden static [object] GetWindowScheme([string]$Name) {
         foreach ($Path in [ThemeCli]::TerminalSettings) {
             $Parsed = [ThemeCli]::ReadTerminalJson($Path)
@@ -229,8 +152,6 @@ class ThemeCli {
         return $null
     }
 
-    # One of the sixteen names, as the colour the scheme gives it - by its own
-    # key, or by its row in a scheme written as a list.
     hidden static [object] GetSchemeColour($Scheme, [string]$Name) {
         $Where = [ThemeCli]::SlotNames[$Name]
         if (-not $Where -or -not $Scheme) { return $null }
@@ -241,9 +162,6 @@ class ThemeCli {
         return $null
     }
 
-    # The name closest to the colour the scheme writes its own text in - every
-    # scheme read here keeps its text colour in one of the sixteen too, so this
-    # is a lookup, not a blend.
     hidden static [string] GetTextColour($Look) {
         $Nearest = $null
         $Closest = [double]::MaxValue
@@ -257,8 +175,6 @@ class ThemeCli {
         return $Nearest
     }
 
-    # The name of the candidates that is read best on a colour, or the fallback
-    # when none of them is read at all.
     hidden static [string] GetReadableColour($Look, [string]$Reference, [string[]]$Candidates, [string]$Fallback) {
         $Best = $null
         $BestRatio = -1
@@ -273,13 +189,6 @@ class ThemeCli {
         return $Best
     }
 
-    # -----------------------------------------------------------------------
-    # What the numbers are
-    # -----------------------------------------------------------------------
-
-    # A colour as three numbers, or nothing at all when the text is not a
-    # colour: a scheme is a file the user may have edited, and a broken one
-    # leaves the terminal's own names in place rather than stopping a command.
     hidden static [object] GetRgb([string]$Hex) {
         $Text = "$Hex".Trim()
         if ($Text.StartsWith("#")) { $Text = $Text.Substring(1) }
@@ -296,7 +205,6 @@ class ThemeCli {
         }
     }
 
-    # How light a colour is, the way the contrast rule below counts it.
     hidden static [object] GetLuminance([string]$Hex) {
         $Rgb = [ThemeCli]::GetRgb($Hex)
         if (-not $Rgb) { return $null }
@@ -309,10 +217,6 @@ class ThemeCli {
         return 0.2126 * (& $Channel $Rgb[0]) + 0.7152 * (& $Channel $Rgb[1]) + 0.0722 * (& $Channel $Rgb[2])
     }
 
-    # How far apart two colours are to the eye: 1 is the same colour, 21 is
-    # black on white. Anything under 3 is hard to read, and 1 means one of the
-    # two is the other - which is what a scheme whose white is its background
-    # says.
     hidden static [double] GetContrastRatio([string]$A, [string]$B) {
         $First = [ThemeCli]::GetLuminance($A)
         $Second = [ThemeCli]::GetLuminance($B)
@@ -321,8 +225,6 @@ class ThemeCli {
         return [Math]::Round(($First + 0.05) / ($Second + 0.05), 2)
     }
 
-    # How far apart two colours are, counted, not measured: it answers "which
-    # of these is the closest one" and nothing else, which is all it is asked.
     hidden static [double] GetColourDistance([string]$A, [string]$B) {
         $First = [ThemeCli]::GetRgb($A)
         $Second = [ThemeCli]::GetRgb($B)
@@ -333,17 +235,6 @@ class ThemeCli {
         return [double]($Red * $Red + $Green * $Green + $Blue * $Blue)
     }
 
-    # -----------------------------------------------------------------------
-    # Reading Windows Terminal's files
-    # -----------------------------------------------------------------------
-    # Windows Terminal writes JSON with // comments and a comma before a
-    # closing bracket; PowerShell's reader refuses both. A blind replace is
-    # worse: the file holds a string of every punctuation mark
-    # ("wordDelimiters"), and taking a comma out of IT breaks the JSON
-    # elsewhere.
-    #
-    # So the walk below knows what a string is, and a file that still will not
-    # parse is no schemes at all, not a crash.
     hidden static [object] ReadTerminalJson([string]$Path) {
         if (-not $Path -or -not (Test-Path $Path)) { return $null }
         try {

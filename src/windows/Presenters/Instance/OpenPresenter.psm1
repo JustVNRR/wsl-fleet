@@ -1,15 +1,8 @@
-# ==============================================================================
-# OPEN — LE PRESENTER
-# ==============================================================================
-# Ce dont ce fichier nomme, déclaré ici : un module résout ce qu'il a tiré
-# lui-même.
 using module ..\ActionResult.psm1
 using module ..\BasePresenter.psm1
 using module .\shared\SelectInstancePresenter.psm1
 using module ..\..\Services\InstanceService.psm1
 
-# Le shell : la question partagée, la ligne du geste, et la fenêtre qui part —
-# rien n'est attendu. L'ActionResult est la seule sortie.
 class OpenPresenter : BasePresenter {
     hidden [InstanceService]$Service
 

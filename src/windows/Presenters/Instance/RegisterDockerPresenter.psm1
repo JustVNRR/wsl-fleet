@@ -1,18 +1,9 @@
-# ==============================================================================
-# REGISTERDOCKER — THE PRESENTER
-# ==============================================================================
-# Ce dont ce fichier nomme, déclaré ici : un module résout ce qu'il a tiré
-# lui-même.
 using module ..\ActionResult.psm1
 using module ..\BasePresenter.psm1
 using module .\shared\SelectInstancePresenter.psm1
 using module ..\..\Services\InstanceService.psm1
 using module ..\..\Dtos\InstanceDto.psm1
 
-# The instances Docker Desktop does not carry yet: the rows read here, the
-# candidates filtered here - a state that cannot be read is not an offer -
-# the pick and the two questions read in the view, the Dto built here, one
-# call to the service. The ActionResult is the only way out.
 class RegisterDockerPresenter : BasePresenter {
     hidden [InstanceService]$Service
 
@@ -36,9 +27,6 @@ class RegisterDockerPresenter : BasePresenter {
 
         $view = $this.GetView("RegisterDocker")
 
-        # A name given on the command line is checked against the live rows:
-        # one of ours, and one Docker Desktop does not carry - each refusal
-        # says which of the two failed.
         $name = ""
         if ($target) {
             $row = @($live | Where-Object { "$($_.Name)" -ceq "$target" })
@@ -57,9 +45,6 @@ class RegisterDockerPresenter : BasePresenter {
             $name = "$target"
         } else {
             if ($candidates.Count -eq 0) {
-                # Every state unknown means Docker Desktop itself is the
-                # trouble; an empty candidate list among readable states is
-                # just "nothing to register".
                 if ($live.Count -gt 0 -and @($live | Where-Object { "$($_.Docker)" -ne "unknown" }).Count -eq 0) {
                     $view.ShowSettingsUnreadable()
                 } else {

@@ -1,14 +1,6 @@
-# ==============================================================================
-# LA DESTRUCTION — LE VIEWMODEL
-# ==============================================================================
-# Ce dont ce fichier nomme, déclaré ici : un module résout lui-même ce qu'il
-# tire.
 using module .\BaseViewModel.psm1
 using module ..\Dtos\InstanceDto.psm1
 
-# La porte de la destruction : la phrase avec le nom, l'écho de ce qui part,
-# la case « archiver d'abord », et le nom exact retapé — REMOVE ne s'éveille
-# que sur lui — case ignorée.
 class RemoveViewModel : BaseViewModel {
     hidden [string]$_name = ""
     [string]$Lead = ""
@@ -24,7 +16,6 @@ class RemoveViewModel : BaseViewModel {
         $this.ConfirmCommand = $this.NewCommand({ param($vm) $vm.Confirm() }, { param($vm) $vm.CanConfirm() })
     }
 
-    # Les liens XAML sont à sens unique : la vue relaie saisies et bascules.
     [void] SetTyped([string]$value) {
         if ($this.Typed -ne "$value") {
             $this.Typed = "$value"
@@ -41,7 +32,6 @@ class RemoveViewModel : BaseViewModel {
     }
 
     [bool] CanConfirm() {
-        # -eq : the name; the case does not count.
         return ("$($this.Typed)" -eq $this._name)
     }
 

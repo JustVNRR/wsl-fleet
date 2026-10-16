@@ -1,15 +1,5 @@
-# ==============================================================================
-# THE LOG — THE SERVICE
-# ==============================================================================
-# Ce dont ce fichier nomme, déclaré ici : un module résout ce qu'il a tiré
-# lui-même.
 using module ..\Dtos\InstanceDto.psm1
 
-# The log: one file, one line per entry - when, level, words, all carried by
-# the Dto the caller built - and the same line echoed to the terminal the
-# window was launched from. The session opens with a dated header. A path
-# that cannot be written leaves the echo alone and nothing throws: a log that
-# breaks the app is worse than no log.
 class LoggerService {
     hidden [string]$_path = ""
 
@@ -19,10 +9,6 @@ class LoggerService {
         if ($directory) {
             try { $null = New-Item -ItemType Directory -Path $directory -Force -ErrorAction Stop } catch { }
         }
-        # The rotation, at the session's open only: a file past a megabyte
-        # steps aside as .1 (the older .1 is overwritten) and this session
-        # starts a fresh one - one session adds a few kilobytes, so the disk
-        # tops out at two megabytes.
         try {
             if ((Test-Path -LiteralPath $this._path) -and (Get-Item -LiteralPath $this._path).Length -gt 1MB) {
                 Move-Item -LiteralPath $this._path -Destination "$($this._path).1" -Force -ErrorAction Stop
@@ -32,7 +18,6 @@ class LoggerService {
         $this.Append("==== session $stamp ====")
     }
 
-    # The entry, rendered and written - the file first, the terminal after.
     [void] Write([LogEntryDto]$entry) {
         $stamp = $entry.When.ToString("yyyy-MM-dd HH:mm:ss")
         $this.Append("$stamp [$($entry.Level)] $($entry.Message)")

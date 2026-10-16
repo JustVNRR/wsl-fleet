@@ -5,9 +5,7 @@
         <RowDefinition Height="*"/>
         <RowDefinition Height="Auto"/>
     </Grid.RowDefinitions>
-    <!-- The body scrolls; the buttons stay pinned under it - a larger
-         face or a smaller screen must never put APPLY out of reach
-         (measured: at 19 pt they fell below the screen's edge). -->
+    
     <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
     <Grid>
     <Grid.ColumnDefinitions>
@@ -35,23 +33,16 @@
         </TextBlock.Style>
     </TextBlock>
     <TextBlock Margin="0,12,0,0" Text="Icon text:"/>
-    <!-- Les saisies : liens à sens unique — la vue relaie les écritures
-         (voir le .xaml.ps1). -->
+    
     <TextBox Name="TxtIconText" Text="{Binding IconText, Mode=OneWay}" Margin="0,6,0,0" HorizontalAlignment="Left"
              Background="{DynamicResource AppInputBackgroundBrush}" Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="{DynamicResource AppBorderBrush}" Padding="4"/>
     <TextBlock Text="{Binding IconError}" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource AppDangerBrush}"/>
     </StackPanel>
     <Grid Grid.Column="1" VerticalAlignment="Top" Margin="14,0,0,0" Width="64" Height="64">
-        <!-- La tuile, montree en direct : le degrade de la couleur choisie et
-             les lettres dessus ; l'image choisie prend le siege par-dessus
-             (voir le .xaml.ps1). Taille fixe : l'apercu ne saute plus d'une
-             instance a l'autre. -->
-        <!-- La tuile porte la marge de make-icon (2,3 %) : 60 dans la boite
-             de 64 — l'icone (son png a la meme marge) et le dessin
-             s'alignent. -->
+        
+        
         <Border Name="BrdTile" CornerRadius="13" Width="60" Height="60" HorizontalAlignment="Center" VerticalAlignment="Center" Background="#333333"/>
-        <!-- Les lettres : la recette de make-icon (police de sa liste, encre a
-             74 % de la tuile), posee par le dessin — voir le .xaml.ps1. -->
+        
         <TextBlock Name="TxtTile" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="34"/>
         <Image Name="ImgIconPreview" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality"/>
     </Grid>
@@ -79,16 +70,7 @@
     <Border Name="BrdPreview" Margin="0,6,0,0" Padding="8,6" CornerRadius="3"
             Background="#0C0C0C" BorderBrush="{DynamicResource AppDividerBrush}" BorderThickness="1">
         <StackPanel>
-            <!-- A real session, colours and all: the prompt this house's
-                 zsh draws (zsh/prompts/starship.toml) - directory in bold
-                 yellow, branch in bold purple behind its glyph, character
-                 in bold green - over two eza lines, the listing these
-                 instances really show (permissions green for folders,
-                 user yellow, dates magenta, folders blue with their
-                 icons). Each run is tagged with the palette slot it takes
-                 its colour from - the named colours the tools use ARE the
-                 terminal palette - and the form repaints them with the
-                 chosen scheme's own. -->
+            
             <TextBlock Name="TxtPreview1" FontFamily="Consolas" Foreground="{DynamicResource AppForegroundBrush}">
                 <Run Tag="c3" Text="[~/projects]" FontWeight="Bold"/>
             </TextBlock>

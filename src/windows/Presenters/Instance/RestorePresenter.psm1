@@ -1,18 +1,8 @@
-# ==============================================================================
-# RESTORE — LE PRESENTER
-# ==============================================================================
-# Ce dont ce fichier nomme, déclaré ici : un module résout ce qu'il a tiré
-# lui-même.
 using module ..\ActionResult.psm1
 using module ..\BasePresenter.psm1
 using module ..\..\Services\InstanceService.psm1
 using module ..\..\Dtos\InstanceDto.psm1
 
-# La reconstruction : l'archive se choisit (une ligne déjà désignée se
-# reprend telle quelle), le nom de l'instance rebâtie se demande — un vide
-# annule, un refus vient du service et passe par la vue d'erreur. Rien à
-# restaurer et rien de nommé : le refus sort en faute, comme celui de la
-# liste vide.
 class RestorePresenter : BasePresenter {
     hidden [InstanceService]$Service
 

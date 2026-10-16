@@ -1,15 +1,6 @@
-# ==============================================================================
-# L'APPARENCE D'UNE INSTANCE — LE VIEWMODEL
-# ==============================================================================
-# Ce dont ce fichier nomme, déclaré ici : un module résout lui-même ce qu'il
-# tire.
 using module .\BaseViewModel.psm1
 using module ..\Dtos\InstanceDto.psm1
 
-# Les lignes des listes de la tuile : le libellé que la liste montre, la
-# paire ou le schéma gardés derrière. De VRAIES classes — WPF ne lit que les
-# vraies propriétés .NET : un PSCustomObject s'afficherait brut (même mur
-# que les Réglages, mesuré sur sa machine).
 class LookPairRow {
     [object]$Pair = $null
     [string]$Label = ""
@@ -28,24 +19,11 @@ class LookSchemeRow {
     [bool]$Current = $false
 }
 
-# Le look d'une instance : les lettres et les paires de la tuile, une image à
-# soi, la police et le schéma de couleurs. Rien ne s'applique ici : APPLY
-# rend le SetAppearanceDto, le service l'applique.
-#
-# Une simplification assumée (la même qu'au cli) : la tuile ne se dessine plus
-# à chaque tour — une vue ne lance pas make-icon. L'aperçu de la tuile montre
-# l'image CHOISIE ; la recette se dessinera une fois, à l'application.
-#
-# L'image prend le siège et le dessin reste derrière : une retouche des
-# lettres ou des paires reprend le siège (l'image s'efface).
 class SetAppearanceViewModel : BaseViewModel {
     hidden [string]$_name = ""
     hidden [object]$_appearance = $null
     hidden [object]$_recipe = $null
 
-    # L'état bindable : de VRAIES propriétés de classe — WPF ne lit que
-    # celles-là. Les listes montrent leurs LIBELLÉS, en chaînes (WPF les
-    # affiche sûrement), les lignes gardent le reste.
     [string]$Lead = ""
     [object[]]$Pairs = @()
     [string[]]$PairLabels = @()
@@ -71,9 +49,6 @@ class SetAppearanceViewModel : BaseViewModel {
         $this._recipe = $appearance.Icon
         $this.NoFragment = (-not [bool]$appearance.HasFragment)
 
-        # La tuile : les lettres, et les paires offertes — la paire en place
-        # marquée. Chaque paire est montrée avec les lettres en main : deux
-        # codes hexadécimaux ne disent rien à l'œil.
         $this.IconText = "$($this._recipe.Text)"
         $pairRows = @()
         foreach ($pair in @($pairs)) {
@@ -82,9 +57,6 @@ class SetAppearanceViewModel : BaseViewModel {
         }
         $this.Pairs = @($pairRows)
         $this.PairLabels = @($pairRows | ForEach-Object { "$($_.Label)" })
-        # La sélection pointe la ligne EN PLACE — l'écran dit la vérité, et
-        # APPLY sans retouche n'écrit pas autre chose (vécu : indices restés
-        # à 0, APPLY changeait police et schéma tout seuls).
         if ($this._recipe) {
             for ($i = 0; $i -lt $this.Pairs.Count; $i++) {
                 $pair = $this.Pairs[$i].Pair
@@ -92,9 +64,6 @@ class SetAppearanceViewModel : BaseViewModel {
             }
         }
 
-        # La police : la liste reçue, celle en place marquée — et prépendue
-        # quand elle n'y est pas : une liste qui l'ignore ment sur ce que
-        # l'instance porte.
         $fontRows = @()
         $fontNames = @()
         foreach ($font in @($fonts)) { $fontNames += "$font" }
@@ -120,7 +89,6 @@ class SetAppearanceViewModel : BaseViewModel {
             if ("$($this.Schemes[$i].Scheme.Name)" -eq "$($appearance.ColourScheme)") { $this.SchemeIndex = $i; break }
         }
 
-        # L'image en place — le siège de l'icône, quand une y est posée.
         if ("$($appearance.IconPath)" -and (Test-Path "$($appearance.IconPath)")) {
             $this.ImagePath = "$($appearance.IconPath)"
         }
@@ -129,9 +97,6 @@ class SetAppearanceViewModel : BaseViewModel {
         $this.ValidateIcon()
     }
 
-    # Les liens XAML sont à sens unique : la vue relaie chaque saisie ici —
-    # la garde, l'effet sur le siège de l'image et la validation vivent d'un
-    # seul côté.
     [void] SetIconText([string]$value) {
         if ($this.IconText -cne "$value") {
             $this.IconText = "$value"
@@ -165,8 +130,6 @@ class SetAppearanceViewModel : BaseViewModel {
         }
     }
 
-    # La règle des lettres, dite sous la boîte : jusqu'à trois, lettres ou
-    # chiffres.
     [void] ValidateIcon() {
         $ok = ("$($this.IconText)" -match '^[A-Za-z0-9]{1,3}$')
         $this.IconError = if ($ok) { "" } else { "One to three letters or digits." }
@@ -178,15 +141,11 @@ class SetAppearanceViewModel : BaseViewModel {
         return ("$($this.IconText)" -match '^[A-Za-z0-9]{1,3}$')
     }
 
-    # Le fichier choisi par la vue (le sélecteur est chez elle — graphisme).
     [void] SetImage([string]$path) {
         $this.ImagePath = "$path"
         $this.OnPropertyChanged("ImagePath")
     }
 
-    # Ce que la tuile montre en direct : la paire choisie (la recette en
-    # place sinon), les lettres en main — la vue la peint, make-icon la
-    # dessinera pareil.
     [object] PreviewIcon() {
         $pair = $null
         if ($this.Pairs.Count -gt 0) {
@@ -201,7 +160,6 @@ class SetAppearanceViewModel : BaseViewModel {
         }
     }
 
-    # Ce que l'aperçu peint — lu par la vue, par méthode.
     [string] SelectedFont() {
         if ($this.Fonts.Count -eq 0) { return "$($this._appearance.Font)" }
         $at = [Math]::Max(0, [Math]::Min($this.FontIndex, $this.Fonts.Count - 1))
@@ -214,9 +172,6 @@ class SetAppearanceViewModel : BaseViewModel {
         return $this.Schemes[$at].Scheme
     }
 
-    # APPLY : les lettres sont la seule règle de la tuile ; les listes
-    # répondent d'elles-mêmes. L'image choisie prend le siège ; le dessin,
-    # lui, reste derrière.
     [void] Apply() {
         if (-not $this.CanApply()) { return }
         $dto = [SetAppearanceDto]::new()

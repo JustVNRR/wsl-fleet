@@ -1,25 +1,14 @@
-# ==============================================================================
-# ARCHIVE — LA VUE DU CLI
-# ==============================================================================
-# Ce dont ce fichier nomme, déclaré ici : un module résout ce qu'il a tiré
-# lui-même.
 using module ..\BaseViewCli.psm1
 using module ..\..\..\Dtos\InstanceDto.psm1
 
 class CliArchiveView : BaseViewCli {
-    # La vue ne décide plus : le presenter a ordonné chaque ligne, et la
-    # question qu'il pose est lue par lui. Ici, les phrases.
 
-    # L'avis du disque immobile — sans condition parce que rien ne lit qui
-    # tourne (la phrase couvre les deux cas) ; la question « Continue ? » se
-    # pose à la vue, mais c'est le presenter qui la pose.
     [void] ShowStopWarning([string]$name) {
         Write-Host ""
         Write-Host "  If '$name' is running, this will stop it: an archive reads a still disk." -ForegroundColor $this.Colour("warning")
         Write-Host "  Save what you have open in there - stopping it loses anything unsaved." -ForegroundColor $this.Colour("warning")
     }
 
-    # L'écrasement, dit — le presenter l'a lu de l'index.
     [void] ShowReplacing([string]$archiveName) {
         Write-Host "  '$archiveName' exists: replacing it." -ForegroundColor $this.Colour("warning")
     }
@@ -29,8 +18,6 @@ class CliArchiveView : BaseViewCli {
         Write-Host "==> Backing up '$name'" -ForegroundColor $this.Colour("info")
     }
 
-    # Le rapport : la bannière, le look gardé à côté du tar, ce que Docker
-    # Desktop savait, les chemins, et l'état rendu à l'instance.
     [void] Show([object]$response) {
         Write-Host ""
         Write-Host "============================================================" -ForegroundColor $this.Colour("success")

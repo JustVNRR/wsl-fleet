@@ -1,22 +1,3 @@
-# ==============================================================================
-# L'ENTRÉE DU CLI — LA RACINE DE LA CONSOLE
-# ==============================================================================
-# Le menu, le dispatch, la construction des services et des presenters (le
-# type « cli »), et le geste.
-#
-#   .\Start-Cli.ps1                le menu
-#   .\Start-Cli.ps1 archive        archiver une instance
-#   .\Start-Cli.ps1 restore wagon_archive   par son nom
-#
-# Le geste est un BLOC LITTÉRAL, exécuté par l'entrée à son propre cran —
-# jamais une méthode de classe : un natif sous une méthode perd son terminal
-# (mesuré — le whiptail d'une naissance devenait aveugle), et le code de
-# sortie passe par l'entrée, lu de l'ActionResult du geste. Le bloc reçoit
-# tout en paramètres : rien ne se lit par un nom au moment de l'appel (une
-# clôture qui lisait par nom a marché sur une machine et rendu vide sur une
-# autre — mesuré).
-#
-# Ce dont ce fichier nomme, déclaré ici : il tire ses modules lui-même.
 using module .\Services\ServiceFactory.psm1
 using module .\Presenters\Instance\ArchivePresenter.psm1
 using module .\Presenters\Instance\RemovePresenter.psm1
@@ -43,28 +24,20 @@ param(
     [Parameter(Position = 0)]
     [string]$Command,
 
-    # Le nom, quand il est là : les gestes le prennent en premier — sans lui,
-    # la vue du geste demande.
     [Parameter(Position = 1)]
     [string]$Name = ""
 )
 
-# Les dossiers : la racine du dépôt, deux crans au-dessus. Les vues vivent
-# sous Views\ : c'est CE dossier que les presenters prennent pour racine.
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $Assets = Join-Path $RepoRoot "assets"
 $distroTree = Join-Path $RepoRoot "src\distro"
 if (-not (Test-Path $distroTree)) { $distroTree = "" }
 $ViewsRoot = Join-Path $PSScriptRoot "Views"
 
-# L'assemblage : la fabrique fait tout — la racine comprise, qu'elle
-# demande à la flotte d'un passage. L'entrée ne voit jamais un dépôt.
 $root = [ServiceFactory]::ResolveRoot($Assets, $distroTree)
 $fleetService = [ServiceFactory]::CreateFleetService($root, $Assets, $distroTree)
 $instanceService = [ServiceFactory]::CreateInstanceService($root, $Assets, $distroTree)
 
-# Les presenters : un par vue, construits ici — objets légers, la vue naît au
-# premier geste. Le « cli » est le type d'UI, comme le « wpf » de la fenêtre.
 $presenters = @{
     Archive       = [ArchivePresenter]::new($instanceService, $ViewsRoot, "cli")
     Remove        = [RemovePresenter]::new($instanceService, $ViewsRoot, "cli")
@@ -86,8 +59,6 @@ $presenters = @{
     WslConfig     = [WslConfigPresenter]::new($fleetService, $ViewsRoot, "cli")
 }
 
-# Le geste, un bloc par commande : le nom et la table des presenters arrivent
-# en paramètres, le bloc rend l'ActionResult du geste.
 $gestures = [ordered]@{
     "list"           = { param($Name, $Presenters) $Presenters.List.Run() }
     "build"          = { param($Name, $Presenters) $Presenters.Build.Run() }
@@ -107,14 +78,9 @@ $gestures = [ordered]@{
     "wslconfig"      = { param($Name, $Presenters) $Presenters.WslConfig.Run() }
     "migrate"        = { param($Name, $Presenters) $Presenters.Migrate.Run($Name) }
 
-    # La corbeille d'une archive se dit par son nom : pas dans le menu, son
-    # mot la route.
     "delete_archive" = { param($Name, $Presenters) $Presenters.DeleteArchive.Run($Name) }
 }
 
-# Le menu : un rang par commande — le mot, la ligne, le bloc. L'ordre est
-# celui de la vie d'une instance ; la corbeille d'archive n'y est pas, comme
-# avant — un nom la nomme.
 $console = [ConsoleCli]::new()
 $menu = [MenuCli]::new("WSL Fleet CLI")
 $menu = $menu.Add("list",         "list our instances and the archives",      $gestures["list"])
@@ -135,14 +101,10 @@ $menu = $menu.Add("compact",       "reclaim the space an instance has freed",  $
 $menu = $menu.Add("wslconfig",    "open the Windows-wide WSL settings",       $gestures["wslconfig"])
 $menu = $menu.Add("migrate",      "move the fleet to another folder",         $gestures["migrate"])
 
-# Avec un mot, la ligne de commande le route ; sans, le menu le demande —
-# flèches et Entrée, Échap pour abandonner.
 $item = $null
 if ($Command) {
     $item = $menu.Dispatch($Command)
     if (-not $item) {
-        # Un mot que le menu ne porte pas peut encore être un geste — la
-        # corbeille d'archive, par son nom.
         if ($gestures.Contains("$Command".ToLower())) {
             $item = [PSCustomObject]@{ Key = "$Command".ToLower(); Action = $gestures["$Command".ToLower()] }
         }
@@ -158,9 +120,6 @@ if ($Command) {
     if (-not $item) { exit 1 }
 }
 
-# Le geste court — à ce cran, pas dans une méthode — et son ActionResult dit
-# le code de sortie : Nok échoue, Ok passe, l'abandon compris (rien n'a
-# échoué).
 $result = & $item.Action "$Name" $presenters
 if ($null -eq $result) { exit 1 }
 if ("$($result.Status)" -eq "Nok") { exit 1 }

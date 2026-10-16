@@ -1,37 +1,5 @@
-# ==============================================================================
-# THE LISTS, AS OBJECTS - THE MENU'S CLASSES
-# ==============================================================================
-# The menus, as three classes - the whole of what is asked with, drawn and
-# walked:
-#
-#   MenuItemCli - one row: what it shows, what it carries, whether it is
-#                 ticked - and, for a command, the word that names it and the
-#                 gesture that runs it.
-#   ConsoleCli  - the console: keyboard, cursor, window, and the one
-#                 line-writer everything goes through.
-#   MenuCli     - one list: the rows, the wonderings (Multi, Note, where the
-#                 choice starts), the ask - the arrows, or the numbered
-#                 prompt when the machine has no keyboard - and the route by
-#                 name for the command line.
-#
-# The Cli suffix is not decoration: a PowerShell class named Console would
-# shadow System.Console wherever this file is in scope, and a missing member
-# on a class answers $null in silence - both measured; with the suffix, the
-# bare [Console] of the methods below is the .NET console, everywhere.
-#
-# Read by whoever names them - `using module .\MenuCli.psm1` at the top of the
-# consuming file: the types resolve for their own reader, once per window, and
-# the suites subclass them the same way (FakeConsole : ConsoleCli).
-#
-# "$Host" in a method: the parser refuses the name; it is reached through
-# Get-Variable - measured. And a class is not data: a data class never draws;
-# MenuCli is the list itself, its console is its trade.
-# ==============================================================================
 using module .\ThemeCli.psm1
 
-# One row of a list: the word that names it (a command; empty for a plain
-# choice), the line it shows, the value it carries (a choice), the tick (a
-# checklist row), and the gesture (a command).
 class MenuItemCli {
     [string]$Key
     [string]$Text
@@ -39,15 +7,12 @@ class MenuItemCli {
     [bool]$Checked = $false
     [scriptblock]$Action
 
-    # A command: the word, the line that says what it does, the gesture. The
-    # row shows the word in the twelve-wide column the documentation uses.
     MenuItemCli([string]$Key, [string]$Description, [scriptblock]$Action) {
         $this.Key    = $Key
         $this.Text   = "{0,-12} {1}" -f $Key, $Description
         $this.Action = $Action
     }
 
-    # A choice: the text shown, the value carried.
     MenuItemCli([string]$Text, [object]$Value) {
         $this.Text  = $Text
         $this.Value = $Value
@@ -55,14 +20,7 @@ class MenuItemCli {
 
 }
 
-# The console, as the menu's only collaborator. The real one touches the real
-# console; a test builds a subclass that answers canned keys and records the
-# lines instead of drawing them.
 class ConsoleCli {
-    # Is there a keyboard we can read without hanging? Both checks are cheap
-    # and neither one blocks: KeyAvailable throws without a console, and a
-    # throw is an answer. $Host is reached through Get-Variable: a method
-    # cannot name it directly - the parser refuses it, measured.
     [bool] HasKeyboard() {
         if ([Console]::IsInputRedirected) { return $false }
         try {
@@ -73,21 +31,14 @@ class ConsoleCli {
         }
     }
 
-    # The one line in the project that touches the keyboard.
     [ConsoleKey] ReadKey() {
         return [Console]::ReadKey($true).Key
     }
 
-    # $null means the host would not say - not the same as "row zero". A
-    # console that refuses to be drawn on leaves the menu working, only
-    # uglier: the choice is the keys, never the paint.
     [object] Top() {
         try { return [Console]::CursorTop } catch { return $null }
     }
 
-    # Says whether it moved: a silent failure here is what turned a menu into
-    # a stack of copies once - every repaint landed where the cursor already
-    # was.
     [bool] SetTop([int]$Top) {
         try {
             [Console]::SetCursorPosition(0, $Top)
@@ -97,9 +48,6 @@ class ConsoleCli {
         }
     }
 
-    # Width and height, or zeroes when the host will not say - zero meaning
-    # "no constraint", so a host that keeps quiet is never a reason to give up
-    # on the arrows.
     [int[]] Size() {
         try {
             $Size = (Get-Variable -Name Host -ValueOnly).UI.RawUI.WindowSize
@@ -109,9 +57,6 @@ class ConsoleCli {
         }
     }
 
-    # One line, and its colour comes from the message palette - "" is the
-    # plain line. Every line of every list goes through here; nothing else
-    # writes.
     [void] Line([string]$Text, [string]$Kind) {
         if ($Kind) {
             Write-Host $Text -ForegroundColor ([ThemeCli]::GetColor($Kind))
@@ -120,18 +65,11 @@ class ConsoleCli {
         }
     }
 
-    # One answer typed by the user, read from the console.
     [string] Prompt([string]$Prompt) {
         return [string](Read-Host $Prompt)
     }
 }
 
-# One list asked = one Menu: what is offered, where the choice starts and
-# stands, what is ticked, the note under the block. Prompt() walks the arrows;
-# with no keyboard it falls back to the numbered prompt. The answer is a
-# MenuItem (or the ticked ones), never a loose value - and $null, which
-# every caller reads as "the user cancelled". Dispatch() routes a word from
-# the command line to the command it names.
 class MenuCli {
     [string]$Title
     [ConsoleCli]$Console
@@ -140,31 +78,21 @@ class MenuCli {
     [int]$Current = 0
     [string]$Note = ""
 
-    # The console is built here, not handed in: a class constructor takes no
-    # default value - [MenuCli]::new("T") would find no overload with one
-    # argument, measured - and the tests replace the object right after, as
-    # they always did.
     MenuCli([string]$Title) {
         $this.Title   = $Title
         $this.Console = [ConsoleCli]::new()
         $this.Items   = [System.Collections.Generic.List[MenuItemCli]]::new()
     }
 
-    # The list is built by the caller - wsl-fleet.ps1, or a door below - one row per
-    # line. The fluent return keeps the construction one statement.
     [MenuCli] Add([MenuItemCli]$Row) {
         $this.Items.Add($Row)
         return $this
     }
 
-    # The same row for a command - the word, the line, the gesture - so the
-    # sixteen can be declared in one fluent chain in wsl-fleet.ps1.
     [MenuCli] Add([string]$Key, [string]$Description, [scriptblock]$Action) {
         return $this.Add([MenuItemCli]::new($Key, $Description, $Action))
     }
 
-    # The command a typed word names, or $null. The word's case does not
-    # matter; the caller says which word found nothing.
     [MenuItemCli] Dispatch([string]$Key) {
         $Wanted = "$Key".ToLower()
         foreach ($Command in $this.Items) {
@@ -173,7 +101,6 @@ class MenuCli {
         return $null
     }
 
-    # The ask. An empty list asks nothing.
     [object] Prompt() {
         if ($this.Items.Count -eq 0) { return $null }
         if ($this.Console.HasKeyboard()) {
@@ -182,10 +109,6 @@ class MenuCli {
         return $this.PromptNumbers()
     }
 
-    # One row, as it is drawn: the marker says where the choice is, the box
-    # what is checked - two questions, two signs, so a console that renders
-    # no colour still reads correctly. $null checked flags = a single-choice
-    # list, where there is nothing to check.
     static [string] FormatRow([int]$Index, [int]$Current, [string[]]$Labels, [bool[]]$Checked) {
         $Marker = if ($Index -eq $Current) { "  > " } else { "    " }
         if ($null -eq $Checked) { return ($Marker + $Labels[$Index]) }
@@ -193,11 +116,6 @@ class MenuCli {
         return ($Marker + $Box + $Labels[$Index])
     }
 
-    # One row is one line, always: a wrapped row is a row whose neighbours are
-    # no longer where the arithmetic says. The tail is cut rather than the
-    # list refused; a window that will not say how wide it is gets no cutting
-    # at all. -Prefix says what goes in front of the label: 4 for the marker,
-    # 8 for a checklist row, 0 for the title and the hint.
     static [string[]] Fit([string[]]$Labels, [int]$Width, [int]$Prefix) {
         if ($Width -le 0) { return $Labels }
         $Room = $Width - 1
@@ -208,54 +126,33 @@ class MenuCli {
         })
     }
 
-    # The checked flags the row formatting reads - $null in a single-choice
-    # list, where there is nothing to check.
     hidden [object] Flags() {
         if (-not $this.Multi) { return $null }
         return @($this.Items | ForEach-Object { $_.Checked })
     }
 
-    # One row, now, in the right colour.
     hidden [void] DrawRow([int]$Index, [string[]]$Texts) {
         $Kind = if ($Index -eq $this.Current) { "info" } else { "" }
         $this.Console.Line([MenuCli]::FormatRow($Index, $this.Current, $Texts, $this.Flags()), $Kind)
     }
 
-    # The rows are drawn once and repainted in place - every label keeps its
-    # length, so nothing has to be erased, and no Clear-Host.
     hidden [object] PromptArrows() {
         $Count = $this.Items.Count
-        # An index that is not in the list is the first one: a default is a
-        # favour, not a way to fail.
         if ($this.Current -lt 0 -or $this.Current -ge $Count) { $this.Current = 0 }
 
         $Texts = @($this.Items | ForEach-Object { $_.Text })
         $Hint = if ($this.Multi) { "  up/down to move, space to check, Enter to apply, Escape to cancel" }
                 else { "  up/down to move, Enter to choose, Escape to cancel" }
         $Size = $this.Console.Size()
-        # Every line of the block is cut to the window, title and hint
-        # included: one line that wraps moves the rows below by one, and the
-        # arithmetic below is written for exactly Visible + 3 lines, plus the
-        # note when there is one. A line the arithmetic does not know about is
-        # the bug this file was written against.
         $Extra = if ($this.Note) { 1 } else { 0 }
         $Shown = [MenuCli]::Fit($Texts, $Size[0], $(if ($this.Multi) { 8 } else { 4 }))
         $ShownTitle = @([MenuCli]::Fit(@($this.Title), $Size[0], 0))[0]
         $ShownHint = @([MenuCli]::Fit(@($Hint), $Size[0], 0))[0]
         $ShownNote = @([MenuCli]::Fit(@($this.Note), $Size[0], 0))[0]
 
-        # A list taller than the window scrolls rather than refuse: only the
-        # rows that fit are drawn, and the window follows the choice. Three
-        # lines kept for the blank and the hint, one more for the note.
         $Visible = if ($Size[1] -gt 0) { [Math]::Min($Count, [Math]::Max(1, $Size[1] - 3 - $Extra)) } else { $Count }
-        # The choice starts in the middle when it can: it is where the eye
-        # goes.
         $First = [Math]::Max(0, [Math]::Min($this.Current - [int](($Visible - 1) / 2), $Count - $Visible))
 
-        # The top row is READ BACK from the cursor after drawing, never
-        # computed before: writing the block can scroll the console, and a
-        # row number from before is wrong by what scrolled - that was the
-        # bug: every arrow added one more copy of the list.
         $this.Console.Line("", "")
         if ($ShownTitle) { $this.Console.Line($ShownTitle, "info") }
         for ($Row = 0; $Row -lt $Visible; $Row++) { $this.DrawRow($First + $Row, $Shown) }
@@ -264,9 +161,6 @@ class MenuCli {
 
         $Cursor = $this.Console.Top()
         $Top = if ($null -ne $Cursor) { $Cursor - ($Visible + 1 + $Extra) } else { 0 }
-        # No cursor reading (a test, a host that will not say): the loop still
-        # answers the keys, it simply does not repaint - there is nothing to
-        # paint on.
         $CanPaint = ($null -ne $Cursor) -and ($Top -ge 0)
 
         while ($true) {
@@ -279,18 +173,10 @@ class MenuCli {
             } elseif ($Key -eq [ConsoleKey]::DownArrow) {
                 $this.Current = if ($this.Current -eq $Last) { 0 } else { $this.Current + 1 }
             } elseif ($Key -eq [ConsoleKey]::Spacebar -and $this.Multi) {
-                # Space checks and unchecks where the cursor is. In a
-                # single-choice list it means nothing, and nothing is what it
-                # does.
                 $this.Items[$this.Current].Checked = -not $this.Items[$this.Current].Checked
             } elseif ($Key -eq [ConsoleKey]::Enter) {
                 if ($CanPaint) { $null = $this.Console.SetTop($Top + $Visible + 1 + $Extra) }
                 if ($this.Multi) {
-                    # No comma, unlike the function this came from: a method
-                    # hands its value back whole, where a function's output is
-                    # unrolled into the pipeline. The empty list arrives as
-                    # itself - "I checked none" stays different from "I
-                    # cancelled".
                     return @($this.Items | Where-Object { $_.Checked })
                 }
                 return $this.Items[$this.Current]
@@ -303,22 +189,18 @@ class MenuCli {
                           else { [int]$Key - [int][ConsoleKey]::D1 }
                 if ($Wanted -lt $Count) {
                     if ($this.Multi) {
-                        $this.Items[$Wanted].Checked = -not $this.Items[$Wanted].Checked    # a digit checks, it does not leave
+                        $this.Items[$Wanted].Checked = -not $this.Items[$Wanted].Checked
                     } else {
                         if ($CanPaint) { $null = $this.Console.SetTop($Top + $Visible + 1 + $Extra) }
                         return $this.Items[$Wanted]
                     }
                 }
             } else {
-                $Moved = $false                   # a key the menu has no use for
+                $Moved = $false
             }
 
             if (-not $Moved -or -not $CanPaint) { continue }
 
-            # Bring the choice back into the window, then repaint where the
-            # rows already are; if the cursor will not go back, the block is
-            # written again - one more copy is ugly, a screen showing the
-            # wrong current row is worse.
             if ($this.Current -lt $First) { $First = $this.Current }
             if ($this.Current -ge ($First + $Visible)) { $First = $this.Current - $Visible + 1 }
 
@@ -332,25 +214,15 @@ class MenuCli {
             }
         }
 
-        # Never reached: the loop only leaves by return. A typed method must
-        # return on every path, and the parser cannot see that the loop never
-        # falls through - this line is for it.
         return $null
     }
 
-    # The prompt every command used before the arrows: numbered rows, a number
-    # typed, an empty answer cancelling. Read-Host returns an empty string
-    # when its input is closed, so a run with no console can never loop
-    # forever.
     hidden [object] PromptNumbers() {
         $Count = $this.Items.Count
         $Texts = @($this.Items | ForEach-Object { $_.Text })
 
         if ($this.Multi) {
             while ($true) {
-                # The list is written again at every turn: a box that changed
-                # has to be seen, and with no console to paint on there is
-                # nowhere else to put it.
                 $this.Console.Line("", "")
                 if ($this.Title) { $this.Console.Line($this.Title, "info") }
                 for ($Index = 0; $Index -lt $Count; $Index++) {
@@ -394,8 +266,6 @@ class MenuCli {
             $this.Console.Line("  '$Answer' is not one of the numbers above.", "warning")
         }
 
-        # Never reached, like the one in PromptArrows: for the parser, not for
-        # the console.
         return $null
     }
 }

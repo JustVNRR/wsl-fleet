@@ -1,8 +1,3 @@
-# ==============================================================================
-# LA COPIE — LA VUE WPF
-# ==============================================================================
-# Ce dont ce fichier nomme, déclaré ici : un module résout ce qu'il a tiré
-# lui-même.
 using module ..\BaseViewWpf.psm1
 using module ..\..\..\ViewModels\DuplicateViewModel.psm1
 
@@ -21,12 +16,9 @@ class WpfDuplicateView : BaseViewWpf {
         $this.Dress($null, 15)
         $this.DataContext = $this.Vm
 
-        # La porte de fermeture — METHODE 1 : le ViewModel dit « j'ai fini »,
-        # la vue ferme.
         $this.Vm.DemandeFermeture = { param($result) $self.Result = $result; $self.Close() }
         $this.Add_ContentRendered({ $null = $this.Find("TxtName").Focus(); $this.Find("TxtName").SelectAll() })
 
-        # Le lien est à sens unique : la saisie est relayée au ViewModel.
         $this.Find("TxtName").Add_TextChanged({ param($source, $e) $self.Vm.SetName("$($source.Text)") })
 
         $this.Find("BtnDupCancel").Add_Click({ $self.Close() })

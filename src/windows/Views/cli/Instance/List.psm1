@@ -1,15 +1,6 @@
-# ==============================================================================
-# LA LISTE — LA VUE DU CLI
-# ==============================================================================
-# Ce dont ce fichier nomme, déclaré ici : un module résout ce qu'il a tiré
-# lui-même.
 using module ..\BaseViewCli.psm1
 using module ..\..\..\Tools\Helpers.psm1
 
-# Le tableau : les instances (qui tourne, la taille), les archives, et les
-# dossiers laissés derrière — le seul endroit où ils se montrent. Rien à
-# demander : le contrôleur a lu, la vue montre — et rien du tout s'abandonne
-# ici, comme aujourd'hui.
 class CliListView : BaseViewCli {
     [void] Show([object]$response) {
         $instances = @($response.Rows | Where-Object { -not $_.IsArchive })

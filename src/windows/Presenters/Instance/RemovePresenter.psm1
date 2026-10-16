@@ -1,18 +1,9 @@
-# ==============================================================================
-# REMOVE — LE PRESENTER
-# ==============================================================================
-# Ce dont ce fichier nomme, déclaré ici : un module résout ce qu'il a tiré
-# lui-même.
 using module ..\ActionResult.psm1
 using module ..\BasePresenter.psm1
 using module .\shared\SelectInstancePresenter.psm1
 using module ..\..\Services\InstanceService.psm1
 using module ..\..\Dtos\InstanceDto.psm1
 
-# La destruction : la porte qui demande le nom retapé vit ici — la
-# comparaison est une décision, la vue ne porte que l'écran et la lecture. Le dernier moment
-# pour une copie, la ligne de l'écrasement lue de l'index, les avis du geste
-# qui part : tout se décide ici, et l'ActionResult est la seule sortie.
 class RemovePresenter : BasePresenter {
     hidden [InstanceService]$Service
 
@@ -37,8 +28,6 @@ class RemovePresenter : BasePresenter {
             return [ActionResult]::Ok("Remove : cancelled")
         }
 
-        # La porte de la destruction : l'écran, le nom retapé lu, et la
-        # comparaison qui décide — le nom, la casse ignorée.
         $view = $this.GetView("Remove")
         $view.ShowDestructionGate($name, "The WSL distribution '$name' and ALL its data will be deleted:")
         $typed = $view.AskTypedName()
@@ -49,8 +38,6 @@ class RemovePresenter : BasePresenter {
         }
         $view.ShowGateOpened()
 
-        # Le dernier moment pour une copie — et l'écrasement, dit, lu de
-        # l'index reçu.
         $archiveFirst = $view.Confirm("Archive it before deleting?", $true)
         if ($archiveFirst) {
             if (@($rows | Where-Object { $_.IsArchive -and "$($_.Name)" -eq "$($name)_archive" }).Count -gt 0) {

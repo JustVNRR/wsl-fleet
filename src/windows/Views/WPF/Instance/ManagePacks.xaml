@@ -4,9 +4,7 @@
     <TextBlock Text="{Binding Lead}" TextWrapping="Wrap" FontWeight="SemiBold"/>
     <Border BorderBrush="{DynamicResource AppDividerBrush}" BorderThickness="0,0,0,1" Margin="0,8,0,0"/>
     <ScrollViewer MaxHeight="420" VerticalScrollBarVisibility="Auto" Margin="0,8,0,0">
-        <!-- Les cases se construisent à la main (voir le .xaml.ps1) : un
-             gabarit d'items reste muet sur nos objets — même mur que les
-             listes, mesuré. -->
+        
         <StackPanel Name="PnlPacks"/>
     </ScrollViewer>
     <TextBlock Text="{Binding WillAdd}" Margin="0,10,0,0" TextWrapping="Wrap" Foreground="{DynamicResource AppMutedBrush}"/>

@@ -6,8 +6,7 @@
         <RowDefinition Height="Auto"/>
     </Grid.RowDefinitions>
 
-    <!-- Header: the title and the working folder on the left, the add, the
-         refresh, the settings, the sun and the close on the other side. -->
+    
     <Grid Grid.Row="0" Margin="0,0,0,12">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"/>
@@ -43,7 +42,7 @@
                 ToolTip="Close"/>
     </Grid>
 
-    <!-- The instances -->
+    
     <ListView Name="LstInstances" ItemsSource="{Binding Rows}" IsEnabled="{Binding Free}" Grid.Row="1" Background="{DynamicResource AppSurfaceBrush}" BorderBrush="{DynamicResource AppDividerBrush}" Foreground="{DynamicResource AppForegroundBrush}"
               AlternationCount="2" KeyboardNavigation.TabNavigation="Continue"
               ScrollViewer.HorizontalScrollBarVisibility="Disabled">
@@ -56,17 +55,7 @@
                         <DataTemplate>
                             <Grid>
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                    <!-- An archived row carries its own two - restore
-                                         and the trash; a live row the rest: a shell
-                                         in a terminal of its own, the pack editor,
-                                         the appearance, the copy, the archive, the
-                                         Compact and the trash. The styles arrive by
-                                         DynamicResource: this template loads after the
-                                         window is parsed, and a StaticResource from
-                                         here cannot see the dictionary merged in code
-                                         (measured, cell template beside a local key).
-                                         The line's own IsArchive decides which set
-                                         stands (the style's trigger). -->
+                                    
                                     <Button Name="BtnRowRestore" Command="{Binding DataContext.RestoreCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding Name}" Content="&#xF2EA;" FontFamily="{DynamicResource IconFace}"
                                             Margin="0,0,4,0" Background="Transparent"
                                             Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="Transparent"
@@ -140,7 +129,7 @@
         </ListView.View>
     </ListView>
 
-    <!-- The progress bar (hidden until something runs) -->
+    
     <ProgressBar Grid.Row="2" Height="4" Margin="0,10,0,0"
                  IsIndeterminate="True"
                  Foreground="{DynamicResource AppForegroundBrush}" Background="{DynamicResource AppInputBackgroundBrush}" BorderThickness="0">

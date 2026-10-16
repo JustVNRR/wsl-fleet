@@ -1,27 +1,9 @@
-# ==============================================================================
-# LA NAISSANCE — L'OUVRIER
-# ==============================================================================
-# Le processus à part d'un geste long : un enfant pwsh qui rebâtit le service
-# sur les dossiers reçus et fait la chose. Un runspace du même processus ne va
-# pas — mesuré depuis toujours : un appel à wsl.exe hors d'un hôte ne revient
-# jamais, et sous une méthode de classe un natif perd son terminal. L'enfant,
-# lui, a un hôte.
-#
-# VISIBLE : sa console est le déroulé — le déroulé EST le log. La fenêtre le
-# guette quand même : sa fin relit la liste, la nouvelle instance s'y montre.
-#
-# Le Dto voyage en clair dans un fichier que la fenêtre a écrit (le dessin,
-# les listes : trop pour une ligne de commande) : on le relit champ par
-# champ, et il disparaît.
-#
-# Ce dont ce fichier nomme, déclaré ici : il tire ses modules lui-même. Ce
-# qu'il voit : la fabrique — un service, pas ses dépôts.
 using module ..\Services\ServiceFactory.psm1
 using module ..\Dtos\InstanceDto.psm1
 
 param(
     [string]$Name,
-    [string]$Arg1,   # le fichier du Dto, en clair
+    [string]$Arg1,
     [string]$Arg2,
     [string]$Assets,
     [string]$Root
@@ -53,8 +35,6 @@ try {
     foreach ($line in @($r.Messages)) { Write-Host "$line" }
     if ("$($r.Status)" -notin @("Ok", "Warning")) { exit 1 }
 
-    # La naissance passée, le shell qu'elle a promis s'ouvre — le cli fait de
-    # même de son côté. Un shell qui ne s'ouvre pas ne défait pas la naissance.
     try {
         Write-Host "Opening a shell into '$($dto.Name)'..."
         $null = $service.Open($dto.Name)

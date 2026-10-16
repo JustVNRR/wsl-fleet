@@ -1,19 +1,15 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <!-- ================================================================= -->
-    <!-- The chart, once: every window merges this file, so a colour is    -->
-    <!-- changed here or nowhere. No font settings on purpose - the retro  -->
-    <!-- face arrives from the code as an OBJECT (a folder-loaded family   -->
-    <!-- cannot travel through XAML as a string), and a family named here  -->
-    <!-- would override it on every control.                               -->
-    <!-- ================================================================= -->
+    
+    
+    
+    
+    
+    
+    
 
-    <!-- The values: one name per role, so a colour is changed here and the
-         whole gui follows - the windows, and the frame the code draws. A
-         colour set (assets\colours) re-sets any of them over a window's
-         fresh copy - see Get-ThemeDictionary - and every reference below
-         is a DynamicResource so it follows a value changed under it. -->
+    
     <SolidColorBrush x:Key="AppForegroundBrush" Color="#33FF66"/>
     <SolidColorBrush x:Key="AppBackgroundBrush" Color="#1E1E1E"/>
     <SolidColorBrush x:Key="AppFrameBrush" Color="#1F9E4C"/>
@@ -35,9 +31,7 @@
     <SolidColorBrush x:Key="AppDeleteBorderBrush" Color="#BB2D0F"/>
     <SolidColorBrush x:Key="AppDeleteInkBrush" Color="#FFFFFF"/>
 
-    <!-- No TextBlock style here: the list's cells take their colour by
-         inheritance (the archived grey comes down from the row), and a
-         blanket foreground would flatten it. -->
+    
 
     <Style TargetType="CheckBox">
         <Setter Property="Foreground" Value="{DynamicResource AppForegroundBrush}"/>
@@ -51,11 +45,7 @@
         <Setter Property="Padding" Value="4"/>
     </Style>
 
-    <!-- The buttons dress themselves: no system chrome shows through - it
-         was painting the hover, the focus and the disabled states in the
-         system's light colours (the "white rectangles"). Hover and
-         disabled dim the face instead of recolouring it, so an icon
-         keeps its colour in every state. -->
+    
     <Style TargetType="Button">
         <Setter Property="Background" Value="{DynamicResource AppFaceBrush}"/>
         <Setter Property="Foreground" Value="{DynamicResource AppForegroundBrush}"/>
@@ -87,17 +77,10 @@
         </Setter>
     </Style>
 
-    <!-- The rows too: the system highlight painted hover and selection in
-         its light colours - white on white, "tout blanc". Now hover is a
-         slightly lighter row, and the selection is the Start button's
-         blue; the arrows walk the list, the colour follows. -->
+    
     <Style TargetType="ListViewItem">
         <Setter Property="Foreground" Value="{DynamicResource AppForegroundBrush}"/>
-        <!-- No dotted focus frame around the last-clicked row: the
-             selection's blue already says where we stand, and the frame
-             read as a box drawn around the row. The row itself is no tab
-             stop: the tab walks its buttons, one row after the next -
-             TabNavigation Continue on the list, IsTabStop off here. -->
+        
         <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
         <Setter Property="IsTabStop" Value="False"/>
         <Setter Property="Template">
@@ -108,18 +91,11 @@
                                               Content="{TemplateBinding Content}"/>
                     </Border>
                     <ControlTemplate.Triggers>
-                        <!-- The stripes: every other row a touch lighter,
-                             so the eye follows one line across the
-                             columns. No hover band and no selection
-                             blue: the row carries icons, a row that
-                             stays blue after clicking elsewhere read
-                             wrong, and the stripes are what tells the
-                             lines apart. -->
+                        
                         <Trigger Property="ItemsControl.AlternationIndex" Value="1">
                             <Setter TargetName="Row" Property="Background" Value="{DynamicResource AppStripeBrush}"/>
                         </Trigger>
-                        <!-- An archived row reads greyed - cold storage
-                             next to the live ones. -->
+                        
                         <DataTrigger Binding="{Binding Instance.State}" Value="Archived">
                             <Setter Property="Foreground" Value="{DynamicResource AppMutedBrush}"/>
                         </DataTrigger>
@@ -129,11 +105,7 @@
         </Setter>
     </Style>
 
-    <!-- The list itself, same disease, same cure: the default template
-         paints a blue focus frame around the whole ListView as soon as
-         anything in it has focus - the last "liseret" left. Our own
-         template draws the border and nothing else; the ScrollViewer
-         takes no focus of its own. -->
+    
     <Style TargetType="ListView">
         <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
         <Setter Property="Template">
@@ -150,17 +122,12 @@
         </Setter>
     </Style>
 
-    <!-- And the headers, same disease, same cure - the template too, this
-         time: the default one paints its own light separators and the
-         notch at the right end, whatever colours the style sets. A thin
-         dark line between the columns, and nothing else. -->
+    
     <Style TargetType="GridViewColumnHeader">
         <Setter Property="Background" Value="{DynamicResource AppFaceBrush}"/>
         <Setter Property="Foreground" Value="{DynamicResource AppForegroundBrush}"/>
         <Setter Property="Padding" Value="6,4"/>
-        <!-- The cells take their alignment from the HEADER, not from the
-             cell content: HorizontalContentAlignment is what a GridView
-             propagates down, and the template has to hand it over. -->
+        
         <Setter Property="HorizontalContentAlignment" Value="Center"/>
         <Setter Property="Template">
             <Setter.Value>
@@ -175,13 +142,7 @@
         </Setter>
     </Style>
 
-    <!-- The bars, dressed like the rest: the default template is the
-         Windows chrome - two arrow buttons, ridges and all - the last
-         piece of another world on screen. Ours is a thin quiet strip: no
-         arrows (the wheel and the track still page, the repeat buttons are
-         simply invisible), a rounded thumb in the border colour that
-         lights up under the hand. Every bar wears it - the fleet's own
-         list and the popups' alike. -->
+    
     <Style TargetType="ScrollBar">
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="Width" Value="10"/>
@@ -231,9 +192,7 @@
         </Style.Triggers>
     </Style>
 
-    <!-- What a row allows, by the row itself: an archived line carries its
-         own two - restore and the trash - a live one the seven gestures.
-         The line hides what does not apply. -->
+    
     <Style x:Key="LiveRowButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
         <Style.Triggers>
             <DataTrigger Binding="{Binding IsArchive}" Value="True">
@@ -251,8 +210,7 @@
         </Style.Triggers>
     </Style>
 
-    <!-- The semantic buttons: cancel is the neutral face, apply wears the
-         phosphor with the ink dark, delete the destructive red. -->
+    
     <Style x:Key="BtnCancel" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
         <Setter Property="Background" Value="{DynamicResource AppFaceBrush}"/>
         <Setter Property="Foreground" Value="{DynamicResource AppForegroundBrush}"/>
@@ -271,9 +229,7 @@
         <Setter Property="BorderBrush" Value="{DynamicResource AppDeleteBorderBrush}"/>
     </Style>
 
-    <!-- The selects' dark skin: the default chrome is white on the dark
-         windows, and the whole point of a select here is that the screen
-         stays small. -->
+    
     <Style TargetType="ComboBox">
         <Setter Property="Foreground" Value="{DynamicResource AppForegroundBrush}"/>
         <Setter Property="Template">

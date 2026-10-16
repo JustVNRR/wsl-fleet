@@ -32,8 +32,7 @@
     <TextBlock Margin="0,10,0,0" Text="Theme"/>
     <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
         <ComboBox Name="LstGuiColours" ItemsSource="{Binding ColourLabels}" SelectedIndex="{Binding ColourIndex, Mode=OneWay}"/>
-        <!-- IsEnabled lie directement : un Style incruste remplacerait le style
-             du theme (chrome Windows : fond blanc, icone noire — mesure). -->
+        
         <Button Name="BtnGuiThemeEdit" Content="&#xF044;" FontFamily="{DynamicResource IconFace}" Margin="8,0,0,0" IsEnabled="{Binding CanTheme}" ToolTip="Open the selected theme in the default editor"/>
         <Button Name="BtnGuiThemeUpload" Content="&#xF093;" FontFamily="{DynamicResource IconFace}" Margin="8,0,0,0" ToolTip="Upload a theme file..."/>
         <Button Name="BtnGuiThemeDownload" Content="&#xF019;" FontFamily="{DynamicResource IconFace}" Margin="8,0,0,0" ToolTip="Save the selected theme..."/>

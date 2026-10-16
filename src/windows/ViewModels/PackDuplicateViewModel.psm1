@@ -1,13 +1,5 @@
-# ==============================================================================
-# LA COPIE D'UN PACK — LE VIEWMODEL
-# ==============================================================================
-# Ce dont ce fichier nomme, déclaré ici : un module résout ce qu'il a tiré
-# lui-même.
 using module .\BaseViewModel.psm1
 
-# La petite fenêtre de duplication d'un pack : le nom (source-copy proposé,
-# pris refusé) et la description. APPLY rend le nom et la description, ou
-# rien.
 class PackDuplicateViewModel : BaseViewModel {
     hidden [object[]]$_taken = @()
 
@@ -27,7 +19,6 @@ class PackDuplicateViewModel : BaseViewModel {
         $this.ConfirmCommand = $this.NewCommand({ param($vm) $vm.Confirm() })
     }
 
-    # Les liens XAML sont à sens unique : la vue relaie chaque saisie ici.
     [void] SetName([string]$value) {
         if ($this.Name -cne "$value") {
             $this.Name = "$value"

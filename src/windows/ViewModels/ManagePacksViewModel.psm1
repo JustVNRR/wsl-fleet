@@ -1,14 +1,6 @@
-# ==============================================================================
-# LES PACKS D'UNE INSTANCE — LE VIEWMODEL
-# ==============================================================================
-# Ce dont ce fichier nomme, déclaré ici : un module résout lui-même ce qu'il
-# tire.
 using module .\BaseViewModel.psm1
 using module ..\Dtos\InstanceDto.psm1
 
-# Une ligne de la checklist : le nom, la description, et sa case —
-# cochée et pas portée entre, portée et décochée sort ; chaque bascule
-# rappelle le compte au parent.
 class PackRowViewModel : BaseViewModel {
     hidden [object]$_owner = $null
     hidden [string]$_name = ""
@@ -22,8 +14,6 @@ class PackRowViewModel : BaseViewModel {
         $this.Checked = $checked
     }
 
-    # Le lien XAML est à sens unique : la vue relaie la bascule ici — la
-    # garde, le cri, et le compte rappelé au parent.
     [void] SetChecked([bool]$on) {
         if ($this.Checked -ne $on) {
             $this.Checked = $on
@@ -37,11 +27,6 @@ class PackRowViewModel : BaseViewModel {
     }
 }
 
-# La checklist du service, en fenêtre : une case par ligne — les offrables
-# décochées, les portables cochées —, et sous elles les deux lignes du cli
-# (Will install / Will remove), calculées du même écart. Les requirements, les
-# invisibles et les refus se résolvent au service, à l'application. APPLY ne
-# s'éveille que si quelque chose entre ou sort.
 class ManagePacksViewModel : BaseViewModel {
     hidden [object]$_packs = $null
     hidden [string]$_name = ""
@@ -85,7 +70,6 @@ class ManagePacksViewModel : BaseViewModel {
         return $this._empty
     }
 
-    # L'écart : cochée et pas portée entre, portée et décochée sort.
     [void] Recount() {
         $installed = @($this._packs.Installed)
         $ticked = @($this.PackRows | Where-Object { $_.Checked } | ForEach-Object { $_.PackName() })

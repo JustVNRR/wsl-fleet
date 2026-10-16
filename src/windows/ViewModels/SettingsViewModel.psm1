@@ -1,16 +1,8 @@
-# ==============================================================================
-# LES RÉGLAGES — LE VIEWMODEL
-# ==============================================================================
-# Ce dont ce fichier nomme, déclaré ici : un module résout lui-même ce qu'il
-# tire.
 using module .\BaseViewModel.psm1
 using module ..\Dtos\WpfDto.psm1
 using module ..\Dtos\PackCatalogDto.psm1
 using module ..\Tools\Helpers.psm1
 
-# Les lignes des listes : le libellé que la liste montre. De VRAIES classes —
-# WPF ne lit que les vraies propriétés .NET : un PSCustomObject s'afficherait
-# brut (« @{Name=…; Label=…} », mesuré sur sa machine).
 class SettingsLabelRow {
     [string]$Name = ""
     [string]$Label = ""
@@ -23,27 +15,12 @@ class SettingsPackRow {
     [string]$Label = ""
 }
 
-# La fenêtre Réglages : la racine (montrée ; le crayon ouvre la question du
-# déplacement), la face (police, taille, thème — EN DIRECT, la vue repeint),
-# et le catalogue (les packs du dépôt : ouvrir le dossier, dupliquer,
-# supprimer). Le look choisi se rend entier en se fermant, et le dossier
-# d'arrivée s'il y en a un.
-#
-# Il a les services en main : la face s'écrit au WpfService, le catalogue se
-# lit et se range au PackCatalogService — les portes liées de l'ancien monde
-# n'ont plus lieu d'être. Ce qui est du WPF pur (lire la famille d'un fichier
-# de police, charger un thème pour le juger) reste chez la vue, qui rappelle
-# ici avec sa réponse.
 class SettingsViewModel : BaseViewModel {
     hidden [object]$_wpf = $null
     hidden [object]$_catalogue = $null
     hidden [object]$_fleet = $null
     hidden [string]$_assets = ""
 
-    # L'état bindable : de VRAIES propriétés de classe — WPF ne lit que
-    # celles-là. Les listes montrent leurs LIBELLÉS, en chaînes (WPF les
-    # affiche sûrement — mesuré : la taille s'affiche, un DisplayMemberPath
-    # sur nos objets reste muet), les lignes gardent le reste.
     [object[]]$Fonts = @()
     [string[]]$FontLabels = @()
     [int]$FontIndex = 0
@@ -77,8 +54,6 @@ class SettingsViewModel : BaseViewModel {
         try { $choices = @($this._wpf.GetFontChoices()) } catch { $choices = @() }
         try { $stock = @($this._catalogue.GetAllPacks()) } catch { $stock = @() }
 
-        # La police : les familles reçues, celle qu'on porte marquée et
-        # sélectionnée — prépendue quand elle n'y est pas.
         $fontNames = @()
         foreach ($font in @($choices)) { $fontNames += "$font" }
         if ($theme -and $fontNames -notcontains "$($theme.FontFamily)") { $fontNames = @("$($theme.FontFamily)") + $fontNames }
@@ -92,8 +67,6 @@ class SettingsViewModel : BaseViewModel {
             for ($i = 0; $i -lt $fontRows.Count; $i++) { if ("$($fontRows[$i].Name)" -eq "$($theme.FontFamily)") { $this.FontIndex = $i } }
         }
 
-        # $sizeList : une locale ne peut pas porter le nom d'une propriété
-        # réelle (mesuré au parse).
         $sizeList = @("11", "13", "15", "17", "19")
         if ($theme -and $sizeList -notcontains "$([int]$theme.FontSize)") { $sizeList = @("$([int]$theme.FontSize)") + $sizeList }
         $this.Sizes = @($sizeList)
@@ -101,8 +74,6 @@ class SettingsViewModel : BaseViewModel {
             for ($i = 0; $i -lt $sizeList.Count; $i++) { if ("$($sizeList[$i])" -eq "$([int]$theme.FontSize)") { $this.SizeIndex = $i } }
         }
 
-        # Les thèmes : celui qu'on porte marqué — prépendu (sous « Default »)
-        # quand il n'y est pas.
         $sets = @()
         if ($theme -and (-not "$($theme.ColorTheme)" -or @($themes) -notcontains "$($theme.ColorTheme)")) { $sets += "$($theme.ColorTheme)" }
         foreach ($name in @($themes)) { $sets += "$name" }
@@ -123,8 +94,6 @@ class SettingsViewModel : BaseViewModel {
         $this.CanPack = ($this.PackIndex -ge 0)
     }
 
-    # Les liens XAML sont à sens unique : la vue relaie chaque choix ici — le
-    # choix, la garde et le cri des mains vivent d'un seul côté.
     [void] SetFontIndex([int]$value) {
         if ($this.FontIndex -ne $value) {
             $this.FontIndex = $value
@@ -165,8 +134,6 @@ class SettingsViewModel : BaseViewModel {
         return @($rows)
     }
 
-    # --- ce que la vue lit, par méthode ---------------------------------------
-
     [string] SelectedFont() {
         if ($this.Fonts.Count -eq 0) { return "" }
         $at = [Math]::Max(0, [Math]::Min($this.FontIndex, $this.Fonts.Count - 1))
@@ -199,8 +166,6 @@ class SettingsViewModel : BaseViewModel {
         return $false
     }
 
-    # Le look choisi — le VM le rend entier en se fermant, et la vue rafraîchit
-    # le contexte des fenêtres dessus.
     [object] Picked() {
         return [PSCustomObject]@{
             FontFamily = $this.SelectedFont()
@@ -211,10 +176,6 @@ class SettingsViewModel : BaseViewModel {
         }
     }
 
-    # --- la face : les fichiers -----------------------------------------------
-
-    # Une police téléversée : le fichier posé par le service, la famille lue
-    # par la VUE (WPF seul sait la dire) qui rappelle ici avec son nom.
     [string] UploadFont([string]$source) {
         try { return "$($this._wpf.UploadFont($source))" } catch { return "" }
     }
@@ -239,8 +200,6 @@ class SettingsViewModel : BaseViewModel {
         $this.OnPropertyChanged("ThemeError")
     }
 
-    # Un thème téléversé — déjà jugé par la vue (WPF seul sait lire un
-    # dictionnaire) : posé par le service, la ligne ajoutée ou remplacée.
     [void] UploadTheme([string]$source, [string]$name) {
         try { $null = $this._wpf.UploadTheme($source) } catch { return }
         $existing = -1
@@ -299,8 +258,6 @@ class SettingsViewModel : BaseViewModel {
         }
     }
 
-    # --- le catalogue ---------------------------------------------------------
-
     hidden [void] RefreshPacks([string]$select) {
         try { $refreshed = @($this._catalogue.GetAllPacks()) } catch { return }
         $this.Packs = @($this.PackRowsOf($refreshed))
@@ -325,8 +282,6 @@ class SettingsViewModel : BaseViewModel {
         }
     }
 
-    # Dupliquer : la petite fenêtre répond le nom et la description, le
-    # service copie le dossier sous le nom neuf, la liste se relit.
     [void] DuplicatePack() {
         $row = $this.SelectedPack()
         if (-not $row) { return }
@@ -358,10 +313,6 @@ class SettingsViewModel : BaseViewModel {
         $this.RefreshPacks("")
     }
 
-    # --- la racine ------------------------------------------------------------
-
-    # Le crayon : la question du déplacement (sa fenêtre), et un dossier
-    # confirmé ferme les Réglages — l'entrée le portera au migrate.
     [void] EditRoot() {
         $chosen = $this.OpenBox("RootMove", @($this.Root))
         if (-not $chosen) { return }

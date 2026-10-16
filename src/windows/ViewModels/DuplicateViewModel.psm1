@@ -1,17 +1,6 @@
-# ==============================================================================
-# LA COPIE — LE VIEWMODEL
-# ==============================================================================
-# Ce dont ce fichier nomme, déclaré ici : un module résout lui-même ce qu'il
-# tire.
 using module .\BaseViewModel.psm1
 using module ..\Dtos\InstanceDto.psm1
 
-# La copie : la phrase, l'avertissement d'arrêt (la liste ne porte plus
-# l'état — il se dit toujours), le nom de la copie — celui de la source
-# prérempli avec « -copy » derrière — et la vérification vivante du nom :
-# vide, la forme, c'est tout. Le nom pris, lui, n'est pas su ici : le moteur
-# refuse pour de vrai quand la course part, et le rapport le dira — la boîte
-# avertit, elle ne verrouille pas.
 class DuplicateViewModel : BaseViewModel {
     hidden [string]$_source = ""
     [string]$Lead = ""
@@ -30,7 +19,6 @@ class DuplicateViewModel : BaseViewModel {
         $this.ValidateName()
     }
 
-    # Le lien XAML est à sens unique : la vue relaie la saisie ici.
     [void] SetName([string]$value) {
         if ($this.Name -cne "$value") {
             $this.Name = "$value"
@@ -39,8 +27,6 @@ class DuplicateViewModel : BaseViewModel {
         }
     }
 
-    # La règle des noms d'instance, la même partout : la forme vérifiée en
-    # direct sous la boîte.
     [void] ValidateName() {
         $problem = ""
         $trimmed = "$($this.Name)".Trim()
@@ -57,8 +43,6 @@ class DuplicateViewModel : BaseViewModel {
     }
 
     [void] Confirm() {
-        # $copyName : une locale ne peut pas porter le nom d'une propriété
-        # réelle (mesuré au parse).
         $copyName = "$($this.Name)".Trim()
         if (-not $copyName) { return }
         $dto = [DuplicateDto]::new()

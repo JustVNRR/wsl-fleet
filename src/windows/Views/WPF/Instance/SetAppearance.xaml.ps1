@@ -1,23 +1,9 @@
-# ==============================================================================
-# SETAPPEARANCE — LA VUE WPF
-# ==============================================================================
-# Ce dont ce fichier nomme, déclaré ici : un module résout ce qu'il a tiré
-# lui-même.
 using module ..\BaseViewWpf.psm1
 using module ..\..\..\ViewModels\SetAppearanceViewModel.psm1
 
-# Le look d'une instance, la fenêtre : le DataContext est le
-# SetAppearanceViewModel — les listes, la tuile, l'image et APPLY se bindent
-# en XAML. Ici, ce que WPF demande : le sélecteur d'image (graphisme — le
-# ViewModel reçoit le chemin), l'aperçu qui se repeint (les lignes du prompt,
-# la palette, l'image choisie), l'Entrée mangée après le sélecteur (mesuré),
-# la porte de fermeture — et le Dto rendu.
 class WpfSetAppearanceView : BaseViewWpf {
-    # L'Entrée mangée après la fermeture du sélecteur de fichier (mesuré :
-    # sans quoi elle retombe sur APPLY et ferme la fenêtre).
     hidden [bool]$EatEnter = $false
     hidden [object]$Vm = $null
-    # La face du monogramme, resolue une fois.
     hidden [object]$TileFace = $null
 
     [object] Ask([string]$name, [object]$appearance, [string[]]$fonts, [object[]]$schemes, [object[]]$pairs) {
@@ -33,8 +19,6 @@ class WpfSetAppearanceView : BaseViewWpf {
         $this.Dress($null, 15)
         $this.DataContext = $this.Vm
 
-        # La porte de fermeture — METHODE 1 : le ViewModel dit « j'ai fini »,
-        # la vue ferme.
         $this.Vm.DemandeFermeture = { param($result) $self.Result = $result; $self.Close() }
 
         $this.Vm.add_PropertyChanged({
@@ -45,9 +29,6 @@ class WpfSetAppearanceView : BaseViewWpf {
 
         $this.Add_ContentRendered({ $null = $this.Find("TxtIconText").Focus() })
 
-        # L'Entrée mangée après le sélecteur : à sa fermeture, l'Entrée
-        # retombe sur le bouton par défaut — APPLY a déjà fermé cette fenêtre
-        # une fois (mesuré).
         $this.Add_PreviewKeyDown({
             param($source, $e)
             if ($self.EatEnter -and $e.Key -eq [System.Windows.Input.Key]::Enter) { $e.Handled = $true }
@@ -69,8 +50,6 @@ class WpfSetAppearanceView : BaseViewWpf {
             if ($picked -eq $true) { $self.Vm.SetImage($dialog.FileName) }
         })
 
-        # Les saisies : liens à sens unique — WPF lit ; les écritures passent
-        # par ici, relayées au ViewModel.
         $this.Find("TxtIconText").Add_TextChanged({ param($source, $e) $self.Vm.SetIconText("$($source.Text)") })
         $this.Find("LstPairs").Add_SelectionChanged({ param($source, $e) if ([int]$source.SelectedIndex -ge 0) { $self.Vm.SetPairIndex([int]$source.SelectedIndex) } })
         $this.Find("LstFonts").Add_SelectionChanged({ param($source, $e) if ([int]$source.SelectedIndex -ge 0) { $self.Vm.SetFontIndex([int]$source.SelectedIndex) } })
@@ -86,10 +65,6 @@ class WpfSetAppearanceView : BaseViewWpf {
         return $this.Result
     }
 
-    # L'aperçu : les lignes du prompt dans la police choisie, peintes des
-    # couleurs du schéma, la palette des seize dessous — choisir à l'aveugle
-    # était la première critique de cette fenêtre. Le choix se lit au
-    # ViewModel, par ses méthodes.
     hidden [void] PaintPreview() {
         $brdPreview = $this.Find("BrdPreview")
         $previewLines = @($this.Find("TxtPreview1"), $this.Find("TxtPreview2"), $this.Find("TxtPreview3"),
@@ -100,8 +75,6 @@ class WpfSetAppearanceView : BaseViewWpf {
 
         $fontName = $this.Vm.SelectedFont()
         if ($fontName) {
-            # Le constructeur, pas une chaîne : une chaîne qui ne se résout
-            # pas se convertit en un « rien n'a bougé » que l'œil ne voit pas.
             $family = [Windows.Media.FontFamily]::new("$fontName")
             foreach ($line in $previewLines) { $line.FontFamily = $family }
         }
@@ -143,11 +116,6 @@ class WpfSetAppearanceView : BaseViewWpf {
         }
     }
 
-    # La tuile, montrée en direct : le dégradé de la couleur choisie et les
-    # lettres dessus — des propriétés posées sur des éléments VIVANTS, le
-    # même chemin que l'aperçu du prompt (prouvé) ; l'image choisie prend le
-    # siège par-dessus. Sous filet : un dessin cassé ne casse jamais la
-    # fenêtre.
     hidden [void] PaintIcon() {
         try {
             $tile = $this.Find("BrdTile")
@@ -174,9 +142,6 @@ class WpfSetAppearanceView : BaseViewWpf {
             $tile.Background = [System.Windows.Media.LinearGradientBrush]::new($top.Color, $bottom.Color, 90)
             $letters.Text = "$($icon.Text)"
             $letters.Foreground = $ink
-            # La recette de make-icon, copiee : sa police (liste, en gras) et
-            # sa taille — le monogramme mesure, son ENCRE mise a l'echelle
-            # pour tenir 74 % de la tuile ; l'apercu et l'icone se ressemblent.
             try {
                 if (-not $this.TileFace) { $this.TileFace = $this.TileTypeface() }
                 $letters.FontFamily = $this.TileFace.FontFamily
@@ -193,9 +158,6 @@ class WpfSetAppearanceView : BaseViewWpf {
         } catch { }
     }
 
-    # La face du monogramme : la liste de make-icon — Cascadia Mono, Cascadia
-    # Code, Consolas, Segoe UI — la premiere installee, en gras ; c'est le
-    # generateur qui l'a choisie pour l'icone, l'apercu prend la meme.
     hidden [object] TileTypeface() {
         foreach ($name in @("Cascadia Mono", "Cascadia Code", "Consolas", "Segoe UI")) {
             try {
@@ -210,10 +172,6 @@ class WpfSetAppearanceView : BaseViewWpf {
             [System.Windows.FontStyles]::Normal, [System.Windows.FontWeights]::Bold, [System.Windows.FontStretches]::Normal)
     }
 
-    # L'image choisie : son aperçu se lit du FICHIER (ses octets), avec les
-    # deux options mesurées — OnLoad (le fichier est lu entier et lâché) et
-    # IgnoreImageCache (WPF garde les images décodées par URI, et l'aperçu
-    # d'une nouvelle sélection du même chemin ne bougerait pas).
     hidden [void] LoadIconFile([string]$path) {
         if (-not $path) { return }
         try {

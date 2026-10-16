@@ -1,14 +1,6 @@
-# ==============================================================================
-# L'ARCHIVE — LE VIEWMODEL
-# ==============================================================================
-# Ce dont ce fichier nomme, déclaré ici : un module résout lui-même ce qu'il
-# tire.
 using module .\BaseViewModel.psm1
 using module ..\Dtos\InstanceDto.psm1
 
-# La porte de l'archive : l'arrêt se dit toujours (la phrase couvre les deux
-# cas), le nom de l'archive ne se demande pas (XX devient XX_archive : la
-# règle du modèle), et la ligne de l'écrasement se lit de l'index reçu.
 class ArchiveViewModel : BaseViewModel {
     hidden [string]$_name = ""
     [string]$Lead = ""

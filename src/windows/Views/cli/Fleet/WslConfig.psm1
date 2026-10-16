@@ -1,12 +1,5 @@
-# ==============================================================================
-# WSLCONFIG — LA VUE DU CLI
-# ==============================================================================
-# Ce dont ce fichier nomme, déclaré ici : un module résout ce qu'il a tiré
-# lui-même.
 using module ..\BaseViewCli.psm1
 
-# Le fichier des réglages Windows : l'annonce avant l'ouverture, puis le
-# rapport — né de son gabarit quand il manquait, ou son chemin.
 class CliWslConfigView : BaseViewCli {
     [void] ShowLead() {
         Write-Host ""

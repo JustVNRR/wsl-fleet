@@ -1,4 +1,4 @@
-# Drives the lifecycle commands - restart, shell, compact, list - the way a
+# Drives the lifecycle commands - restart, shell, compact, and the instances menu - the way a
 # script would: answers on standard input, no console anywhere, and a
 # stand-in wsl.exe ahead on the PATH - built from tests\support\fake-wsl\wsl.cs,
 # logging every call and answering from its own log: a distribution counts as
@@ -16,7 +16,7 @@
 #
 # What is checked: for `restart`, the stop comes before the boot; for
 # `shell`, the session is asked by name; for `compact`, the compact, and
-# the restart only when it was running; for `list`, what the machine says -
+# the restart only when it was running; for the instances menu, what the machine says -
 # stopped or running, and an empty machine ending on one.
 #
 # It needs no instance, no console and no Docker Desktop.
@@ -169,25 +169,26 @@ try {
         (([array]::IndexOf($Calls, "--manage $FakeName --compact")) -lt ([array]::LastIndexOf($Calls, "-d $FakeName --exec /bin/true"))) $true
     Check "and says it is running again" (@($Out | Where-Object { "$_".Contains("'$FakeName' is running again") }).Count -gt 0) $true
 
-    # 4. list: the row says what the machine says, stopped or running - and an
-    # empty machine is an answer with its own code, not a table over nothing.
+    # 4. The instances menu: the row says what the machine says, stopped or
+    # running - and an empty machine is an answer with its own code, not a
+    # menu over nothing.
     Remove-Item $Log -Force -ErrorAction SilentlyContinue
-    $Out = Invoke-Child -Word "list" -Answers @("")
-    Check "list shows the instance as stopped" `
+    $Out = Invoke-Child -Word "instances" -Answers @("")
+    Check "the instances menu shows the instance as stopped" `
         (@($Out | Where-Object { "$_" -match [regex]::Escape($FakeName) -and "$_" -match "stopped" }).Count -gt 0) $true
     Check "and ends on zero" $script:ChildExit 0
 
     Remove-Item $Log -Force -ErrorAction SilentlyContinue
     Add-Content -Path $Log -Value "-d $FakeName --exec /bin/true"
-    $Out = Invoke-Child -Word "list" -Answers @("")
-    Check "list shows a running one as running" `
+    $Out = Invoke-Child -Word "instances" -Answers @("")
+    Check "the instances menu shows a running one as running" `
         (@($Out | Where-Object { "$_" -match [regex]::Escape($FakeName) -and "$_" -match "running" }).Count -gt 0) $true
 
     # The key AND the folder: the folder would stay an orphan, and a
-    # machine carrying only an orphan is an empty machine to the list.
+    # machine carrying only an orphan is an empty machine to the menu.
     Remove-Item $Key -Recurse -Force -ErrorAction SilentlyContinue
     Remove-Item $FakeFolder -Recurse -Force -ErrorAction SilentlyContinue
-    $Out = Invoke-Child -Word "list" -Answers @("")
+    $Out = Invoke-Child -Word "instances" -Answers @("")
     Check "an empty machine is said, not printed over" `
         (@($Out | Where-Object { "$_".Contains("No instance of this template is registered") }).Count -gt 0) $true
     Check "and ends on one" $script:ChildExit 1

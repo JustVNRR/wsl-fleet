@@ -119,8 +119,8 @@ try {
     Check "the test's instance is in the list" ($Pick -ge 1) $true
 
     # 1. The automatic icon, drawn from the name of the instance. Answers: the
-    # instance, the icon row, "By Default", leave the icon menu, leave the
-    # theme menu.
+    # instance, then the icon row, "By Default" - which applies at once - and
+    # the escapes that end the visit.
     $Out = Invoke-Theme @("$Pick", "1", "1", "0", "0")
     Check "the icon is drawn" (Test-Path $IconPath) $true
     Check "on the instance this test made" (@($Out | Where-Object { "$_".Contains("Icon of '$FakeName'") }).Count -gt 0) $true
@@ -178,9 +178,9 @@ try {
     $Saved = Get-Recipe
     Check "the automatic one starts over from the name" $Saved.Theme.IconText "IC"
 
-    # 9. Two changes in one visit: the menu comes back after the first one, and
-    # the second keeps what the first did - the letters AND the colours.
-    $null = Invoke-Theme @("$Pick", "1", "2", "abc", "3", "2", "0", "0")
+    # 9. Two changes in one visit: the first applies at once and the hub comes
+    # back, the second keeps what the first did - the letters AND the colours.
+    $null = Invoke-Theme @("$Pick", "1", "2", "abc", "1", "3", "2", "0")
     $Saved = Get-Recipe
     Check "two changes in one run: the letters are the typed ones" $Saved.Theme.IconText "ABC"
     Check "two changes in one run: and the colours are the picked ones" "$($Saved.Theme.IconTop) $($Saved.Theme.IconBottom)" "#3B82F6 #2563EB"

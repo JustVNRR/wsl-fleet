@@ -36,6 +36,9 @@ class WpfSettingsView : BaseViewWpf {
                 "FontIndex" { $self.RepaintFace() }
                 "SizeIndex" { $self.RepaintFace() }
                 "ColourIndex" { $self.RepaintFace() }
+                "ThemeError" { $self.ShowError("GuiThemeError", "$($source.ThemeError)") }
+                "CatalogueError" { $self.ShowError("GuiCatalogueError", "$($source.CatalogueError)") }
+                "ConfigError" { $self.ShowError("GuiConfigError", "$($source.ConfigError)") }
             }
         })
 
@@ -57,6 +60,7 @@ class WpfSettingsView : BaseViewWpf {
         $this.Find("LstGuiPacks").Add_SelectionChanged({ param($source, $e) if ([int]$source.SelectedIndex -ge 0) { $self.Vm.SetPackIndex([int]$source.SelectedIndex) } })
 
         $this.Find("BtnGuiRootEdit").Add_Click({ $self.Vm.EditRoot() })
+        $this.Find("BtnGuiWslConfig").Add_Click({ $self.Vm.WslConfig() })
 
         $this.Find("BtnGuiFontUpload").Add_Click({
             $dialog = New-Object Microsoft.Win32.OpenFileDialog
@@ -131,7 +135,15 @@ class WpfSettingsView : BaseViewWpf {
         $this.Find("BtnGuiPackDelete").Add_Click({
             $row = $self.Vm.SelectedPack()
             if (-not $row) { return }
-            if (-not $self.ConfirmAs($self, "Remove the pack", "Remove '$($row.Name)'?`n`nInstances already carrying it keep their own copy.", "")) { return }
+            $question = "Remove the pack '$($row.Name)'?"
+            $danger = ""
+            $dependents = @($row.Dependents)
+            if ($dependents.Count -gt 0) {
+                $question += "`n`nThese packs depend on it:"
+                $question += "`n" + (@($dependents | ForEach-Object { "- $_" }) -join "`n")
+                $danger = "Removing it may break them."
+            }
+            if (-not $self.ConfirmAs($self, "Remove the pack", $question, $danger)) { return }
             $self.Vm.DeletePack()
         })
 

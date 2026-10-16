@@ -253,6 +253,11 @@ class BaseViewWpf : System.Windows.Window {
         if ($area) { $this.MaxHeight = [Math]::Floor($area.Height) }
     }
 
+    [void] ShowError([string]$name, [string]$message) {
+        $block = $this.Find($name)
+        $block.Visibility = if ($message) { [System.Windows.Visibility]::Visible } else { [System.Windows.Visibility]::Collapsed }
+    }
+
     hidden [object] GetScreenWorkingArea([object]$window) {
         try {
             $handle = [System.Windows.Interop.WindowInteropHelper]::new($window).Handle

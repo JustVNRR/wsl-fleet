@@ -8,6 +8,14 @@ class PackCatalogRepository {
         $this.PacksRoot = $packsRoot
     }
 
+    [void] SeedFrom([string]$sourceRoot) {
+        if ((Test-Path $this.PacksRoot) -or -not (Test-Path $sourceRoot)) { return }
+        $null = New-Item -ItemType Directory -Path $this.PacksRoot -Force
+        foreach ($dir in (Get-ChildItem -Path $sourceRoot -Directory)) {
+            Copy-Item -LiteralPath $dir.FullName -Destination $this.PacksRoot -Recurse
+        }
+    }
+
     [string] GetFolder([string]$packName) {
         return (Join-Path $this.PacksRoot $packName)
     }

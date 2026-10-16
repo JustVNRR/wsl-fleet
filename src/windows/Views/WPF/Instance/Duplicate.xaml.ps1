@@ -18,6 +18,11 @@ class WpfDuplicateView : BaseViewWpf {
         $this.DataContext = $this.Vm
 
         $this.Vm.DemandeFermeture = { param($result) $self.Result = $result; $self.Close() }
+
+        $this.Vm.add_PropertyChanged({
+            param($source, $e)
+            if ("$($e.PropertyName)" -eq "NameError") { $self.ShowError("GuiNameError", "$($source.NameError)") }
+        })
         $this.Add_ContentRendered({ $null = $this.Find("TxtName").Focus(); $this.Find("TxtName").SelectAll() })
 
         $this.Find("TxtName").Add_TextChanged({ param($source, $e) $self.Vm.SetName("$($source.Text)") })

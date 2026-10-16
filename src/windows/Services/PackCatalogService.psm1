@@ -20,7 +20,9 @@ class PackCatalogService {
         $this.RefreshCatalog()
         $rows = @()
         foreach ($pack in @($this.Catalog.GetPacks())) {
-            $rows += $this.Map.ToPackDto($pack)
+            $dto = $this.Map.ToPackDto($pack)
+            $dto.Dependents = @($this.Catalog.DependentsOf("$($pack.GetName())"))
+            $rows += $dto
         }
         return @($rows)
     }

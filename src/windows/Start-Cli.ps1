@@ -11,6 +11,7 @@ using module .\Presenters\Instance\RegisterDockerPresenter.psm1
 using module .\Presenters\Instance\UnregisterDockerPresenter.psm1
 using module .\Presenters\Instance\BuildPresenter.psm1
 using module .\Presenters\Fleet\BrowsePresenter.psm1
+using module .\Presenters\Fleet\SettingsPresenter.psm1
 using module .\Presenters\Instance\OpenPresenter.psm1
 using module .\Presenters\Instance\RestartPresenter.psm1
 using module .\Presenters\Fleet\MigratePresenter.psm1
@@ -35,11 +36,11 @@ $ViewsRoot = Join-Path $PSScriptRoot "Views"
 $root = [ServiceFactory]::ResolveRoot($Assets, $distroTree)
 $fleetService = [ServiceFactory]::CreateFleetService($root, $Assets, $distroTree)
 $instanceService = [ServiceFactory]::CreateInstanceService($root, $Assets, $distroTree)
+$catalogueService = [ServiceFactory]::CreatePackCatalogService($Assets, $distroTree)
 
 $gestures = [ordered]@{
     "build"          = { param($Name, $Presenters) $Presenters.Build.Run() }
-    "migrate"        = { param($Name, $Presenters) $Presenters.Migrate.Run($Name) }
-    "wslconfig"      = { param($Name, $Presenters) $Presenters.WslConfig.Run() }
+    "settings"       = { param($Name, $Presenters) $Presenters.Settings.Run($Presenters) }
     "instances"      = { param($Name, $Presenters) $Presenters.Browse.Run($Presenters, "instances") }
     "archives"       = { param($Name, $Presenters) $Presenters.Browse.Run($Presenters, "archives") }
 
@@ -54,6 +55,8 @@ $gestures = [ordered]@{
     "restore"        = { param($Name, $Presenters) $Presenters.Restore.Run($Name) }
     "duplicate"      = { param($Name, $Presenters) $Presenters.Duplicate.Run($Name) }
     "compact"        = { param($Name, $Presenters) $Presenters.Compact.Run($Name) }
+    "migrate"        = { param($Name, $Presenters) $Presenters.Migrate.Run($Name) }
+    "wslconfig"      = { param($Name, $Presenters) $Presenters.WslConfig.Run() }
 
     "delete_archive" = { param($Name, $Presenters) $Presenters.DeleteArchive.Run($Name) }
 }
@@ -66,6 +69,8 @@ $actions = @{
     "duplicate"         = [MenuItemCli]::new("duplicate", "copy an instance under another name", $gestures["duplicate"])
     "archive"           = [MenuItemCli]::new("archive", "write an instance to a named archive", $gestures["archive"])
     "compact"           = [MenuItemCli]::new("compact", "reclaim the space an instance has freed", $gestures["compact"])
+    "migrate"           = [MenuItemCli]::new("migrate", "move the fleet to another folder", $gestures["migrate"])
+    "wslconfig"         = [MenuItemCli]::new("wslconfig", "open the Windows-wide WSL settings", $gestures["wslconfig"])
     "register_docker"   = [MenuItemCli]::new("register_docker", "register an instance with Docker Desktop", $gestures["register_docker"])
     "unregister_docker" = [MenuItemCli]::new("unregister_docker", "take an instance out of Docker Desktop", $gestures["unregister_docker"])
     "unregister"        = [MenuItemCli]::new("unregister", "remove an instance", $gestures["unregister"])
@@ -76,8 +81,7 @@ $actions = @{
 $console = [ConsoleCli]::new()
 $menu = [MenuCli]::new("WSL Fleet CLI")
 $menu = $menu.Add("build",     "build an instance from the image",     $gestures["build"])
-$menu = $menu.Add("migrate",   "move the fleet to another folder",     $gestures["migrate"])
-$menu = $menu.Add("wslconfig", "open the Windows-wide WSL settings",   $gestures["wslconfig"])
+$menu = $menu.Add("settings",  "the working folder, .wslconfig, and the packs catalog", $gestures["settings"])
 $menu = $menu.Add("instances", "choose an instance and act on it",     $gestures["instances"])
 $menu = $menu.Add("archives",  "choose an archive: restore or delete", $gestures["archives"])
 
@@ -105,6 +109,9 @@ $presenters.Browse = [BrowsePresenter]::new($instanceService, $ViewsRoot, "cli",
     $actions["register_docker"],
     $actions["unregister_docker"],
     @($actions["restore"], $actions["delete_archive"]))
+
+$presenters.Settings = [SettingsPresenter]::new($catalogueService, $ViewsRoot, "cli",
+    @($actions["migrate"], $actions["wslconfig"], [MenuItemCli]::new("availables packs", "edit, duplicate or delete a catalogue pack", $null)))
 
 $item = $null
 if ($Command) {

@@ -8,7 +8,7 @@
     <TextBlock Margin="0,14,0,10" Text="Name of the copy:"/>
     
     <TextBox Name="TxtName" Text="{Binding Name, Mode=OneWay}" Margin="0,6,0,0" Background="{DynamicResource AppInputBackgroundBrush}" Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="{DynamicResource AppBorderBrush}" Padding="4"/>
-    <TextBlock Text="{Binding NameError}" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource AppDangerBrush}"/>
+    <TextBlock Name="GuiNameError" Text="{Binding NameError}" Visibility="Collapsed" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource AppDangerBrush}"/>
     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
         <Button Name="BtnDupCancel" Content="Cancel" Margin="0,0,8,0" IsCancel="True"
                 Background="{DynamicResource AppFaceBrush}" Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="{DynamicResource AppBorderBrush}"/>

@@ -29,6 +29,17 @@ class WpfBuildView : BaseViewWpf {
 
         $this.Vm.DemandeFermeture = { param($result) $self.Result = $result; $self.Close() }
 
+        $this.Vm.add_PropertyChanged({
+            param($source, $e)
+            switch ("$($e.PropertyName)") {
+                "NameError" { $self.ShowError("GuiNameError", "$($source.NameError)") }
+                "UserError" { $self.ShowError("GuiUserError", "$($source.UserError)") }
+                "ImageError" { $self.ShowError("GuiImageError", "$($source.ImageError)") }
+                "RegistryError" { $self.ShowError("GuiRegistryError", "$($source.RegistryError)") }
+                "RecipeError" { $self.ShowError("GuiRecipeError", "$($source.RecipeError)") }
+            }
+        })
+
         $this.Add_PreviewKeyDown({
             param($source, $e)
             if ($self.EatEnter -and $e.Key -eq [System.Windows.Input.Key]::Enter) { $e.Handled = $true }

@@ -20,6 +20,11 @@ class WpfRecipeNameView : BaseViewWpf {
 
         $this.Vm.DemandeFermeture = { param($result) $self.Result = $result; $self.Close() }
 
+        $this.Vm.add_PropertyChanged({
+            param($source, $e)
+            if ("$($e.PropertyName)" -eq "NameError") { $self.ShowError("GuiNameError", "$($source.NameError)") }
+        })
+
         $this.Add_ContentRendered({ $null = $self.Find("TxtRecipeName").Focus() })
 
         $this.Find("TxtRecipeName").Add_TextChanged({ param($box, $e) $self.Vm.SetName("$($box.Text)") })

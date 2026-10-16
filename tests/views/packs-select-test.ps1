@@ -368,7 +368,54 @@ Check "a failed copy takes its own folder back out, nothing before it" `
     ((@($Calls | Where-Object { $_ -like "rm-folder*" }) -join " | ")) "rm-folder $Directory/fake-b"
 Check "  ... and the run names the pack that stopped it" "$($Result.Failed)/$($Result.ExitCode)" "fake-b/1"
 
-Remove-Item -Recurse -Force $PacksRoot, $PacksRoot2, $PacksRoot3, $ApplyRoot -ErrorAction SilentlyContinue
+Write-Output ""
+Write-Output "--- what a departure would break ---"
+
+# A pack others stand on is not nobody's: the walk names who would be left
+# holding it - the direct claimants, then whoever their own loss would
+# strand, until nothing new answers.
+Check "the claimants of a pack are named" `
+    (($Catalog.DependentsOf("devops") -join ",")) "gcp,python"
+Check "a pack nobody requires names nobody" `
+    (($Catalog.DependentsOf("vision") -join ",")) ""
+
+$ChainRoot = New-PackRoot @(
+    @{ Name = "base"; Description = "The base" },
+    @{ Name = "mid";  Description = "Mid layer"; Requires = "base" },
+    @{ Name = "top";  Description = "Top layer"; Requires = "mid" }
+)
+$Chain = New-Catalog $ChainRoot
+Check "the walk follows the chain" `
+    (($Chain.DependentsOf("base") -join ",")) "mid,top"
+
+Write-Output ""
+Write-Output "--- the seed ---"
+
+# A machine without a packs folder gets the repository's own, once and
+# silently - directories only, the cleanup script stays the repository's; a
+# folder already there is left alone, and no source means no folder.
+$SeedSource = New-PackRoot @(
+    @{ Name = "seed-a"; Description = "Seeded A" },
+    @{ Name = "seed-b"; Description = "Seeded B"; Requires = "seed-a" }
+)
+Set-Content -Path (Join-Path $SeedSource "cleanup_orphans.sh") -Value "# machinery"
+$SeedTarget = Join-Path ([System.IO.Path]::GetTempPath()) ("packs-seed-" + [Guid]::NewGuid().ToString("N"))
+$SeedRepo = [PackCatalogRepository]::new($SeedTarget)
+$SeedRepo.SeedFrom($SeedSource)
+$Seeded = [PackCatalogRepository]::new($SeedTarget)
+Check "a missing folder is seeded, directories only" `
+    ((@($Seeded.GetAllPacks() | ForEach-Object { $_.GetName() }) -join ",") + " / " + (Test-Path (Join-Path $SeedTarget "cleanup_orphans.sh"))) "seed-a,seed-b / False"
+
+Set-Content -Path (Join-Path $SeedTarget "seed-a\pack.conf") -Value "PACK_DESCRIPTION := mine"
+$null = [PackCatalogRepository]::new($SeedTarget).SeedFrom($SeedSource)
+Check "a folder already there is left alone" `
+    ("$((Get-Content -LiteralPath (Join-Path $SeedTarget "seed-a\pack.conf")))" -match "mine") $true
+
+$NoSource = Join-Path ([System.IO.Path]::GetTempPath()) ("packs-nosrc-" + [Guid]::NewGuid().ToString("N"))
+$null = [PackCatalogRepository]::new($NoSource).SeedFrom((Join-Path $NoSource "absent"))
+Check "no source, no folder" (Test-Path $NoSource) $false
+
+Remove-Item -Recurse -Force $PacksRoot, $PacksRoot2, $PacksRoot3, $ApplyRoot, $ChainRoot, $SeedSource, $SeedTarget -ErrorAction SilentlyContinue
 
 Write-Output ""
 Write-Output ("failures: " + $global:Failures)

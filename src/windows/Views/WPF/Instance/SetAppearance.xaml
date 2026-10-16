@@ -36,7 +36,7 @@
     
     <TextBox Name="TxtIconText" Text="{Binding IconText, Mode=OneWay}" Margin="0,6,0,0" HorizontalAlignment="Left"
              Background="{DynamicResource AppInputBackgroundBrush}" Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="{DynamicResource AppBorderBrush}" Padding="4"/>
-    <TextBlock Text="{Binding IconError}" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource AppDangerBrush}"/>
+    <TextBlock Name="GuiIconError" Text="{Binding IconError}" Visibility="Collapsed" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource AppDangerBrush}"/>
     </StackPanel>
     <Grid Grid.Column="1" VerticalAlignment="Top" Margin="14,0,0,0" Width="64" Height="64">
         

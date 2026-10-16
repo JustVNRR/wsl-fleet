@@ -4,6 +4,7 @@ class WslPackDto {
     [string]$Name
     [string]$Description
     [string]$Family
+    [string[]]$Dependents = @()
 }
 
 class CreatePackDto {

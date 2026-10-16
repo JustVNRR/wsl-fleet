@@ -438,6 +438,7 @@ The scripts themselves live in `src\windows\` — `wsl-fleet.ps1` is the only th
 | [`.\wsl-fleet.ps1 instances`](docs/wsl/commands.md#instances) | choose an instance and act on it |
 | [`.\wsl-fleet.ps1 archives`](docs/wsl/commands.md#archives) | choose an archive: restore or delete |
 | [`.\wsl-fleet.ps1 build`](docs/wsl/commands.md#build) | build an instance from the image |
+| [`.\wsl-fleet.ps1 settings`](docs/wsl/commands.md#settings) | the working folder, .wslconfig, and the packs catalog |
 | [`.\wsl-fleet.ps1 restart`](docs/wsl/commands.md#restart) | restart an instance |
 | [`.\wsl-fleet.ps1 shell`](docs/wsl/commands.md#shell) | open a shell inside an instance |
 | [`.\wsl-fleet.ps1 manage_packs`](docs/wsl/commands.md#manage_packs) | choose the packs an instance should carry |

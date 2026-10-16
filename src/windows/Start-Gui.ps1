@@ -32,7 +32,7 @@ $root = [ServiceFactory]::ResolveRoot($Assets, $distroTree)
 $fleet = [ServiceFactory]::CreateFleetService($root, $Assets, $distroTree)
 $instances = [ServiceFactory]::CreateInstanceService($root, $Assets, $distroTree)
 $wpfService = [ServiceFactory]::CreateWpfService($Assets)
-$catalogue = [ServiceFactory]::CreatePackCatalogService($Assets)
+$catalogue = [ServiceFactory]::CreatePackCatalogService($Assets, $distroTree)
 $logger = [ServiceFactory]::CreateLoggerService()
 
 $look = $wpfService.GetTheme()

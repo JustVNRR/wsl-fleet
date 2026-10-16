@@ -55,7 +55,9 @@ class ServiceFactory {
         return [WpfService]::new([ConfigRepository]::new($assets), [TerminalRepository]::new($assets))
     }
 
-    static [PackCatalogService] CreatePackCatalogService([string]$assets) {
-        return [PackCatalogService]::new([WslPackCatalog]::new(), [PackCatalogRepository]::new((Join-Path $assets "packs")))
+    static [PackCatalogService] CreatePackCatalogService([string]$assets, [string]$distroTree) {
+        $packs = [PackCatalogRepository]::new((Join-Path $assets "packs"))
+        if ($distroTree) { $packs.SeedFrom((Join-Path $distroTree "packs")) }
+        return [PackCatalogService]::new([WslPackCatalog]::new(), $packs)
     }
 }

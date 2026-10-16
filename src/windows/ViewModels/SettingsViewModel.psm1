@@ -7,6 +7,7 @@ class SettingsLabelRow {
 
     [string]$Name = ""
     [string]$Label = ""
+    [string[]]$Dependents = @()
 }
 
 class SettingsPackRow {
@@ -15,6 +16,7 @@ class SettingsPackRow {
     [string]$Family = ""
     [string]$Description = ""
     [string]$Label = ""
+    [string[]]$Dependents = @()
 }
 
 class SettingsViewModel : BaseViewModel {
@@ -35,9 +37,11 @@ class SettingsViewModel : BaseViewModel {
     [string[]]$PackLabels = @()
     [int]$PackIndex = -1
     [string]$Root = ""
+    [string]$WslConfigPath = ""
     [string]$Variant = "Dark"
     [string]$ThemeError = ""
     [string]$CatalogueError = ""
+    [string]$ConfigError = ""
     [bool]$CanTheme = $false
     [bool]$CanPack = $false
     hidden [string]$_newRoot = ""
@@ -51,6 +55,7 @@ class SettingsViewModel : BaseViewModel {
         try { $theme = $this._wpf.GetTheme() } catch { $theme = $null }
         $this.Variant = if ($theme -and "$($theme.Variant)") { "$($theme.Variant)" } else { "Dark" }
         try { $this.Root = "$($this._fleet.GetRoot())" } catch { }
+        $this.WslConfigPath = Join-Path $env:USERPROFILE ".wslconfig"
         try { $themes = @($this._wpf.GetColorThemes()) } catch { $themes = @() }
         try { $choices = @($this._wpf.GetFontChoices()) } catch { $choices = @() }
         try { $stock = @($this._catalogue.GetAllPacks()) } catch { $stock = @() }
@@ -130,7 +135,7 @@ class SettingsViewModel : BaseViewModel {
     hidden [object[]] PackRowsOf([object[]]$packs) {
         $rows = @()
         foreach ($pack in @($packs | Sort-Object Name)) {
-            $rows += [SettingsPackRow]@{ Name = "$($pack.Name)"; Family = "$($pack.Family)"; Description = "$($pack.Description)"; Label = "$($pack.Name) ($($pack.Family))" }
+            $rows += [SettingsPackRow]@{ Name = "$($pack.Name)"; Family = "$($pack.Family)"; Description = "$($pack.Description)"; Label = "$($pack.Name) ($($pack.Family))"; Dependents = @($pack.Dependents) }
         }
         return @($rows)
     }
@@ -312,6 +317,16 @@ class SettingsViewModel : BaseViewModel {
             return
         }
         $this.RefreshPacks("")
+    }
+
+    [void] WslConfig() {
+        try { $null = $this._fleet.WslConfig() } catch {
+            $this.ConfigError = "The file did not open: $($_.Exception.Message)"
+            $this.OnPropertyChanged("ConfigError")
+            return
+        }
+        $this.ConfigError = ""
+        $this.OnPropertyChanged("ConfigError")
     }
 
     [void] EditRoot() {

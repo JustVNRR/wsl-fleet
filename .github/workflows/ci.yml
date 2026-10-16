@@ -442,6 +442,7 @@ jobs:
         shell: bash
         run: pwsh -NoProfile -File tests/presenters/build-presenter-test.ps1
         run: pwsh -NoProfile -File tests/presenters/browse-presenter-test.ps1
+        run: pwsh -NoProfile -File tests/presenters/settings-presenter-test.ps1
 
       - name: The readings and the fleet, presenters driven by fake views
         if: always()

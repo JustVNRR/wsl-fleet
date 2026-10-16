@@ -3,20 +3,27 @@ using module .\ThemeCli.psm1
 class MenuItemCli {
 
     [string]$Key
+    [string]$Description = ""
     [string]$Text
     [object]$Value
     [bool]$Checked = $false
     [scriptblock]$Action
 
     MenuItemCli([string]$Key, [string]$Description, [scriptblock]$Action) {
-        $this.Key    = $Key
-        $this.Text   = "{0,-12} {1}" -f $Key, $Description
-        $this.Action = $Action
+        $this.Key         = $Key
+        $this.Description = $Description
+        $this.Action      = $Action
+        $this.SetKeyWidth(12)
     }
 
     MenuItemCli([string]$Text, [object]$Value) {
         $this.Text  = $Text
         $this.Value = $Value
+    }
+
+    [void] SetKeyWidth([int]$width) {
+        if ($width -lt 1) { $width = 1 }
+        $this.Text = "$($this.Key.PadRight($width)) $($this.Description)"
     }
 
 }
@@ -89,7 +96,18 @@ class MenuCli {
 
     [MenuCli] Add([MenuItemCli]$Row) {
         $this.Items.Add($Row)
+        $this.Restyle()
         return $this
+    }
+
+    hidden [void] Restyle() {
+        $width = 12
+        foreach ($item in $this.Items) {
+            if ("$($item.Key)") { if ("$($item.Key)".Length -gt $width) { $width = "$($item.Key)".Length } }
+        }
+        foreach ($item in $this.Items) {
+            if ("$($item.Key)") { $item.SetKeyWidth($width) }
+        }
     }
 
     [MenuCli] Add([string]$Key, [string]$Description, [scriptblock]$Action) {
@@ -171,35 +189,43 @@ class MenuCli {
             $Last = $Count - 1
             $Moved = $true
 
-            if ($Key -eq [ConsoleKey]::UpArrow) {
-                $this.Current = if ($this.Current -eq 0) { $Last } else { $this.Current - 1 }
-            } elseif ($Key -eq [ConsoleKey]::DownArrow) {
-                $this.Current = if ($this.Current -eq $Last) { 0 } else { $this.Current + 1 }
-            } elseif ($Key -eq [ConsoleKey]::Spacebar -and $this.Multi) {
-                $this.Items[$this.Current].Checked = -not $this.Items[$this.Current].Checked
-            } elseif ($Key -eq [ConsoleKey]::Enter) {
-                if ($CanPaint) { $null = $this.Console.SetTop($Top + $Visible + 1 + $Extra) }
-                if ($this.Multi) {
-                    return @($this.Items | Where-Object { $_.Checked })
+            switch ($Key) {
+                ([ConsoleKey]::UpArrow) {
+                    $this.Current = if ($this.Current -eq 0) { $Last } else { $this.Current - 1 }
                 }
-                return $this.Items[$this.Current]
-            } elseif ($Key -eq [ConsoleKey]::Escape) {
-                if ($CanPaint) { $null = $this.Console.SetTop($Top + $Visible + 1 + $Extra) }
-                return $null
-            } elseif (($Key -ge [ConsoleKey]::D1 -and $Key -le [ConsoleKey]::D9) -or
-                      ($Key -ge [ConsoleKey]::NumPad1 -and $Key -le [ConsoleKey]::NumPad9)) {
-                $Wanted = if ($Key -ge [ConsoleKey]::NumPad1) { [int]$Key - [int][ConsoleKey]::NumPad1 }
-                          else { [int]$Key - [int][ConsoleKey]::D1 }
-                if ($Wanted -lt $Count) {
+                ([ConsoleKey]::DownArrow) {
+                    $this.Current = if ($this.Current -eq $Last) { 0 } else { $this.Current + 1 }
+                }
+                { $_ -eq [ConsoleKey]::Spacebar -and $this.Multi } {
+                    $this.Items[$this.Current].Checked = -not $this.Items[$this.Current].Checked
+                }
+                ([ConsoleKey]::Enter) {
+                    if ($CanPaint) { $null = $this.Console.SetTop($Top + $Visible + 1 + $Extra) }
                     if ($this.Multi) {
-                        $this.Items[$Wanted].Checked = -not $this.Items[$Wanted].Checked
-                    } else {
-                        if ($CanPaint) { $null = $this.Console.SetTop($Top + $Visible + 1 + $Extra) }
-                        return $this.Items[$Wanted]
+                        return @($this.Items | Where-Object { $_.Checked })
+                    }
+                    return $this.Items[$this.Current]
+                }
+                ([ConsoleKey]::Escape) {
+                    if ($CanPaint) { $null = $this.Console.SetTop($Top + $Visible + 1 + $Extra) }
+                    return $null
+                }
+                { ($_ -ge [ConsoleKey]::D1 -and $_ -le [ConsoleKey]::D9) -or
+                  ($_ -ge [ConsoleKey]::NumPad1 -and $_ -le [ConsoleKey]::NumPad9) } {
+                    $Wanted = if ($_ -ge [ConsoleKey]::NumPad1) { [int]$_ - [int][ConsoleKey]::NumPad1 }
+                              else { [int]$_ - [int][ConsoleKey]::D1 }
+                    if ($Wanted -lt $Count) {
+                        if ($this.Multi) {
+                            $this.Items[$Wanted].Checked = -not $this.Items[$Wanted].Checked
+                        } else {
+                            if ($CanPaint) { $null = $this.Console.SetTop($Top + $Visible + 1 + $Extra) }
+                            return $this.Items[$Wanted]
+                        }
                     }
                 }
-            } else {
-                $Moved = $false
+                default {
+                    $Moved = $false
+                }
             }
 
             if (-not $Moved -or -not $CanPaint) { continue }

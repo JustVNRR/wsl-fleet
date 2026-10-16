@@ -12,6 +12,16 @@
         <TextBox Text="{Binding Root, Mode=OneWay}" IsEnabled="False" Background="{DynamicResource AppInputBackgroundBrush}" Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="{DynamicResource AppBorderBrush}" Padding="4"/>
         <Button Name="BtnGuiRootEdit" Grid.Column="1" Content="&#xF044;" FontFamily="{DynamicResource IconFace}" Margin="8,0,0,0" ToolTip="Edit the working folder"/>
     </Grid>
+    <TextBlock Margin="0,12,0,0" Text="WSL config" FontWeight="SemiBold"/>
+    <Grid Margin="0,6,0,0">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+        <TextBox Text="{Binding WslConfigPath, Mode=OneWay}" IsEnabled="False" Background="{DynamicResource AppInputBackgroundBrush}" Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="{DynamicResource AppBorderBrush}" Padding="4"/>
+        <Button Name="BtnGuiWslConfig" Grid.Column="1" Content="&#xF044;" FontFamily="{DynamicResource IconFace}" Margin="8,0,0,0" ToolTip="Open .wslconfig in the default editor"/>
+    </Grid>
+    <TextBlock Name="GuiConfigError" Text="{Binding ConfigError}" Visibility="Collapsed" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource AppDangerBrush}"/>
     <TextBlock Text="Appearance" TextWrapping="Wrap" FontWeight="SemiBold" Margin="0,12,0,0"/>
     <Grid Margin="0,12,0,0">
         <Grid.RowDefinitions>
@@ -38,7 +48,7 @@
         <Button Name="BtnGuiThemeDownload" Content="&#xF019;" FontFamily="{DynamicResource IconFace}" Margin="8,0,0,0" ToolTip="Save the selected theme..."/>
         <Button Name="BtnGuiThemeDelete" Content="&#xF1F8;" FontFamily="{DynamicResource IconFace}" Margin="8,0,0,0" IsEnabled="{Binding CanTheme}" ToolTip="Delete the selected theme"/>
     </StackPanel>
-    <TextBlock Text="{Binding ThemeError}" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource AppDangerBrush}"/>
+    <TextBlock Name="GuiThemeError" Text="{Binding ThemeError}" Visibility="Collapsed" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource AppDangerBrush}"/>
     <TextBlock Margin="0,12,0,0" Text="Packs Catalog" FontWeight="SemiBold"/>
     <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
         <ComboBox Name="LstGuiPacks" ItemsSource="{Binding PackLabels}" SelectedIndex="{Binding PackIndex, Mode=OneWay}"/>
@@ -46,7 +56,7 @@
         <Button Name="BtnGuiPackDuplicate" Content="&#xF0C5;" FontFamily="{DynamicResource IconFace}" Margin="8,0,0,0" IsEnabled="{Binding CanPack}" ToolTip="Duplicate the selected pack under a new name"/>
         <Button Name="BtnGuiPackDelete" Content="&#xF1F8;" FontFamily="{DynamicResource IconFace}" Margin="8,0,0,0" IsEnabled="{Binding CanPack}" ToolTip="Delete the selected pack"/>
     </StackPanel>
-    <TextBlock Text="{Binding CatalogueError}" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource AppDangerBrush}"/>
+    <TextBlock Name="GuiCatalogueError" Text="{Binding CatalogueError}" Visibility="Collapsed" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource AppDangerBrush}"/>
     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
         <Button Name="BtnGuiClose" Content="CLOSE" IsDefault="True" IsCancel="True"
                 Style="{DynamicResource BtnApply}"/>

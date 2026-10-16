@@ -26,6 +26,7 @@ class WpfSetAppearanceView : BaseViewWpf {
             param($source, $e)
             if ("$($e.PropertyName)" -in @("FontIndex", "SchemeIndex")) { $self.PaintPreview() }
             if ("$($e.PropertyName)" -in @("ImagePath", "IconText", "PairIndex")) { $self.PaintIcon() }
+            if ("$($e.PropertyName)" -eq "IconError") { $self.ShowError("GuiIconError", "$($source.IconError)") }
         })
 
         $this.Add_ContentRendered({ $null = $this.Find("TxtIconText").Focus() })

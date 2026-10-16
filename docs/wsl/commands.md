@@ -22,8 +22,7 @@ answers to its word all the same, `.\wsl-fleet.ps1 gui`:
 
 WSL Fleet CLI
   > build        build an instance from the image
-    migrate      move the fleet to another folder
-    wslconfig    open the Windows-wide WSL settings
+    settings     the working folder, .wslconfig, and the packs catalog
     instances    choose an instance and act on it
     archives     choose an archive: restore or delete
   up/down to move, Enter to choose, Escape to cancel
@@ -51,6 +50,7 @@ read, the colours a console has always had are used.
 | [`.\wsl-fleet.ps1 instances`](#instances) | choose an instance and act on it |
 | [`.\wsl-fleet.ps1 archives`](#archives) | choose an archive: restore or delete |
 | [`.\wsl-fleet.ps1 build`](#build) | build an instance from the image |
+| [`.\wsl-fleet.ps1 settings`](#settings) | the working folder, .wslconfig, and the packs catalog |
 | [`.\wsl-fleet.ps1 restart`](#restart) | restart an instance |
 | [`.\wsl-fleet.ps1 shell`](#shell) | open a shell inside an instance |
 | [`.\wsl-fleet.ps1 manage_packs`](#manage_packs) | choose the packs an instance should carry |
@@ -189,7 +189,10 @@ the working folder in a greyed box, an edit button opening a move dialog — a
 warning that every instance is stopped and archived on the way, the folder in
 a box, Cancel or the red CONFIRM. A confirmed folder archives the whole fleet
 and moves it there (`migrate`), the window closing behind the run's own
-console. A **Catalogue**
+console. A **WSL config** row below it shows
+`%USERPROFILE%\.wslconfig` in the same greyed box, its edit button opening
+the file as Windows opens files — the file created first if the machine has
+none (`wslconfig`). A **Packs Catalog**
 section lists the packs of `assets\packs\`: the edit button opens the selected
 pack's folder as Windows opens folders, a duplicate copying it under a new
 name (the copy's description rewritten in its `pack.conf`), the trash removes
@@ -222,15 +225,15 @@ straight when the name follows it (`.\wsl-fleet.ps1 shell ubuntu-template`):
 
 ```text
 What to do with 'ubuntu-template'
-  > shell        open a shell inside an instance
-    restart      restart an instance
-    manage_packs choose the packs an instance should carry
-    theme        choose the icon, font and colours
-    duplicate    copy an instance under another name
-    archive      write an instance to a named archive
-    compact      reclaim the space an instance has freed
+  > shell           open a shell inside an instance
+    restart         restart an instance
+    manage_packs    choose the packs an instance should carry
+    theme           choose the icon, font and colours
+    duplicate       copy an instance under another name
+    archive         write an instance to a named archive
+    compact         reclaim the space an instance has freed
     register_docker register an instance with Docker Desktop
-    unregister   remove an instance
+    unregister      remove an instance
   up/down to move, Enter to choose, Escape to cancel
 ```
 
@@ -259,7 +262,7 @@ Our Archives
 
 ```text
 What to do with 'azerty_archive'
-  > restore      rebuild an instance from an archive
+  > restore        rebuild an instance from an archive
     delete_archive delete an archive
   up/down to move, Enter to choose, Escape to cancel
 ```
@@ -385,6 +388,48 @@ whether the working image is kept (`Keep Docker image?` — no lets the next
 build start over); and always, whether the instance is added to Docker
 Desktop (`Add '<name>' to Docker Desktop? (it will be restarted)`). Both
 default to no.
+
+---
+
+## `settings`
+
+The fleet's settings, and the packs of the catalog: move the working folder,
+open `.wslconfig`, or take a pack — edit it, duplicate it, delete it.
+
+```powershell
+.\wsl-fleet.ps1 settings
+```
+
+```text
+Settings
+  > migrate          move the fleet to another folder
+    wslconfig        open the Windows-wide WSL settings
+    availables packs edit, duplicate or delete a catalogue pack
+  up/down to move, Enter to choose, Escape to cancel
+```
+
+A pack picked opens the catalog and then its three choices:
+
+```text
+Packs Catalog
+  > oh_my_py             [debian]   Python 3, uv and ruff
+    oh_my_cloud          [debian]   The Google Cloud CLI
+  up/down to move, Enter to choose, Escape to cancel
+```
+
+```text
+Pack 'oh_my_py'
+  > edit         open the pack's folder
+    duplicate    duplicate it under a new name
+    delete       delete it from the catalog
+  up/down to move, Enter to choose, Escape to cancel
+```
+
+`edit` opens the pack's folder; `duplicate` asks the new name and the copy
+arrives with the same files; `delete` asks a yes or no — and when other packs of the catalog depend
+on the one leaving, they are named first, one per line, under the warning
+that removing it may break them: the same list the window's own trash shows. The window's Settings holds the same three, under Packs
+Catalog.
 
 ---
 

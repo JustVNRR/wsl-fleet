@@ -15,6 +15,24 @@ class WslPackCatalog {
         return @($this.Packs | Where-Object { $_.GetName() -eq $name })[0]
     }
 
+    [string[]] DependentsOf([string]$packName) {
+        $dependents = [System.Collections.Generic.List[string]]::new()
+        $frontier = @("$packName")
+        while ($frontier.Count -gt 0) {
+            $next = @()
+            foreach ($pack in @($this.Packs)) {
+                $name = "$($pack.GetName())"
+                if ($name -eq "$packName" -or $dependents.Contains($name)) { continue }
+                if (@($pack.GetRequires() | Where-Object { $frontier -contains $_ }).Count -gt 0) {
+                    $dependents.Add($name)
+                    $next += $name
+                }
+            }
+            $frontier = @($next)
+        }
+        return @($dependents)
+    }
+
     [WslPack[]] OfferedFor([string]$family) {
         if (-not $family) { return @($this.Packs | Where-Object { $_.GetOffered() }) }
         return @($this.Packs | Where-Object { $_.GetOffered() -and $_.GetFamily() -eq $family })

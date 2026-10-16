@@ -11,10 +11,10 @@
             <TextBlock Margin="0,10,0,0" Text="Instance name:"/>
             
             <TextBox Name="TxtName" Text="{Binding Name, Mode=OneWay}" Margin="0,6,0,0" Background="{DynamicResource AppInputBackgroundBrush}" Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="{DynamicResource AppBorderBrush}" Padding="4"/>
-            <TextBlock Text="{Binding NameError}" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource AppDangerBrush}"/>
+            <TextBlock Name="GuiNameError" Text="{Binding NameError}" Visibility="Collapsed" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource AppDangerBrush}"/>
             <TextBlock Name="LblUser" Margin="0,12,0,0" Text="User name:" IsEnabled="{Binding RunOnboarding}"/>
             <TextBox Name="TxtUser" Text="{Binding User, Mode=OneWay}" IsEnabled="{Binding RunOnboarding}" Margin="0,6,0,0" Background="{DynamicResource AppInputBackgroundBrush}" Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="{DynamicResource AppBorderBrush}" Padding="4"/>
-            <TextBlock Text="{Binding UserError}" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource AppDangerBrush}"/>
+            <TextBlock Name="GuiUserError" Text="{Binding UserError}" Visibility="Collapsed" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource AppDangerBrush}"/>
             <TextBlock Margin="0,12,0,0" Text="Build from:"/>
             <ComboBox Name="CmbRoad" SelectedIndex="{Binding RoadIndex, Mode=OneWay}" Margin="0,6,0,0">
                 <ComboBoxItem Content="Dockerfile"/>
@@ -75,7 +75,7 @@
                     <Button Name="BtnDockerImageDownload" Grid.Column="2" Content="&#xF019;" FontFamily="{DynamicResource IconFace}" Margin="8,0,0,0" IsEnabled="{Binding CanDownloadImage}" ToolTip="Save the selected Docker image..."/>
                     <Button Name="BtnDockerImageDelete" Grid.Column="3" Content="&#xF1F8;" FontFamily="{DynamicResource IconFace}" Margin="8,0,0,0" IsEnabled="{Binding CanTrashImage}" ToolTip="Delete the selected uploaded file"/>
                 </Grid>
-                <TextBlock Text="{Binding ImageError}" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource AppDangerBrush}"/>
+                <TextBlock Name="GuiImageError" Text="{Binding ImageError}" Visibility="Collapsed" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource AppDangerBrush}"/>
             </StackPanel>
             <StackPanel Name="BoxRegistry">
                 <StackPanel.Style>
@@ -90,7 +90,7 @@
                 </StackPanel.Style>
                 <TextBlock Margin="0,10,0,0" Text="Registry image:"/>
                 <TextBox Name="TxtRegistry" Text="{Binding RegistryRef, Mode=OneWay}" Margin="0,6,0,0" Background="{DynamicResource AppInputBackgroundBrush}" Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="{DynamicResource AppBorderBrush}" Padding="4"/>
-                <TextBlock Text="{Binding RegistryError}" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource AppDangerBrush}"/>
+                <TextBlock Name="GuiRegistryError" Text="{Binding RegistryError}" Visibility="Collapsed" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource AppDangerBrush}"/>
             </StackPanel>
             <StackPanel Name="BoxRecipe">
                 <StackPanel.Style>
@@ -116,7 +116,7 @@
                     <Button Name="BtnRecipeEdit" Grid.Column="2" Content="&#xF040;" FontFamily="{DynamicResource IconFace}" Margin="8,0,0,0" ToolTip="Open the recipe's folder in the code editor"/>
                     <Button Name="BtnRecipeDelete" Grid.Column="3" Content="&#xF1F8;" FontFamily="{DynamicResource IconFace}" Margin="8,0,0,0" IsEnabled="{Binding CanTrashRecipe}" ToolTip="Delete the selected recipe"/>
                 </Grid>
-                <TextBlock Text="{Binding RecipeError}" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource AppDangerBrush}"/>
+                <TextBlock Name="GuiRecipeError" Text="{Binding RecipeError}" Visibility="Collapsed" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource AppDangerBrush}"/>
                 <CheckBox Name="ChkSaveImageRecipe" IsChecked="{Binding SaveImage, Mode=OneWay}" Margin="0,10,0,0" Content="Save image locally" Foreground="{DynamicResource AppForegroundBrush}"/>
             </StackPanel>
             <CheckBox Name="ChkRegisterDocker" IsChecked="{Binding RegisterDocker, Mode=OneWay}" Margin="0,12,0,0" Content="Add Docker Desktop support (will be restarted)" Foreground="{DynamicResource AppForegroundBrush}"/>

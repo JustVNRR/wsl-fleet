@@ -1,4 +1,5 @@
 using module .\ThemeCli.psm1
+using module .\ConsoleQuit.psm1
 
 class MenuItemCli {
 
@@ -42,9 +43,7 @@ class ConsoleCli {
 
     [ConsoleKey] ReadKey() {
         $Info = [Console]::ReadKey($true)
-        if ($Info.Key -eq [ConsoleKey]::C -and ($Info.Modifiers -band [ConsoleModifiers]::Control)) {
-            return [ConsoleKey]::Escape
-        }
+        if ($Info.Key -eq [ConsoleKey]::C -and ($Info.Modifiers -band [ConsoleModifiers]::Control)) { throw [ConsoleQuitException]::new() }
         return $Info.Key
     }
 
@@ -110,7 +109,7 @@ class ConsoleCli {
                 }
                 if ($Key -eq [ConsoleKey]::C -and ($Info.Modifiers -band [ConsoleModifiers]::Control)) {
                     Write-Host ""
-                    return $null
+                    throw [ConsoleQuitException]::new()
                 }
                 if ($Key -eq [ConsoleKey]::Backspace) {
                     if ($Text.Length -gt 0) {

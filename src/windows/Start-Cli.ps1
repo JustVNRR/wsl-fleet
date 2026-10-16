@@ -18,6 +18,7 @@ using module .\Presenters\Instance\RestartPresenter.psm1
 using module .\Presenters\Fleet\MigratePresenter.psm1
 using module .\Presenters\Fleet\WslConfigPresenter.psm1
 using module .\Views\cli\MenuCli.psm1
+using module .\Views\cli\ConsoleQuit.psm1
 
 [CmdletBinding()]
 param(
@@ -115,34 +116,38 @@ $presenters.Settings = [SettingsPresenter]::new($catalogueService, $ViewsRoot, "
     @($actions["migrate"], $actions["wslconfig"], [MenuItemCli]::new("availables packs", "edit, duplicate or delete a catalogue pack", $null)))
 $presenters.Navigation = [NavigationPresenter]::new($presenters.Browse, $presenters.Settings)
 
-if ($Command) {
-    $item = $menu.Dispatch($Command)
-    if (-not $item) {
-        if ($gestures.Contains("$Command".ToLower())) {
-            $item = [PSCustomObject]@{ Key = "$Command".ToLower(); Action = $gestures["$Command".ToLower()] }
+try {
+    if ($Command) {
+        $item = $menu.Dispatch($Command)
+        if (-not $item) {
+            if ($gestures.Contains("$Command".ToLower())) {
+                $item = [PSCustomObject]@{ Key = "$Command".ToLower(); Action = $gestures["$Command".ToLower()] }
+            }
         }
+        if (-not $item) {
+            $console.Line("", "")
+            $console.Line("[ABORT] Invalid command '$Command'. Available commands:", "error")
+            foreach ($key in @($gestures.Keys)) { if ($key -ne "delete_archive") { $console.Line("          $key", "hint") } }
+            exit 1
+        }
+        $console.Clear()
+        $result = & $item.Action "$Name" $presenters
+        if ($null -eq $result) { exit 1 }
+        if ("$($result.Status)" -eq "Nok") { exit 1 }
+        exit 0
     }
-    if (-not $item) {
-        $console.Line("", "")
-        $console.Line("[ABORT] Invalid command '$Command'. Available commands:", "error")
-        foreach ($key in @($gestures.Keys)) { if ($key -ne "delete_archive") { $console.Line("          $key", "hint") } }
-        exit 1
-    }
-    $console.Clear()
-    $result = & $item.Action "$Name" $presenters
-    if ($null -eq $result) { exit 1 }
-    if ("$($result.Status)" -eq "Nok") { exit 1 }
-    exit 0
-}
 
-while ($true) {
-    $console.Clear()
-    $item = $menu.Prompt()
-    if (-not $item) { exit 1 }
-    $console.Clear()
-    $result = & $item.Action "$Name" $presenters
-    if ($null -eq $result) { exit 1 }
-    if ("$($result.Status)" -eq "Nok") { exit 1 }
-    if ("$($result.Message)" -like "*: cancelled") { continue }
-    exit 0
+    while ($true) {
+        $console.Clear()
+        $item = $menu.Prompt()
+        if (-not $item) { exit 1 }
+        $console.Clear()
+        $result = & $item.Action "$Name" $presenters
+        if ($null -eq $result) { exit 1 }
+        if ("$($result.Status)" -eq "Nok") { exit 1 }
+        if ("$($result.Message)" -like "*: cancelled") { continue }
+        exit 0
+    }
+} catch [ConsoleQuitException] {
+    exit 1
 }

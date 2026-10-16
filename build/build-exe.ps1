@@ -29,10 +29,12 @@ if (-not (Test-Path $cscPath)) {
     Write-Error "The C# compiler (csc.exe) was not found."
 }
 
-# 3. A windowed exe, the icon worn, the framework's WinForms for its boxes.
+# 3. A console exe - the caller's shell waits for it and its output, and the
+# double-click's own console is hidden at once - the icon worn, WinForms for
+# its boxes.
 $compilerArgs = @(
     "/nologo",
-    "/target:winexe",
+    "/target:exe",
     "/optimize+",
     "/r:System.Windows.Forms.dll",
     "/out:$OutputExe",

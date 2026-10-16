@@ -1,9 +1,34 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.InteropServices;
 
 class Program {
+    [DllImport("kernel32.dll", SetLastError = true)]
+    static extern uint GetConsoleProcessList(uint[] list, uint count);
+
+    [DllImport("kernel32.dll")]
+    static extern IntPtr GetConsoleWindow();
+
+    [DllImport("kernel32.dll")]
+    static extern bool ShowWindow(IntPtr window, int command);
+
+    const int SW_HIDE = 0;
+
     static int Main(string[] args) {
+        // A console exe: a shell that runs it waits for it, and everything it
+        // starts writes into that same console. Double-clicked, Windows makes
+        // a console for this exe alone - hide it at once, the window is the
+        // interface then. A console shared with a caller is never touched.
+        bool headless = args.Length == 0;
+        if (headless) {
+            uint[] owners = new uint[2];
+            if (GetConsoleProcessList(owners, 2) == 1) {
+                IntPtr window = GetConsoleWindow();
+                if (window != IntPtr.Zero) { ShowWindow(window, SW_HIDE); }
+            }
+        }
+
         string rootDir = AppDomain.CurrentDomain.BaseDirectory;
         string scriptPath = Path.Combine(rootDir, "wsl-fleet.ps1");
 
@@ -17,10 +42,6 @@ class Program {
             return 1;
         }
 
-        // Double-click (no arguments): the window, and no console behind it.
-        // With arguments: the command line, in a console that shows its own
-        // output.
-        bool headless = args.Length == 0;
         string forwardArgs = args.Length > 0 ? string.Join(" ", args) : "gui";
 
         ProcessStartInfo psi = new ProcessStartInfo {

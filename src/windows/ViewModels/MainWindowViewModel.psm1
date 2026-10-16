@@ -8,7 +8,6 @@ class InstanceRowViewModel : BaseViewModel {
     [string]$Name = ""
     [string]$Size = ""
     [bool]$IsArchive = $false
-    [bool]$IsBusy = $false
     [string]$Docker = ""
 
     InstanceRowViewModel([object]$row) {
@@ -16,10 +15,6 @@ class InstanceRowViewModel : BaseViewModel {
         $this.Size = Format-Size ([double]$row.Size)
         $this.IsArchive = [bool]$row.IsArchive
         $this.Docker = "$($row.Docker)"
-    }
-
-    [void] Spin([bool]$on) {
-        $this.Set("IsBusy", $on)
     }
 }
 
@@ -272,11 +267,9 @@ class MainWindowViewModel : BaseViewModel {
         $log = Join-Path $env:TEMP "wsl-fleet-gui-job.log"
         Remove-Item -LiteralPath $log -ErrorAction SilentlyContinue
 
-        $this.SpinRow($name, $true)
         $this.SetBusy($true, $message)
 
         if (-not (Test-ProcessArguments @($verb, $name, $arg1, $arg2, $this._assets, $this.Root))) {
-            $this.SpinRow($name, $false)
             $this.SetBusy($false, "")
             $this.SetStatus("The job was not launched: a value carries a double quote or a trailing backslash.", $true)
             return
@@ -290,7 +283,6 @@ class MainWindowViewModel : BaseViewModel {
             $this.WorkerName = $name
             $this.Ticks = 0
         } catch {
-            $this.SpinRow($name, $false)
             $this.SetBusy($false, "")
             $this.SetStatus("Could not start watching the job: $($_.Exception.Message)", $true)
         }
@@ -342,7 +334,6 @@ class MainWindowViewModel : BaseViewModel {
                 $ending = "The watcher failed: $($_.Exception.Message)"
                 $alarm = $true
             } finally {
-                $this.SpinRow($this.WorkerName, $false)
                 $this.Worker = $null
                 $this.SetBusy($false, "")
                 $this.Load()
@@ -360,14 +351,6 @@ class MainWindowViewModel : BaseViewModel {
             $this.Load()
             $this.SetStatus("Done - the fleet was refreshed.", $false)
         }
-    }
-
-    hidden [void] SpinRow([string]$name, [bool]$on) {
-        try {
-            foreach ($row in $this.Rows) {
-                if ("$($row.Name)" -eq "$name") { $row.Spin($on) }
-            }
-        } catch { }
     }
 
     [void] Add() {

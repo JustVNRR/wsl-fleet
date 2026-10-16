@@ -16,8 +16,7 @@ foreach ($assembly in [AppDomain]::CurrentDomain.GetAssemblies()) {
     if ($baseView) { break }
 }
 if (-not $baseView) {
-    Write-Host ""
-    Write-Host "[ABORT] BaseViewWpf was not found - the src\windows\Views\WPF\ folder is incomplete." -ForegroundColor DarkRed
+    $null = [System.Windows.Forms.MessageBox]::Show("BaseViewWpf was not found - the src\windows\Views\WPF\ folder is incomplete.", "WSL Fleet", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error)
     exit 1
 }
 
@@ -67,8 +66,7 @@ foreach ($assembly in [AppDomain]::CurrentDomain.GetAssemblies()) {
     if ($mainView) { break }
 }
 if (-not $mainView) {
-    Write-Host ""
-    Write-Host "[ABORT] WpfMainView was not found - the src\windows\Views\WPF\MainWindow\ folder is incomplete." -ForegroundColor DarkRed
+    $null = [System.Windows.Forms.MessageBox]::Show("WpfMainView was not found - the src\windows\Views\WPF\MainWindow\ folder is incomplete.", "WSL Fleet", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error)
     exit 1
 }
 $window = $mainView::new()

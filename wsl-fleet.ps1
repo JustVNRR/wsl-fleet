@@ -37,15 +37,20 @@ function Test-Entry([string]$Script) {
     }
 }
 
+# La fenêtre vit dans son propre processus : la console rend la main tout de
+# suite, et l'exe qui nous a lancés avec elle.
+function Start-GuiWindow {
+    Start-Process -FilePath "pwsh" -ArgumentList @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", (Join-Path $Windows "Start-Gui.ps1")) -WindowStyle Hidden
+}
+
 # Avec un mot : la console route tout — gui ouvre la fenêtre, cli ouvre le
 # menu, le reste part au menu de la console qui le connaît.
 if ($Command) {
     $Word = "$Command".ToLower()
     if ($Word -eq "gui") {
-        $Gui = Join-Path $Windows "Start-Gui.ps1"
-        Test-Entry $Gui
-        & $Gui
-        exit $LASTEXITCODE
+        Test-Entry (Join-Path $Windows "Start-Gui.ps1")
+        Start-GuiWindow
+        exit 0
     }
     $Cli = Join-Path $Windows "Start-Cli.ps1"
     Test-Entry $Cli
@@ -66,5 +71,9 @@ if (-not $Choice) { exit 1 }
 
 $Script = Join-Path $Windows $(if ($Choice.Key -eq "gui") { "Start-Gui.ps1" } else { "Start-Cli.ps1" })
 Test-Entry $Script
+if ($Choice.Key -eq "gui") {
+    Start-GuiWindow
+    exit 0
+}
 & $Script
 exit $LASTEXITCODE

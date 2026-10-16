@@ -10,76 +10,20 @@
 # a packs folder of its own - so the traversal runs anywhere, the sandbox and
 # the runner alike.
 #
-# Usage:  pwsh -NoProfile -File tests\build-presenter-test.ps1
-using module ..\src\windows\Presenters\Instance\BuildPresenter.psm1
-using module ..\src\windows\Repositories\WslRepository.psm1
-using module ..\src\windows\Repositories\InstanceRepository.psm1
-using module ..\src\windows\Repositories\ArchiveRepository.psm1
-using module ..\src\windows\Repositories\TerminalRepository.psm1
-using module ..\src\windows\Repositories\DockerRepository.psm1
-using module ..\src\windows\Repositories\PackCatalogRepository.psm1
-using module ..\src\windows\Repositories\ConfigRepository.psm1
-using module ..\src\windows\Dtos\InstanceDto.psm1
-using module ..\src\windows\Entities\WslInstance.psm1
-using module ..\src\windows\Services\InstanceService.psm1
+# Usage:  pwsh -NoProfile -File tests\presenters\build-presenter-test.ps1
+using module ..\..\src\windows\Presenters\Instance\BuildPresenter.psm1
+using module ..\..\src\windows\Repositories\WslRepository.psm1
+using module ..\..\src\windows\Repositories\InstanceRepository.psm1
+using module ..\..\src\windows\Repositories\ArchiveRepository.psm1
+using module ..\..\src\windows\Repositories\TerminalRepository.psm1
+using module ..\..\src\windows\Repositories\DockerRepository.psm1
+using module ..\..\src\windows\Repositories\PackCatalogRepository.psm1
+using module ..\..\src\windows\Repositories\ConfigRepository.psm1
+using module ..\..\src\windows\Dtos\InstanceDto.psm1
+using module ..\..\src\windows\Entities\WslInstance.psm1
+using module ..\..\src\windows\Services\InstanceService.psm1
+using module ..\support\common.psm1
 
-# The instance side of wsl, faked whole - the distros the duplicate-name check
-# reads, and the pack moves the birth would make (unreached here: the scenes
-# stop at the builder).
-class FakeWsl : WslRepository {
-    [System.Collections.Generic.List[string]]$Called
-    [string[]]$Distros = @()
-
-    FakeWsl() : base([System.IO.Path]::GetTempPath()) {
-        $this.Called = [System.Collections.Generic.List[string]]::new()
-    }
-
-    [WslInstance[]] GetAllDistros() {
-        $found = @()
-        foreach ($name in @($this.Distros)) {
-            $instance = [WslInstance]::new()
-            $instance.SetName($name)
-            $found += $instance
-        }
-        return @($found)
-    }
-}
-
-# Docker, faked at its seams: the two gates, the registry's door, the
-# storehouse, and the builder - which refuses, so the traversal stops there.
-class FakeDocker : DockerRepository {
-    [System.Collections.Generic.List[string]]$Called
-    [bool]$Responsive = $true
-    [hashtable]$RegistryVerdict = @{ Ok = $false; Why = "no such image or tag on Docker Hub" }
-    [string]$BuilderRefusal = "the builder refused"
-    [object[]]$SavedImages = @()
-
-    FakeDocker() : base([System.IO.Path]::GetTempPath()) {
-        $this.Called = [System.Collections.Generic.List[string]]::new()
-    }
-
-    [bool] TestRunning() {
-        $this.Called.Add("running")
-        return $this.Responsive
-    }
-
-    [bool] StartDesktop() {
-        $this.Called.Add("desktop")
-        return $false
-    }
-
-    [hashtable] TestRegistryImage([string]$reference) {
-        $this.Called.Add("registry $reference")
-        return $this.RegistryVerdict
-    }
-
-    [object[]] GetAllSavedImages() { return @($this.SavedImages) }
-
-    [void] Build([string]$tag, [string]$dockerfile, [string]$context) {
-        $this.Called.Add("build $tag $dockerfile $context")
-        if ($this.BuilderRefusal) { throw $this.BuilderRefusal }
-    }
-}
 
 # The view fake: every order recorded, every question answered from a script.
 class FakeBuildView {
@@ -209,24 +153,10 @@ class FakeBuildView {
     }
 }
 
-class FakeErrorView {
-    [System.Collections.Generic.List[string]]$Orders
-    FakeErrorView() { $this.Orders = [System.Collections.Generic.List[string]]::new() }
-    [void] Show([string]$failure) { $this.Orders.Add("error $failure") }
-}
 
 $ErrorActionPreference = "Stop"
 
-$Failures = 0
-function Check {
-    param([string]$Name, $Got, $Expected)
-    if ("$Got" -eq "$Expected") {
-        Write-Output "OK   $Name"
-    } else {
-        Write-Output "FAIL $Name : expected '$Expected', got '$Got'"
-        $script:Failures++
-    }
-}
+$global:Failures = 0
 
 # The world: the redirected profile, a root of the suite's own, recipe folders
 # staged under assets of the suite's (two Dockerfiles of the Debian family -
@@ -275,18 +205,18 @@ $config = [ConfigRepository]::new($Assets)
 $fake = [FakeWsl]::new()
 $service = [InstanceService]::new($instances, $archives, $fake, $terminal, $docker, $packs, $config)
 
-# Un monde nu : des assets sans recette ni onboarding - les deux refus du
-# choix de la source s'y disent.
+# A bare world: assets with no recipe and no onboarding - the source choice's
+# two refusals are said there.
 $BareAssets = Join-Path $World "bare-assets"
 New-Item -ItemType Directory -Path $BareAssets -Force | Out-Null
 $BareService = [InstanceService]::new($instances, $archives, $fake, $terminal, $docker, $packs, [ConfigRepository]::new($BareAssets))
 
 function New-ViewsRoot {
-    return (Join-Path $PSScriptRoot "..\src\windows\Views")
+    return (Join-Path $PSScriptRoot "..\..\src\windows\Views")
 }
 
-# Les réponses d'une scène tiennent dans les compteurs de la vue : chaque
-# scène les remet à zéro avant de rejouer.
+# A scene's answers live in the view's counters: each scene resets them
+# before it replays.
 function Reset-BuildAnswers {
     param([FakeBuildView]$View)
     $View.NameAt = 0; $View.RoadAt = 0; $View.RefAt = 0
@@ -345,7 +275,8 @@ try {
     $view.Orders.Clear()
     $docker.Called.Clear()
     $docker.RegistryVerdict = @{ Ok = $true; Why = "" }
-    $docker.Responsive = $false
+    $docker.Running = $false
+    $docker.StartOk = $false
     $result = $presenter.Run()
     Check "a known reference goes on" "$($result.Status)/$($result.Message)" "Nok/Build : Docker is not responding."
     Check "  ... the packs offered whole, the note said" `
@@ -353,8 +284,9 @@ try {
     Check "  ... the onboarding refused means no account" (@($view.Orders | Where-Object { $_ -eq "user" }).Count) 0
     Check "  ... and the docker refusal painted" ($view.Orders -contains "abort Docker is not responding. / Start Docker Desktop, then try again.") $true
     Check "  ... the reference checked, the sonde asked, nothing built" `
-        (($docker.Called -join " | ") -eq "registry alpine:latest | running | desktop") $true
-    $docker.Responsive = $true
+        (($docker.Called -join " | ") -eq "registry alpine:latest | running | start") $true
+    $docker.Running = $true
+    $docker.StartOk = $true
     $docker.RegistryVerdict = @{ Ok = $false; Why = "no such image or tag on Docker Hub" }
 
     # 5. The Dockerfile road, to the end of the questions: the source's family
@@ -430,7 +362,8 @@ try {
     $view.BootPicks = @("onboarding")
     $view.UserAnswers = @("bench-user")
     $view.Orders.Clear()
-    $docker.Responsive = $false
+    $docker.Running = $false
+    $docker.StartOk = $false
     $result = $seed.Run()
     Check "an empty assets folder brings the repository's own back" `
         ("$(Test-Path (Join-Path $EmptyAssets 'dockerfiles\Dockerfile\Dockerfile'))/$(Test-Path (Join-Path $EmptyAssets 'dockerfiles\Dockerfile\Dockerfile.dockerignore'))/$(Test-Path (Join-Path $EmptyAssets 'onboardings\onboarding\onboarding.sh'))") "True/True/True"
@@ -460,7 +393,8 @@ try {
     $view.RunOnboarding = $false
     $view.Orders.Clear()
     $docker.Called.Clear()
-    $docker.Responsive = $true
+    $docker.Running = $true
+    $docker.StartOk = $true
     $result = $recipe.Run()
     Check "the recipe road builds its Dockerfile with the folder as context" `
         (($docker.Called -join " | ") -eq "running | build wsl-fleet:bench-build $(Join-Path $RecipeSlot 'Dockerfile') $RecipeSlot") $true
@@ -493,7 +427,8 @@ try {
     $view.RoadAnswers = @("dockerfile")
     $view.PackPicks = @("ESCAPE")
     $view.Orders.Clear()
-    $docker.Responsive = $false
+    $docker.Running = $false
+    $docker.StartOk = $false
     $result = $one.Run()
     Check "one row goes without a list" (@($view.Orders | Where-Object { $_ -like "source*" }).Count) 0
     Check "  ... the onboarding absent is said, not asked" ($view.Orders -contains "no-onboarding") $true
@@ -504,5 +439,5 @@ try {
 }
 
 Write-Output ""
-Write-Output ("failures: " + $Failures)
-exit $Failures
+Write-Output ("failures: " + $global:Failures)
+exit $global:Failures

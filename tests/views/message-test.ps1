@@ -13,22 +13,14 @@
 # under a redirected LOCALAPPDATA - and the cache the class keeps for the
 # length of a command is dropped between the scenes.
 #
-# Usage:  pwsh -NoProfile -File tests\message-test.ps1
-using module ..\src\windows\Views\cli\ThemeCli.psm1
-using module ..\src\windows\Views\cli\BaseViewCli.psm1
+# Usage:  pwsh -NoProfile -File tests\views\message-test.ps1
+using module ..\..\src\windows\Views\cli\ThemeCli.psm1
+using module ..\..\src\windows\Views\cli\BaseViewCli.psm1
+using module ..\support\common.psm1
 
 $ErrorActionPreference = "Stop"
 
-$Failures = 0
-function Check {
-    param([string]$Name, $Got, $Expected)
-    if ("$Got" -eq "$Expected") {
-        Write-Output "OK   $Name"
-    } else {
-        Write-Output "FAIL $Name : expected '$Expected', got '$Got'"
-        $script:Failures++
-    }
-}
+$global:Failures = 0
 
 # The window's settings, written where the class looks - the last of the three
 # paths it knows, the one this repository's own fragments live beside. Two
@@ -177,5 +169,5 @@ try {
 }
 
 Write-Output ""
-Write-Output ("failures: " + $Failures)
-exit $Failures
+Write-Output ("failures: " + $global:Failures)
+exit $global:Failures

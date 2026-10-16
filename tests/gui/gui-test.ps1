@@ -11,27 +11,27 @@
 # only - a ScriptProperty laid on by Add-Member is invisible, and a {Binding}
 # to a name that is not there paints nothing, in silence.
 #
-# Usage:  pwsh -NoProfile -File tests\gui-test.ps1
-using module ..\src\windows\ViewModels\BuildViewModel.psm1
-using module ..\src\windows\ViewModels\ArchiveViewModel.psm1
-using module ..\src\windows\ViewModels\CompactViewModel.psm1
-using module ..\src\windows\ViewModels\RemoveViewModel.psm1
-using module ..\src\windows\ViewModels\RestoreViewModel.psm1
-using module ..\src\windows\ViewModels\DuplicateViewModel.psm1
-using module ..\src\windows\ViewModels\DeleteArchiveViewModel.psm1
-using module ..\src\windows\ViewModels\ManagePacksViewModel.psm1
-using module ..\src\windows\ViewModels\SetAppearanceViewModel.psm1
-using module ..\src\windows\ViewModels\SettingsViewModel.psm1
-using module ..\src\windows\ViewModels\MainWindowViewModel.psm1
-using module ..\src\windows\ViewModels\RootMoveViewModel.psm1
-using module ..\src\windows\ViewModels\PackDuplicateViewModel.psm1
-using module ..\src\windows\ViewModels\ConfirmViewModel.psm1
-using module ..\src\windows\ViewModels\RecipeNameViewModel.psm1
-using module ..\src\windows\ViewModels\DockerRegisterViewModel.psm1
-using module ..\src\windows\ViewModels\ErrorViewModel.psm1
+# Usage:  pwsh -NoProfile -File tests\gui\gui-test.ps1
+using module ..\..\src\windows\ViewModels\BuildViewModel.psm1
+using module ..\..\src\windows\ViewModels\ArchiveViewModel.psm1
+using module ..\..\src\windows\ViewModels\CompactViewModel.psm1
+using module ..\..\src\windows\ViewModels\RemoveViewModel.psm1
+using module ..\..\src\windows\ViewModels\RestoreViewModel.psm1
+using module ..\..\src\windows\ViewModels\DuplicateViewModel.psm1
+using module ..\..\src\windows\ViewModels\DeleteArchiveViewModel.psm1
+using module ..\..\src\windows\ViewModels\ManagePacksViewModel.psm1
+using module ..\..\src\windows\ViewModels\SetAppearanceViewModel.psm1
+using module ..\..\src\windows\ViewModels\SettingsViewModel.psm1
+using module ..\..\src\windows\ViewModels\MainWindowViewModel.psm1
+using module ..\..\src\windows\ViewModels\RootMoveViewModel.psm1
+using module ..\..\src\windows\ViewModels\PackDuplicateViewModel.psm1
+using module ..\..\src\windows\ViewModels\ConfirmViewModel.psm1
+using module ..\..\src\windows\ViewModels\RecipeNameViewModel.psm1
+using module ..\..\src\windows\ViewModels\DockerRegisterViewModel.psm1
+using module ..\..\src\windows\ViewModels\ErrorViewModel.psm1
 
 $bad = 0
-$WpfRoot = (Get-Item (Join-Path $PSScriptRoot "..\src\windows\Views\WPF")).FullName
+$WpfRoot = (Get-Item (Join-Path $PSScriptRoot "..\..\src\windows\Views\WPF")).FullName
 
 # 1. The XAML files: well-formed XML, each one.
 $xamlFiles = @(Get-ChildItem $WpfRoot -Recurse -Filter *.xaml)
@@ -87,7 +87,7 @@ if (Test-Path $themePath) {
 #    Light block names excepted - exists in the theme. A misspelled one is
 #    ignored in silence and keeps the default, near impossible to notice
 #    by eye.
-$setsRoot = Join-Path $PSScriptRoot "..\assets\themes"
+$setsRoot = Join-Path $PSScriptRoot "..\..\assets\themes"
 $setFiles = if (Test-Path $setsRoot) { @(Get-ChildItem $setsRoot -Filter *.xaml) } else { @() }
 foreach ($f in $setFiles) {
     try {
@@ -177,7 +177,7 @@ Write-Host "$($map.Count) window(s) checked, every binding landed."
 # 6. The runners: they parse, they keep the one parameter family, and the two
 #    argument lines the window feeds them stay pinned - a rewrite that
 #    quietly changes the call is the bug this catches.
-$runnersRoot = Join-Path $PSScriptRoot "..\src\windows\Runners"
+$runnersRoot = Join-Path $PSScriptRoot "..\..\src\windows\Runners"
 $runners = @(Get-ChildItem $runnersRoot -Filter *.ps1)
 $family = 'param\(\s*\[string\]\$Name,[\s\S]*?\[string\]\$Assets,\s*\[string\]\$Root\s*\)'
 foreach ($f in $runners) {
@@ -194,7 +194,7 @@ foreach ($f in $runners) {
         $bad = 1
     }
 }
-$mainVm = [IO.File]::ReadAllText((Join-Path $PSScriptRoot "..\src\windows\ViewModels\MainWindowViewModel.psm1"))
+$mainVm = [IO.File]::ReadAllText((Join-Path $PSScriptRoot "..\..\src\windows\ViewModels\MainWindowViewModel.psm1"))
 $pins = @(
     @{ Pattern = 'Join-Path \$this\._runners "\$\(\$verb\)Runner\.ps1"';                      What = "the runner file named after the verb" },
     @{ Pattern = '"-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", "`"\$workerPath`"",'; What = "the hidden worker line" },

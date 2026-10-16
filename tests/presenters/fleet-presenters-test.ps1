@@ -10,68 +10,28 @@
 # native (wslconfig opens the file in an editor) - so the five traversals run
 # anywhere, the sandbox and the runner alike.
 #
-# Usage:  pwsh -NoProfile -File tests\fleet-presenters-test.ps1
-using module ..\src\windows\Presenters\Instance\ListPresenter.psm1
-using module ..\src\windows\Presenters\Instance\OpenPresenter.psm1
-using module ..\src\windows\Presenters\Instance\RestartPresenter.psm1
-using module ..\src\windows\Presenters\Fleet\MigratePresenter.psm1
-using module ..\src\windows\Presenters\Fleet\WslConfigPresenter.psm1
-using module ..\src\windows\Repositories\WslRepository.psm1
-using module ..\src\windows\Repositories\InstanceRepository.psm1
-using module ..\src\windows\Repositories\ArchiveRepository.psm1
-using module ..\src\windows\Repositories\TerminalRepository.psm1
-using module ..\src\windows\Repositories\DockerRepository.psm1
-using module ..\src\windows\Repositories\ConfigRepository.psm1
-using module ..\src\windows\Entities\WslInstance.psm1
-using module ..\src\windows\Dtos\InstanceDto.psm1
-using module ..\src\windows\Services\InstanceService.psm1
-using module ..\src\windows\Services\FleetService.psm1
+# Usage:  pwsh -NoProfile -File tests\presenters\fleet-presenters-test.ps1
+using module ..\..\src\windows\Presenters\Instance\ListPresenter.psm1
+using module ..\..\src\windows\Presenters\Instance\OpenPresenter.psm1
+using module ..\..\src\windows\Presenters\Instance\RestartPresenter.psm1
+using module ..\..\src\windows\Presenters\Fleet\MigratePresenter.psm1
+using module ..\..\src\windows\Presenters\Fleet\WslConfigPresenter.psm1
+using module ..\..\src\windows\Repositories\WslRepository.psm1
+using module ..\..\src\windows\Repositories\InstanceRepository.psm1
+using module ..\..\src\windows\Repositories\ArchiveRepository.psm1
+using module ..\..\src\windows\Repositories\TerminalRepository.psm1
+using module ..\..\src\windows\Repositories\DockerRepository.psm1
+using module ..\..\src\windows\Repositories\ConfigRepository.psm1
+using module ..\..\src\windows\Entities\WslInstance.psm1
+using module ..\..\src\windows\Dtos\InstanceDto.psm1
+using module ..\..\src\windows\Services\InstanceService.psm1
+using module ..\..\src\windows\Services\FleetService.psm1
+using module ..\support\common.psm1
 
-# The instance side of wsl, faked whole: the distros, the folders, who runs,
-# and the moves the gestures make - each recorded.
-class FakeWsl : WslRepository {
-    [System.Collections.Generic.List[string]]$Called
-    [string[]]$Distros = @()
-    [string[]]$Running = @()
-    [hashtable]$Folders = @{}
-    [string]$TerminateRefusal = ""
 
-    FakeWsl() : base([System.IO.Path]::GetTempPath()) {
-        $this.Called = [System.Collections.Generic.List[string]]::new()
-    }
-
-    [WslInstance[]] GetAllDistros() {
-        $found = @()
-        foreach ($name in @($this.Distros)) {
-            $instance = [WslInstance]::new()
-            $instance.SetName($name)
-            $found += $instance
-        }
-        return @($found)
-    }
-
-    [string[]] GetRunningNames() { return @($this.Running) }
-
-    [string] GetFolder([string]$distroName) {
-        if ($this.Folders.ContainsKey($distroName)) { return $this.Folders[$distroName] }
-        return ""
-    }
-
-    [void] Terminate([string]$instanceName) {
-        $this.Called.Add("terminate $instanceName")
-        if ($this.TerminateRefusal) { throw $this.TerminateRefusal }
-    }
-
-    [void] Start([string]$instanceName) { $this.Called.Add("start $instanceName") }
-    [void] Export([string]$instanceName, [string]$tarPath, [string]$format) { $this.Called.Add("export $instanceName") }
-    [void] Unregister([string]$instanceName) { $this.Called.Add("unregister $instanceName") }
-    [void] OpenProfile([string]$instanceName) { $this.Called.Add("open-profile $instanceName") }
-    [void] OpenBareShell([string]$instanceName) { $this.Called.Add("open-bare $instanceName") }
-}
-
-# Le geste dont le dernier pas est un natif - l'éditeur du .wslconfig - porte
-# sa couture ici : la méthode du service se fausse, le reste de la flotte est
-# le vrai.
+# The gesture whose last step is a native - the .wslconfig editor - carries
+# its seam here: the service method is faked, the rest of the fleet is
+# the real one.
 class FakeFleet : FleetService {
     [System.Collections.Generic.List[string]]$Called
     [string]$Path = "/tmp/fake-wslconfig"
@@ -142,36 +102,10 @@ class FakeWslConfigView {
     [void] Show([object]$response) { $this.Orders.Add("report $($response.Path) created=$($response.Created)") }
 }
 
-class FakeErrorView {
-    [System.Collections.Generic.List[string]]$Orders
-    FakeErrorView() { $this.Orders = [System.Collections.Generic.List[string]]::new() }
-    [void] Show([string]$failure) { $this.Orders.Add("error $failure") }
-}
-
-class FakeSelectView {
-    [string]$Answer = ""
-    [bool]$Asked = $false
-    [bool]$Rang = $false
-
-    [void] ShowNoInstances() { $this.Rang = $true }
-    [object] AskOffered([object[]]$offered) {
-        $this.Asked = $true
-        return $this.Answer
-    }
-}
 
 $ErrorActionPreference = "Stop"
 
-$Failures = 0
-function Check {
-    param([string]$Name, $Got, $Expected)
-    if ("$Got" -eq "$Expected") {
-        Write-Output "OK   $Name"
-    } else {
-        Write-Output "FAIL $Name : expected '$Expected', got '$Got'"
-        $script:Failures++
-    }
-}
+$global:Failures = 0
 
 # The world: the redirected profile with the root file pointing at a root of
 # the suite's, one instance carrying the marker and its disk, and a marked
@@ -207,7 +141,7 @@ $service = [InstanceService]::new($instances, $archives, $fake, $terminal, $dock
 $fleet = [FakeFleet]::new($config, $fake, $instances, $archives, $service)
 
 function New-ViewsRoot {
-    return (Join-Path $PSScriptRoot "..\src\windows\Views")
+    return (Join-Path $PSScriptRoot "..\..\src\windows\Views")
 }
 
 $failureView = [FakeErrorView]::new()
@@ -304,7 +238,7 @@ try {
     Check "  ... the warning, the door, the line, the banner" `
         ($restartView.Orders -join " | ") "warning $Instance | ask | restarting $Instance | report $Instance"
     Check "  ... stopped before started" `
-        (($fake.Called.IndexOf("terminate $Instance")) -lt ($fake.Called.IndexOf("start $Instance"))) $true
+        (($fake.Called.IndexOf("--terminate $Instance")) -lt ($fake.Called.IndexOf("-d $Instance --exec /bin/true"))) $true
 
     # 7. A stop that fails names the half: the refusal reaches the error view
     # and the run is a fault.
@@ -318,8 +252,8 @@ try {
 
     # ---- migrate -----------------------------------------------------------
 
-    # Rien à emporter : la flotte sous la racine est vide — le voyage
-    # instancié (archiver, désinscrire) est l'affaire du banc des archives.
+    # Nothing to carry: the fleet under the root is empty - the instantiated
+    # journey (archive, unregister) is the archive bench's affair.
     $fake.Distros = @()
 
     $migrateView = [FakeMigrateView]::new()
@@ -411,5 +345,5 @@ try {
 }
 
 Write-Output ""
-Write-Output ("failures: " + $Failures)
-exit $Failures
+Write-Output ("failures: " + $global:Failures)
+exit $global:Failures

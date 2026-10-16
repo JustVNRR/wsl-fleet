@@ -11,104 +11,23 @@
 # config repositories for the look - so the four traversals run anywhere, the
 # sandbox and the runner alike.
 #
-# Usage:  pwsh -NoProfile -File tests\pack-theme-presenters-test.ps1
-using module ..\src\windows\Presenters\Instance\AddPackPresenter.psm1
-using module ..\src\windows\Presenters\Instance\RemovePackPresenter.psm1
-using module ..\src\windows\Presenters\Instance\ManagePacksPresenter.psm1
-using module ..\src\windows\Presenters\Instance\SetAppearancePresenter.psm1
-using module ..\src\windows\Repositories\WslRepository.psm1
-using module ..\src\windows\Repositories\InstanceRepository.psm1
-using module ..\src\windows\Repositories\ArchiveRepository.psm1
-using module ..\src\windows\Repositories\TerminalRepository.psm1
-using module ..\src\windows\Repositories\DockerRepository.psm1
-using module ..\src\windows\Repositories\PackCatalogRepository.psm1
-using module ..\src\windows\Repositories\ConfigRepository.psm1
-using module ..\src\windows\Entities\WslInstance.psm1
-using module ..\src\windows\Entities\WslTheme.psm1
-using module ..\src\windows\Services\InstanceService.psm1
+# Usage:  pwsh -NoProfile -File tests\presenters\pack-theme-presenters-test.ps1
+using module ..\..\src\windows\Presenters\Instance\AddPackPresenter.psm1
+using module ..\..\src\windows\Presenters\Instance\RemovePackPresenter.psm1
+using module ..\..\src\windows\Presenters\Instance\ManagePacksPresenter.psm1
+using module ..\..\src\windows\Presenters\Instance\SetAppearancePresenter.psm1
+using module ..\..\src\windows\Repositories\WslRepository.psm1
+using module ..\..\src\windows\Repositories\InstanceRepository.psm1
+using module ..\..\src\windows\Repositories\ArchiveRepository.psm1
+using module ..\..\src\windows\Repositories\TerminalRepository.psm1
+using module ..\..\src\windows\Repositories\DockerRepository.psm1
+using module ..\..\src\windows\Repositories\PackCatalogRepository.psm1
+using module ..\..\src\windows\Repositories\ConfigRepository.psm1
+using module ..\..\src\windows\Entities\WslInstance.psm1
+using module ..\..\src\windows\Entities\WslTheme.psm1
+using module ..\..\src\windows\Services\InstanceService.psm1
+using module ..\support\common.psm1
 
-# The instance side of wsl, faked whole: every pack move answers here and is
-# recorded here - the order of the record is what the scenes read. The
-# instance's own state is $Installed, kept in step by the moves themselves.
-class FakeWsl : WslRepository {
-    [System.Collections.Generic.List[string]]$Called
-    [string[]]$Distros = @()
-    [string[]]$Installed = @()
-    [string]$Home = "/home/u"
-    [bool]$HasRoot = $false
-    [bool]$HasRemove = $true
-    [string]$FailScript = ""
-    [int]$FailCode = 1
-
-    FakeWsl() : base([System.IO.Path]::GetTempPath()) {
-        $this.Called = [System.Collections.Generic.List[string]]::new()
-    }
-
-    [WslInstance[]] GetAllDistros() {
-        $found = @()
-        foreach ($name in @($this.Distros)) {
-            $instance = [WslInstance]::new()
-            $instance.SetName($name)
-            $found += $instance
-        }
-        return @($found)
-    }
-
-    [string] GetHome([string]$instanceName) {
-        $this.Called.Add("home")
-        return $this.Home
-    }
-
-    [string] GetFamily([string]$instanceName) { return "debian" }
-
-    [string[]] GetInstalledPacks([string]$instanceName, [string]$packsDirectory) {
-        $this.Called.Add("installed")
-        return @($this.Installed)
-    }
-
-    [int] CopyFolderIntoInstance([string]$instanceName, [string]$sourceFolder, [string]$target) {
-        $this.Called.Add("copy-to $target")
-        if ($this.FailScript -eq "copy") { return $this.FailCode }
-        $leaf = Split-Path -Leaf $target
-        if ($this.Installed -notcontains $leaf) { $this.Installed = @($this.Installed) + $leaf }
-        return 0
-    }
-
-    [bool] HasInInstance([string]$instanceName, [string]$path) {
-        $this.Called.Add("has $path")
-        if ($path -like "*install_root.sh") { return $this.HasRoot }
-        if ($path -like "*remove.sh") { return $this.HasRemove }
-        return $false
-    }
-
-    [int] RunScriptInInstance([string]$instanceName, [string]$workingDirectory, [string]$script, [bool]$asRoot, [string]$errorLog) {
-        $who = if ($asRoot) { "root" } else { "user" }
-        $this.Called.Add("script $workingDirectory $script $who")
-        if ($script -eq $this.FailScript) { return $this.FailCode }
-        return 0
-    }
-
-    [int] RemoveFolderInInstance([string]$instanceName, [string]$target) {
-        $this.Called.Add("rm-folder $target")
-        $leaf = Split-Path -Leaf $target
-        $this.Installed = @($this.Installed | Where-Object { $_ -ne $leaf })
-        return 0
-    }
-
-    [bool] OpenPackSudoWindow([string]$instanceName) {
-        $this.Called.Add("door-open")
-        return $true
-    }
-
-    [void] ClosePackSudoWindow([string]$instanceName) {
-        $this.Called.Add("door-close")
-    }
-
-    [bool] RunOrphanCleanup([string]$instanceName) {
-        $this.Called.Add("orphan-cleanup")
-        return $true
-    }
-}
 
 # The look's side, faked whole: the theme this instance carries, the fragment
 # there or not, the guid, and the drawing - every call recorded. The fonts
@@ -158,8 +77,8 @@ class FakeTerminal : TerminalRepository {
     }
 }
 
-# La lecture des polices livrées, fausse : c'est Windows qui sait lire un
-# dossier de polices, et la suite n'en dépend pas.
+# The reading of the shipped fonts, faked: it is Windows that knows how to
+# read a folder of fonts, and the suite does not depend on it.
 class FakeConfig : ConfigRepository {
     [string[]]$FontNames = @()
 
@@ -336,36 +255,10 @@ class FakeThemeView {
     [void] Show([object]$response) { $this.Orders.Add("report $(@($response.Changes) -join ';')") }
 }
 
-class FakeErrorView {
-    [System.Collections.Generic.List[string]]$Orders
-    FakeErrorView() { $this.Orders = [System.Collections.Generic.List[string]]::new() }
-    [void] Show([string]$failure) { $this.Orders.Add("error $failure") }
-}
-
-class FakeSelectView {
-    [string]$Answer = ""
-    [bool]$Asked = $false
-    [bool]$Rang = $false
-
-    [void] ShowNoInstances() { $this.Rang = $true }
-    [object] AskOffered([object[]]$offered) {
-        $this.Asked = $true
-        return $this.Answer
-    }
-}
 
 $ErrorActionPreference = "Stop"
 
-$Failures = 0
-function Check {
-    param([string]$Name, $Got, $Expected)
-    if ("$Got" -eq "$Expected") {
-        Write-Output "OK   $Name"
-    } else {
-        Write-Output "FAIL $Name : expected '$Expected', got '$Got'"
-        $script:Failures++
-    }
-}
+$global:Failures = 0
 
 # The world: the redirected profile, a root of the suite's own with one
 # instance carrying the marker and its disk, and a packs folder whose
@@ -436,11 +329,11 @@ $config = [FakeConfig]::new()
 $service = [InstanceService]::new($instances, $archives, $fake, $terminal, $docker, $packs, $config)
 
 function New-ViewsRoot {
-    return (Join-Path $PSScriptRoot "..\src\windows\Views")
+    return (Join-Path $PSScriptRoot "..\..\src\windows\Views")
 }
 
-# Les réponses d'une scène tiennent dans les compteurs de la vue : chaque
-# scène les remet à zéro avant de rejouer.
+# A scene's answers live in the view's counters: each scene resets them
+# before it replays.
 function Reset-ThemeAnswers {
     param([FakeThemeView]$View)
     $View.ThemeAt = 0; $View.FontAt = 0; $View.ColourAt = 0
@@ -726,7 +619,7 @@ try {
     Check "  ... and the profile written with it" ($terminal.Called -join " | ") "savefragment guid-bench font=MesloLGS NF scheme=One Half Light icon=||| | touch"
 
     # 19. The letters: a refused shape is hinted, a good one taken up-cased,
-    # and Entrée takes the suggestion - the recipe seeded at XX.
+    # and Enter takes the suggestion - the recipe seeded at XX.
     Reset-World
     Seed-Recipe
     Reset-ThemeAnswers $themeView
@@ -821,5 +714,5 @@ try {
 }
 
 Write-Output ""
-Write-Output ("failures: " + $Failures)
-exit $Failures
+Write-Output ("failures: " + $global:Failures)
+exit $global:Failures

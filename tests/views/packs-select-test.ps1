@@ -20,109 +20,22 @@
 #
 # No standard input is read any more: the old answers file is left alone.
 #
-# Usage:  pwsh -NoProfile -File tests\packs-select-test.ps1
-using module ..\src\windows\Entities\WslPackCatalog.psm1
-using module ..\src\windows\Services\InstanceService.psm1
-using module ..\src\windows\Repositories\WslRepository.psm1
-using module ..\src\windows\Repositories\InstanceRepository.psm1
-using module ..\src\windows\Repositories\PackCatalogRepository.psm1
-using module ..\src\windows\Dtos\InstanceDto.psm1
+# Usage:  pwsh -NoProfile -File tests\views\packs-select-test.ps1
+using module ..\..\src\windows\Entities\WslPackCatalog.psm1
+using module ..\..\src\windows\Services\InstanceService.psm1
+using module ..\..\src\windows\Repositories\WslRepository.psm1
+using module ..\..\src\windows\Repositories\InstanceRepository.psm1
+using module ..\..\src\windows\Repositories\PackCatalogRepository.psm1
+using module ..\..\src\windows\Dtos\InstanceDto.psm1
+using module ..\support\common.psm1
 
 # The instance's own side of the moves, faked whole: every pack move answers
 # here and is recorded here - the order of the record is what the scenes read.
 # The scripts' answers are scripted: $FailScript fails with $FailCode once
 # $FailAfter matching calls have gone through, and $HasRoot/$HasRemove say
 # whether the instance carries those files.
-class FakeWsl : WslRepository {
-    [System.Collections.Generic.List[string]]$Called
-    [string[]]$Installed = @()
-    [string]$Home = "/home/u"
-    [string]$FailScript = ""
-    [int]$FailCode = 1
-    [int]$FailAfter = 1
-    [int]$FailSeen = 0
-    [bool]$HasRoot = $true
-    [bool]$HasRemove = $true
 
-    FakeWsl() : base([System.IO.Path]::GetTempPath()) {
-        $this.Called = [System.Collections.Generic.List[string]]::new()
-    }
-
-    [string] GetHome([string]$instanceName) {
-        $this.Called.Add("home")
-        return $this.Home
-    }
-
-    [string[]] GetInstalledPacks([string]$instanceName, [string]$packsDirectory) {
-        $this.Called.Add("installed")
-        return @($this.Installed)
-    }
-
-    [int] CopyFolderIntoInstance([string]$instanceName, [string]$sourceFolder, [string]$target) {
-        $this.Called.Add("copy-to $target")
-        if ($this.FailScript -eq "copy") {
-            $this.FailSeen++
-            if ($this.FailSeen -ge $this.FailAfter) { return $this.FailCode }
-        }
-        $leaf = Split-Path -Leaf $target
-        if ($this.Installed -notcontains $leaf) { $this.Installed = @($this.Installed) + $leaf }
-        return 0
-    }
-
-    [bool] HasInInstance([string]$instanceName, [string]$path) {
-        $this.Called.Add("has $path")
-        if ($path -like "*install_root.sh") { return $this.HasRoot }
-        if ($path -like "*remove.sh") { return $this.HasRemove }
-        return $false
-    }
-
-    [int] RunScriptInInstance([string]$instanceName, [string]$workingDirectory, [string]$script, [bool]$asRoot, [string]$errorLog) {
-        $who = if ($asRoot) { "root" } else { "user" }
-        $this.Called.Add("script $workingDirectory $script $who")
-        if ($script -eq $this.FailScript) {
-            $this.FailSeen++
-            if ($this.FailSeen -ge $this.FailAfter) { return $this.FailCode }
-        }
-        return 0
-    }
-
-    [int] CopyFileIntoInstance([string]$instanceName, [string]$sourceFile, [string]$targetPath) {
-        $this.Called.Add("refresh $targetPath")
-        return 0
-    }
-
-    [int] RemoveFolderInInstance([string]$instanceName, [string]$target) {
-        $this.Called.Add("rm-folder $target")
-        $leaf = Split-Path -Leaf $target
-        $this.Installed = @($this.Installed | Where-Object { $_ -ne $leaf })
-        return 0
-    }
-
-    [bool] OpenPackSudoWindow([string]$instanceName) {
-        $this.Called.Add("door-open")
-        return $true
-    }
-
-    [void] ClosePackSudoWindow([string]$instanceName) {
-        $this.Called.Add("door-close")
-    }
-
-    [bool] RunOrphanCleanup([string]$instanceName) {
-        $this.Called.Add("orphan-cleanup")
-        return $true
-    }
-}
-
-$Failures = 0
-function Check {
-    param([string]$Name, $Got, $Expected)
-    if ("$Got" -eq "$Expected") {
-        Write-Output "OK   $Name"
-    } else {
-        Write-Output "FAIL $Name : expected '$Expected', got '$Got'"
-        $script:Failures++
-    }
-}
+$global:Failures = 0
 
 # The catalogue as the service builds it: the declarations are read from the
 # repository - the folder walk lives there - then posed on the rules.
@@ -299,6 +212,7 @@ $Directory = "/home/u/.config/packs"
 # BEFORE the removal, and the orphan cleanup travels LAST - the whole design
 # of a shared package left where it is.
 $Wsl = [FakeWsl]::new()
+$Wsl.HasRoot = $true
 $Wsl.Installed = @("fake-b")
 $Service = New-Service $Wsl
 $Result = $Service.ManagePacks((New-Dto -Add @("fake-a") -Remove @("fake-b")))
@@ -315,6 +229,7 @@ Check "  ... and the declared pair moved" "$(($Result.Installed -join ",") + "/"
 # The door the installs run behind: opened before the install, closed after -
 # and the root half runs BEFORE the door, where no door can open yet.
 $Wsl = [FakeWsl]::new()
+$Wsl.HasRoot = $true
 $Service = New-Service $Wsl
 $null = $Service.ManagePacks((New-Dto -Add @("fake-a") -Remove @()))
 $Calls = @($Wsl.Called)
@@ -326,6 +241,7 @@ Check "nothing to remove -> no removal, and no orphan cleanup" (@($Calls | Where
 
 # A pack without a root half - claude is one - installs all the same.
 $Wsl = [FakeWsl]::new()
+$Wsl.HasRoot = $true
 $Wsl.HasRoot = $false
 $Service = New-Service $Wsl
 $null = $Service.ManagePacks((New-Dto -Add @("fake-a") -Remove @()))
@@ -337,6 +253,7 @@ Check "  ... and still runs its install behind the door" `
 # A root half that fails stops everything before the door: no install.sh has
 # run, so the folder goes back out - and the door never opens.
 $Wsl = [FakeWsl]::new()
+$Wsl.HasRoot = $true
 $Wsl.FailScript = "install_root.sh"
 $Service = New-Service $Wsl
 $Result = $Service.ManagePacks((New-Dto -Add @("fake-a") -Remove @()))
@@ -349,6 +266,7 @@ Check "  ... and the folder went back out" (@($Calls | Where-Object { $_ -eq "rm
 # A removal without a remove.sh: the folder leaves, no script runs, and the
 # cleanup travels all the same.
 $Wsl = [FakeWsl]::new()
+$Wsl.HasRoot = $true
 $Wsl.Installed = @("fake-b")
 $Wsl.HasRemove = $false
 $Service = New-Service $Wsl
@@ -361,6 +279,7 @@ Check "no remove.sh -> the folder leaves, no script runs" `
 # instance's copy before the run: a removal blocked by yesterday's script
 # would have no way out otherwise.
 $Wsl = [FakeWsl]::new()
+$Wsl.HasRoot = $true
 $Wsl.Installed = @("fake-b")
 $Service = New-Service $Wsl
 Set-Content -Path (Join-Path $ApplyRoot "fake-b\remove.sh") -Value "#!/bin/sh"
@@ -372,6 +291,7 @@ Remove-Item (Join-Path $ApplyRoot "fake-b\remove.sh") -Force
 
 # A failed copy names the pack that stopped it, and nothing else was touched.
 $Wsl = [FakeWsl]::new()
+$Wsl.HasRoot = $true
 $Wsl.Installed = @("fake-b")
 $Wsl.FailScript = "copy"
 $Service = New-Service $Wsl
@@ -382,6 +302,7 @@ Check "  ... and nothing else was touched" (@($Calls | Where-Object { $_ -like "
 
 # A failed install takes the folder back out - after the failure, not before.
 $Wsl = [FakeWsl]::new()
+$Wsl.HasRoot = $true
 $Wsl.FailScript = "install.sh"
 $Service = New-Service $Wsl
 $Result = $Service.ManagePacks((New-Dto -Add @("fake-a") -Remove @()))
@@ -393,6 +314,7 @@ Check "  ... and its folder goes back out, after the failure" `
 # Exit code 2 is a pack that asked a question and was told no, not a failure:
 # its folder goes back out, but the run carries on - no failure to explain.
 $Wsl = [FakeWsl]::new()
+$Wsl.HasRoot = $true
 $Wsl.FailScript = "install.sh"
 $Wsl.FailCode = 2
 $Service = New-Service $Wsl
@@ -405,6 +327,7 @@ Check "  ... and its folder goes back out" `
 # A failed remove.sh names that pack - and the newcomer was already installed,
 # the failure does not undo it, and both folders stay.
 $Wsl = [FakeWsl]::new()
+$Wsl.HasRoot = $true
 $Wsl.Installed = @("fake-b")
 $Wsl.FailScript = "remove.sh"
 $Service = New-Service $Wsl
@@ -419,6 +342,7 @@ Check "  ... and neither folder goes out" (@($Calls | Where-Object { $_ -like "r
 # touched - not even placed - so nothing of theirs is taken back, and the
 # failing pack's own folder is the only one that goes out.
 $Wsl = [FakeWsl]::new()
+$Wsl.HasRoot = $true
 $Wsl.Installed = @("fake-b")
 $Wsl.FailScript = "install.sh"
 $Service = New-Service $Wsl
@@ -434,6 +358,7 @@ Check "  ... and the run names the pack that stopped it" "$($Result.Failed)/$($R
 # it is already installed and stays - a folder left behind, though, would
 # pass for an installation.
 $Wsl = [FakeWsl]::new()
+$Wsl.HasRoot = $true
 $Wsl.FailScript = "copy"
 $Wsl.FailAfter = 2
 $Service = New-Service $Wsl
@@ -446,5 +371,5 @@ Check "  ... and the run names the pack that stopped it" "$($Result.Failed)/$($R
 Remove-Item -Recurse -Force $PacksRoot, $PacksRoot2, $PacksRoot3, $ApplyRoot -ErrorAction SilentlyContinue
 
 Write-Output ""
-Write-Output ("failures: " + $Failures)
-exit $Failures
+Write-Output ("failures: " + $global:Failures)
+exit $global:Failures

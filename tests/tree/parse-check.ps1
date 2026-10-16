@@ -12,10 +12,10 @@
 # System.Windows are left out, with a word saying so: the place that parses
 # the views for real is the machine that runs them.
 #
-# Usage:  pwsh -NoProfile -File tests\parse-check.ps1
+# Usage:  pwsh -NoProfile -File tests\tree\parse-check.ps1
 
 $bad = 0
-$Root = (Get-Item (Join-Path $PSScriptRoot "..")).FullName
+$Root = (Get-Item (Join-Path $PSScriptRoot "..\..")).FullName
 
 $WpfLoaded = $true
 foreach ($assembly in "PresentationFramework", "PresentationCore", "WindowsBase", "System.Windows.Forms") {

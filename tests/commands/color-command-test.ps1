@@ -17,8 +17,9 @@
 #
 # It needs no instance, no console and no Docker Desktop.
 #
-# Usage:  pwsh -NoProfile -File tests\color-command-test.ps1
-using module ..\src\windows\Services\ServiceFactory.psm1
+# Usage:  pwsh -NoProfile -File tests\commands\color-command-test.ps1
+using module ..\..\src\windows\Services\ServiceFactory.psm1
+using module ..\support\common.psm1
 
 $ErrorActionPreference = "Stop"
 
@@ -47,8 +48,8 @@ $OurFragmentExisted = Test-Path $OurFragment
 $Planted = "Test Scheme Alpha"
 
 # The entry, spelled the way a user's script spells it.
-$Entry = Join-Path $PSScriptRoot "..\wsl-fleet.ps1"
-$RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+$Entry = Join-Path $PSScriptRoot "..\..\wsl-fleet.ps1"
+$RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $Assets = Join-Path $RepoRoot "assets"
 $distroTree = Join-Path $RepoRoot "src\distro"
 if (-not (Test-Path $distroTree)) { $distroTree = "" }
@@ -57,16 +58,7 @@ if (-not (Test-Path $distroTree)) { $distroTree = "" }
 # tests the scripts under 7.
 $Engine = if ($PSVersionTable.PSEdition -eq "Core") { "pwsh" } else { "powershell" }
 
-$Failures = 0
-function Check {
-    param([string]$Name, $Got, $Expected)
-    if ("$Got" -eq "$Expected") {
-        Write-Output "OK   $Name"
-    } else {
-        Write-Output "FAIL $Name : expected '$Expected', got '$Got'"
-        $script:Failures++
-    }
-}
+$global:Failures = 0
 
 function Invoke-Theme {
     param([string[]]$Answers)
@@ -199,11 +191,11 @@ try {
 }
 
 Write-Output ""
-Write-Output ("failures: " + $Failures)
+Write-Output ("failures: " + $global:Failures)
 
-if ($Failures -gt 0) {
+if ($global:Failures -gt 0) {
     Write-Output ""
     Write-Output "--- the last run's own words ---"
     foreach ($Line in @($Out)) { Write-Output "    | $Line" }
 }
-exit $Failures
+exit $global:Failures

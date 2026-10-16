@@ -9,44 +9,16 @@
 # runs anywhere, the sandbox and the runner alike, with no registry and no
 # console.
 #
-# Usage:  pwsh -NoProfile -File tests\archive-presenter-test.ps1
-using module ..\src\windows\Presenters\Instance\ArchivePresenter.psm1
-using module ..\src\windows\Repositories\WslRepository.psm1
-using module ..\src\windows\Entities\WslInstance.psm1
-using module ..\src\windows\Repositories\InstanceRepository.psm1
-using module ..\src\windows\Repositories\ArchiveRepository.psm1
-using module ..\src\windows\Repositories\DockerRepository.psm1
-using module ..\src\windows\Services\InstanceService.psm1
+# Usage:  pwsh -NoProfile -File tests\presenters\archive-presenter-test.ps1
+using module ..\..\src\windows\Presenters\Instance\ArchivePresenter.psm1
+using module ..\..\src\windows\Repositories\WslRepository.psm1
+using module ..\..\src\windows\Entities\WslInstance.psm1
+using module ..\..\src\windows\Repositories\InstanceRepository.psm1
+using module ..\..\src\windows\Repositories\ArchiveRepository.psm1
+using module ..\..\src\windows\Repositories\DockerRepository.psm1
+using module ..\..\src\windows\Services\InstanceService.psm1
+using module ..\support\common.psm1
 
-# The instance side of wsl, faked whole: the list the presenter reads, and
-# the export it commands - recorded, so the Dto the presenter built shows in
-# the call it produced.
-class FakeWsl : WslRepository {
-    [System.Collections.Generic.List[string]]$Called
-    [string[]]$Distros = @()
-
-    FakeWsl() : base([System.IO.Path]::GetTempPath()) {
-        $this.Called = [System.Collections.Generic.List[string]]::new()
-    }
-
-    [WslInstance[]] GetAllDistros() {
-        $found = @()
-        foreach ($name in @($this.Distros)) {
-            $instance = [WslInstance]::new()
-            $instance.SetName($name)
-            $found += $instance
-        }
-        return @($found)
-    }
-
-    [string[]] GetRunningNames() {
-        return @()
-    }
-
-    [void] Export([string]$instanceName, [string]$tarPath, [string]$format) {
-        $this.Called.Add("--export $instanceName $tarPath --format $format")
-    }
-}
 
 # The view, dumb on purpose: every order recorded, every question answered
 # from a script - a view that decided would hide what the presenter decides.
@@ -69,30 +41,8 @@ class FakeArchiveView {
     }
 }
 
-class FakeSelectView {
-    [string]$Answer = ""
-    [bool]$Asked = $false
-    [bool]$Rang = $false
-    [object[]]$Offered = @()
 
-    [void] ShowNoInstances() { $this.Rang = $true }
-    [object] AskOffered([object[]]$offered) {
-        $this.Asked = $true
-        $this.Offered = @($offered)
-        return $this.Answer
-    }
-}
-
-$Failures = 0
-function Check {
-    param([string]$Name, $Got, $Expected)
-    if ("$Got" -eq "$Expected") {
-        Write-Output "OK   $Name"
-    } else {
-        Write-Output "FAIL $Name : expected '$Expected', got '$Got'"
-        $script:Failures++
-    }
-}
+$global:Failures = 0
 
 # The world: a root of the suite's own, one instance carrying the marker and
 # its disk, one archive already written under the family's folder - so the
@@ -106,8 +56,8 @@ New-Item -ItemType File -Path (Join-Path $InstanceFolder ".wsl-fleet") -Force | 
 Set-Content -Path (Join-Path $InstanceFolder "ext4.vhdx") -Value "fake-disk" -NoNewline
 $SeededArchive = Join-Path $Root "archives\$($Instance)_archive"
 New-Item -ItemType Directory -Path $SeededArchive -Force | Out-Null
-# Un fichier valide : un dossier nu ne compte pas comme archive, et la ligne
-# de l'écrasement doit avoir quelque chose à lire.
+# A valid file: a bare folder does not count as an archive, and the replacing
+# line must have something to read.
 Set-Content -Path (Join-Path $SeededArchive "instance.json") -Encoding Utf8 -Value '{ "DefaultUser": "qtest" }'
 Set-Content -Path (Join-Path $SeededArchive "bench-agent_archive.tar.gz") -Encoding Utf8 -Value "fake-tar"
 
@@ -118,7 +68,7 @@ $fake = [FakeWsl]::new()
 $fake.Distros = @($Instance)
 $service = [InstanceService]::new($instances, $archives, $fake, $null, $docker, $null, $null)
 
-$presenter = [ArchivePresenter]::new($service, (Join-Path $PSScriptRoot "..\src\windows\Views"), "cli")
+$presenter = [ArchivePresenter]::new($service, (Join-Path $PSScriptRoot "..\..\src\windows\Views"), "cli")
 $archiveView = [FakeArchiveView]::new()
 $selectView = [FakeSelectView]::new()
 $presenter.Views = @{ "Archive" = $archiveView }
@@ -180,5 +130,5 @@ try {
 }
 
 Write-Output ""
-Write-Output ("failures: " + $Failures)
-exit $Failures
+Write-Output ("failures: " + $global:Failures)
+exit $global:Failures

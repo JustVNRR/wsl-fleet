@@ -7,7 +7,7 @@
 # The paths come from this file's own folder: the repository may sit anywhere.
 $env:PATH = (Join-Path $PSScriptRoot "fake-docker") + [IO.Path]::PathSeparator + $env:PATH
 
-& (Join-Path $PSScriptRoot "..\wsl-fleet.ps1") @args
+& (Join-Path $PSScriptRoot "..\..\wsl-fleet.ps1") @args
 
 if ($null -eq $LASTEXITCODE) { exit 0 }
 exit $LASTEXITCODE

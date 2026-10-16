@@ -9,11 +9,11 @@
 #
 # It reads, it never writes: safe to run anywhere, on any branch.
 #
-# Usage: bash tests/doc-drift.sh
+# Usage: bash tests/tree/doc-drift.sh
 set -u
 
 # From this file's own folder, two levels up: tests/ sits at the root.
-cd "$(dirname "$0")/.." || exit 1
+cd "$(dirname "$0")/../.." || exit 1
 
 entry=$(tr -d '\r' < wsl-fleet.ps1)
 console=$(tr -d '\r' < src/windows/Start-Cli.ps1)

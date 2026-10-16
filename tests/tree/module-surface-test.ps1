@@ -15,11 +15,11 @@
 #
 # It reads, it never runs anything: no instance, no console, no Docker.
 #
-# Usage:  pwsh -NoProfile -File tests\module-surface-test.ps1
+# Usage:  pwsh -NoProfile -File tests\tree\module-surface-test.ps1
 
 $ErrorActionPreference = "Stop"
 
-$Root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+$Root = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $Windows = Join-Path $Root "src\windows"
 $bad = 0
 
@@ -32,7 +32,7 @@ $startCli = Get-Content (Join-Path $Windows "Start-Cli.ps1") -Raw
 
 # 1. Every gesture block calls a method its presenter carries.
 $seen = @{}
-# Les gestes : leur presenter porte la méthode, par convention de nom.
+# The gestures: their presenter carries the method, by naming convention.
 $migrated = [regex]::Matches($startCli, '"([a-z_]+)"\s*=\s*\{\s*param\([^)]*\)\s*\$Presenters\.([A-Za-z]+)\.([A-Za-z]+)\(')
 foreach ($m in $migrated) {
     $word = $m.Groups[1].Value
@@ -50,7 +50,7 @@ foreach ($m in $migrated) {
     if (-not $carried) { Fail "gesture '$word' calls $($presenter)Presenter.$method - no such method" }
 }
 
-# Un bloc d'une autre forme passerait sous le radar : chacun doit se lire ici.
+# A block of another shape would slip under the radar: every one must be read here.
 $total = [regex]::Matches($startCli, '"([a-z_]+)"\s*=\s*\{').Count
 if ($migrated.Count -ne $total) {
     Fail "$total gesture block(s) in Start-Cli.ps1, only $($migrated.Count) read - a block has another shape"

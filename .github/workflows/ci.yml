@@ -16,7 +16,7 @@
 #   - documentation coverage: every make/*.mk has its doc page, linked from the
 #     README; every workflow is named there; every target is in a cheatsheet;
 #     templates.tsv is four columns ending in a known tool
-#   - the docs and the menu say the same words (tests/doc-drift.sh)
+#   - the docs and the menu say the same words (tests/tree/doc-drift.sh)
 #
 # The second job, on windows-latest, is the one that RUNS the code instead of
 # reading it, because that is where PowerShell and wsl.exe are: every .ps1 must
@@ -295,7 +295,7 @@ jobs:
           exit $missing
 
       - name: The docs and the menu say the same words
-        run: bash tests/doc-drift.sh
+        run: bash tests/tree/doc-drift.sh
 
       - name: Template catalog integrity (templates.tsv)
         run: |
@@ -335,17 +335,17 @@ jobs:
 
       - name: PowerShell files parse
         shell: bash
-        run: pwsh -NoProfile -File tests/parse-check.ps1
+        run: pwsh -NoProfile -File tests/tree/parse-check.ps1
 
       - name: The CLI's surface - every gesture a method, every lookup a view
         if: always()
         shell: bash
-        run: pwsh -NoProfile -File tests/module-surface-test.ps1
+        run: pwsh -NoProfile -File tests/tree/module-surface-test.ps1
 
       - name: The window's files - the XAML, the theme's keys, every binding real, the runners pinned
         if: always()
         shell: bash
-        run: pwsh -NoProfile -File tests/gui-test.ps1
+        run: pwsh -NoProfile -File tests/gui/gui-test.ps1
 
       # The answers, where a suite reads them from the numbered prompt, come
       # from the .answers file beside it, never a copy spelled out here: a
@@ -355,99 +355,99 @@ jobs:
       - name: The arrow menu, driven by a scripted keyboard
         if: always()
         shell: bash
-        run: pwsh -NoProfile -File tests/menu-test.ps1 < tests/menu-test.answers
+        run: pwsh -NoProfile -File tests/views/menu-test.ps1 < tests/views/menu-test.answers
 
       - name: The checklists' shape, driven through the real menu
         if: always()
         shell: bash
-        run: pwsh -NoProfile -File tests/checklist-views-test.ps1 < tests/checklist-views.answers
+        run: pwsh -NoProfile -File tests/views/checklist-views-test.ps1 < tests/views/checklist-views.answers
 
       - name: The way in - the entry's two words, and the files behind them
         if: always()
         shell: bash
-        run: pwsh -NoProfile -File tests/wslui-test.ps1
+        run: pwsh -NoProfile -File tests/views/wslui-test.ps1
 
       - name: The pack rules and moves, on a catalogue of the test's own
         if: always()
         shell: bash
-        run: pwsh -NoProfile -File tests/packs-select-test.ps1
+        run: pwsh -NoProfile -File tests/views/packs-select-test.ps1
 
       - name: build's questions, with a stand-in docker
         if: always()
         shell: bash
-        run: bash tests/build-question-test.sh
+        run: bash tests/tree/build-question-test.sh
 
       - name: The name a Windows account proposes, cleaned into a user name
         if: always()
         shell: bash
-        run: pwsh -NoProfile -File tests/user-name-test.ps1
+        run: pwsh -NoProfile -File tests/views/user-name-test.ps1
 
       - name: The icon an instance is given, from its name
         if: always()
         shell: bash
-        run: pwsh -NoProfile -File tests/icon-test.ps1
+        run: pwsh -NoProfile -File tests/commands/icon-test.ps1
 
       - name: Choosing an instance's icon, on an instance of the test's own
         if: always()
         shell: bash
-        run: pwsh -NoProfile -File tests/icon-command-test.ps1
+        run: pwsh -NoProfile -File tests/commands/icon-command-test.ps1
 
       - name: Choosing an instance's font, on an instance of the test's own
         if: always()
         shell: bash
-        run: pwsh -NoProfile -File tests/font-command-test.ps1
+        run: pwsh -NoProfile -File tests/commands/font-command-test.ps1
 
       - name: Choosing an instance's colours, on an instance of the test's own
         if: always()
         shell: bash
-        run: pwsh -NoProfile -File tests/color-command-test.ps1
+        run: pwsh -NoProfile -File tests/commands/color-command-test.ps1
 
       - name: The colour a message takes, on schemes the test writes out
         if: always()
         shell: bash
-        run: pwsh -NoProfile -File tests/message-test.ps1
+        run: pwsh -NoProfile -File tests/views/message-test.ps1
 
       - name: Starting and restarting an instance, with a stand-in wsl
         if: always()
         shell: bash
-        run: pwsh -NoProfile -File tests/lifecycle-command-test.ps1
+        run: pwsh -NoProfile -File tests/commands/lifecycle-command-test.ps1
 
       - name: Archiving, restoring and copying, with a stand-in wsl
         if: always()
         shell: bash
-        run: pwsh -NoProfile -File tests/archive-command-test.ps1
+        run: pwsh -NoProfile -File tests/commands/archive-command-test.ps1
 
       - name: The archive traversal, driven by a fake view
         if: always()
         shell: bash
-        run: pwsh -NoProfile -File tests/archive-presenter-test.ps1
+        run: pwsh -NoProfile -File tests/presenters/archive-presenter-test.ps1
 
       - name: The instance gestures, presenters driven by fake views
         if: always()
         shell: bash
-        run: pwsh -NoProfile -File tests/instance-presenters-test.ps1
+        run: pwsh -NoProfile -File tests/presenters/instance-presenters-test.ps1
 
       - name: The Docker Desktop gestures, presenters driven by fake views
         if: always()
         shell: bash
-        run: pwsh -NoProfile -File tests/docker-presenters-test.ps1
+        run: pwsh -NoProfile -File tests/presenters/docker-presenters-test.ps1
 
       - name: The packs and the look, presenters driven by fake views
         if: always()
         shell: bash
-        run: pwsh -NoProfile -File tests/pack-theme-presenters-test.ps1
+        run: pwsh -NoProfile -File tests/presenters/pack-theme-presenters-test.ps1
 
       - name: The birth, its questionnaire driven by a fake view
         if: always()
         shell: bash
-        run: pwsh -NoProfile -File tests/build-presenter-test.ps1
+        run: pwsh -NoProfile -File tests/presenters/build-presenter-test.ps1
 
       - name: The readings and the fleet, presenters driven by fake views
         if: always()
         shell: bash
-        run: pwsh -NoProfile -File tests/fleet-presenters-test.ps1
+        run: pwsh -NoProfile -File tests/presenters/fleet-presenters-test.ps1
 
       - name: Removing an instance, with a stand-in wsl
         if: always()
         shell: bash
-        run: pwsh -NoProfile -File tests/unregister-command-test.ps1
+        run: pwsh -NoProfile -File tests/commands/unregister-command-test.ps1

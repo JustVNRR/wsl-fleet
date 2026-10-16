@@ -27,8 +27,9 @@
 #
 # It needs no instance, no console and no Docker Desktop.
 #
-# Usage:  pwsh -NoProfile -File tests\archive-command-test.ps1
-using module ..\src\windows\Services\ServiceFactory.psm1
+# Usage:  pwsh -NoProfile -File tests\commands\archive-command-test.ps1
+using module ..\..\src\windows\Services\ServiceFactory.psm1
+using module ..\support\common.psm1
 
 $ErrorActionPreference = "Stop"
 
@@ -72,8 +73,8 @@ if ($InTheWay.Count -gt 0) {
 }
 
 # The entry, spelled the way a user's script spells it.
-$Entry = Join-Path $PSScriptRoot "..\wsl-fleet.ps1"
-$RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+$Entry = Join-Path $PSScriptRoot "..\..\wsl-fleet.ps1"
+$RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $Assets = Join-Path $RepoRoot "assets"
 $distroTree = Join-Path $RepoRoot "src\distro"
 if (-not (Test-Path $distroTree)) { $distroTree = "" }
@@ -83,14 +84,14 @@ if (-not (Test-Path $distroTree)) { $distroTree = "" }
 $Engine = if ($PSVersionTable.PSEdition -eq "Core") { "pwsh" } else { "powershell" }
 
 # The stand-in, ahead of any wsl.exe for every child this suite starts: a real
-# binary of that name, compiled here from tests\fake-wsl\wsl.cs - the scripts
+# binary of that name, compiled here from tests\support\fake-wsl\wsl.cs - the scripts
 # call `wsl.exe` with its extension, so only a binary answers to it, never a
 # script.
 $FakeDir = Join-Path $Tmp "fake-wsl"
 New-Item -ItemType Directory -Path $FakeDir -Force | Out-Null
 $Csc = Join-Path $env:WINDIR "Microsoft.NET\Framework64\v4.0.30319\csc.exe"
 if (-not (Test-Path $Csc)) { $Csc = Join-Path $env:WINDIR "Microsoft.NET\Framework\v4.0.30319\csc.exe" }
-& $Csc /nologo /out:"$(Join-Path $FakeDir 'wsl.exe')" (Join-Path $PSScriptRoot "fake-wsl\wsl.cs")
+& $Csc /nologo /out:"$(Join-Path $FakeDir 'wsl.exe')" (Join-Path $PSScriptRoot "..\support\fake-wsl\wsl.cs")
 if ($LASTEXITCODE -ne 0 -or -not (Test-Path (Join-Path $FakeDir "wsl.exe"))) {
     throw "the stand-in wsl.exe could not be compiled"
 }
@@ -98,16 +99,7 @@ $env:PATH = $FakeDir + [IO.Path]::PathSeparator + $env:PATH
 $env:FAKE_WSL_LOG = $Log
 $env:FAKE_WSL_INSTANCE = $FakeName
 
-$Failures = 0
-function Check {
-    param([string]$Name, $Got, $Expected)
-    if ("$Got" -eq "$Expected") {
-        Write-Output "OK   $Name"
-    } else {
-        Write-Output "FAIL $Name : expected '$Expected', got '$Got'"
-        $script:Failures++
-    }
-}
+$global:Failures = 0
 
 # The child's own exit code, beside its output: a refusal is a result too.
 $script:ChildExit = 0
@@ -342,11 +334,11 @@ try {
 }
 
 Write-Output ""
-Write-Output ("failures: " + $Failures)
+Write-Output ("failures: " + $global:Failures)
 
-if ($Failures -gt 0) {
+if ($global:Failures -gt 0) {
     Write-Output ""
     Write-Output "--- the last run's own words ---"
     foreach ($Line in @($Out)) { Write-Output "    | $Line" }
 }
-exit $Failures
+exit $global:Failures

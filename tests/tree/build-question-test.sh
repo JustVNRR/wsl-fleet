@@ -33,15 +33,15 @@
 #     question's own words the hint
 #   - nothing is left behind: no instance, no tar, no folder, exit code 1
 #
-# Usage: bash tests/build-question-test.sh
-#        PS_ENGINE=powershell bash tests/build-question-test.sh   (the old PowerShell)
+# Usage: bash tests/tree/build-question-test.sh
+#        PS_ENGINE=powershell bash tests/tree/build-question-test.sh   (the old PowerShell)
 set -u
 
 TestsDir=$(cd "$(dirname "$0")" && pwd)
-RepoTemplate=$(cd "$TestsDir/.." && pwd)
+RepoTemplate=$(cd "$TestsDir/../.." && pwd)
 # powershell -File wants the Windows form of the path: the checkout may live
 # anywhere, under a Git Bash that spells it /d/...
-Run=$(cygpath -w "$TestsDir/fake-docker-run.ps1")
+Run=$(cygpath -w "$TestsDir/../support/fake-docker-run.ps1")
 # The engine under test: PowerShell 7, or what PS_ENGINE names.
 PS=${PS_ENGINE:-pwsh}
 # The Windows account name the build proposes: dotted and cased, so the

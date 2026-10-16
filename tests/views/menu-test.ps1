@@ -1,14 +1,15 @@
 # The classes this file names, pulled in by the file itself.
-using module ..\src\windows\Views\cli\MenuCli.psm1
-using module ..\src\windows\Views\cli\BaseViewCli.psm1
+using module ..\..\src\windows\Views\cli\MenuCli.psm1
+using module ..\..\src\windows\Views\cli\BaseViewCli.psm1
+using module ..\support\common.psm1
 
 # Drives the menu classes with a scripted console: the arrow loop runs with no
 # terminal in sight, which is the only way to test it. The console is a
-# ConsoleCli subclass (fake-console.ps1, next to this file) that answers
+# ConsoleCli subclass (fake-console.ps1, under tests\support) that answers
 # canned keys and records the lines - the tests replace the object, not
 # functions by name.
 #
-# Usage:  pwsh -File tests\menu-test.ps1 < tests\menu-test.answers
+# Usage:  pwsh -File tests\views\menu-test.ps1 < tests\views\menu-test.answers
 #
 # The last checks use no fake at all - the no-console case: the menu builds
 # the real console, sees no keyboard, and reads the numbered prompt's answers
@@ -16,18 +17,9 @@ using module ..\src\windows\Views\cli\BaseViewCli.psm1
 # copy is a copy that drifts, and that is exactly what happened once.
 #
 $ErrorActionPreference = "Stop"
-. (Join-Path $PSScriptRoot "fake-console.ps1")
+. (Join-Path $PSScriptRoot "..\support\fake-console.ps1")
 
-$Failures = 0
-function Check {
-    param([string]$Name, $Got, $Expected)
-    if ("$Got" -eq "$Expected") {
-        Write-Output "OK   $Name"
-    } else {
-        Write-Output "FAIL $Name : expected '$Expected', got '$Got'"
-        $script:Failures++
-    }
-}
+$global:Failures = 0
 
 # Rows for a plain list: the text is the value, spelled plainly.
 function ItemsOf {
@@ -256,5 +248,5 @@ Check "clearing the screen is safe without one" (& {
 }) "survived"
 
 Write-Output ""
-Write-Output ("failures: " + $Failures)
-exit $Failures
+Write-Output ("failures: " + $global:Failures)
+exit $global:Failures

@@ -9,11 +9,13 @@
 #
 # It needs no instance, no console and no Docker.
 #
-# Usage:  pwsh -NoProfile -File tests\icon-test.ps1
+# Usage:  pwsh -NoProfile -File tests\commands\icon-test.ps1
+
+using module ..\support\common.psm1
 
 $ErrorActionPreference = "Stop"
 
-$IconScript = Join-Path $PSScriptRoot "..\src\windows\Tools\make-icon.ps1"
+$IconScript = Join-Path $PSScriptRoot "..\..\src\windows\Tools\make-icon.ps1"
 # Child processes follow the engine this suite runs under, so a pass under 7
 # tests the scripts under 7.
 $Engine = if ($PSVersionTable.PSEdition -eq "Core") { "pwsh" } else { "powershell" }
@@ -24,16 +26,7 @@ $StrayAtStart = Test-Path (Join-Path (Get-Location) "terminal-icon.png")
 $Tmp = Join-Path ([System.IO.Path]::GetTempPath()) ("icon-test-" + [Guid]::NewGuid().ToString("N"))
 New-Item -ItemType Directory -Path $Tmp -Force | Out-Null
 
-$Failures = 0
-function Check {
-    param([string]$Name, $Got, $Expected)
-    if ("$Got" -eq "$Expected") {
-        Write-Output "OK   $Name"
-    } else {
-        Write-Output "FAIL $Name : expected '$Expected', got '$Got'"
-        $script:Failures++
-    }
-}
+$global:Failures = 0
 
 # One drawing, in a process of its own. Returns what it printed, or $null when
 # it failed: a drawing that cannot be made must say so, not write an empty file.
@@ -180,5 +173,5 @@ Check "nothing was drawn into the working folder" (Test-Path (Join-Path (Get-Loc
 Remove-Item -Recurse -Force $Tmp
 
 Write-Output ""
-Write-Output ("failures: " + $Failures)
-exit $Failures
+Write-Output ("failures: " + $global:Failures)
+exit $global:Failures

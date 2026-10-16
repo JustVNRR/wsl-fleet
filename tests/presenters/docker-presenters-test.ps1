@@ -6,64 +6,21 @@
 # settings are a table: every write, every restart and every start is
 # recorded in the order the service makes it.
 #
-# Usage:  pwsh -NoProfile -File tests\docker-presenters-test.ps1
-using module ..\src\windows\Presenters\Instance\RegisterDockerPresenter.psm1
-using module ..\src\windows\Presenters\Instance\UnregisterDockerPresenter.psm1
-using module ..\src\windows\Repositories\WslRepository.psm1
-using module ..\src\windows\Entities\WslInstance.psm1
-using module ..\src\windows\Repositories\InstanceRepository.psm1
-using module ..\src\windows\Repositories\ArchiveRepository.psm1
-using module ..\src\windows\Repositories\TerminalRepository.psm1
-using module ..\src\windows\Repositories\DockerRepository.psm1
-using module ..\src\windows\Services\InstanceService.psm1
+# Usage:  pwsh -NoProfile -File tests\presenters\docker-presenters-test.ps1
+using module ..\..\src\windows\Presenters\Instance\RegisterDockerPresenter.psm1
+using module ..\..\src\windows\Presenters\Instance\UnregisterDockerPresenter.psm1
+using module ..\..\src\windows\Repositories\WslRepository.psm1
+using module ..\..\src\windows\Entities\WslInstance.psm1
+using module ..\..\src\windows\Repositories\InstanceRepository.psm1
+using module ..\..\src\windows\Repositories\ArchiveRepository.psm1
+using module ..\..\src\windows\Repositories\TerminalRepository.psm1
+using module ..\..\src\windows\Repositories\DockerRepository.psm1
+using module ..\..\src\windows\Services\InstanceService.psm1
+using module ..\support\common.psm1
 
 # wsl, faked to the little the index needs: the distro names - the rest of
 # the world lives in the folder each name points at.
-class FakeWsl : WslRepository {
-    [string[]]$Distros = @()
-    FakeWsl() : base([System.IO.Path]::GetTempPath()) { }
-    [WslInstance[]] GetAllDistros() {
-        $found = @()
-        foreach ($name in @($this.Distros)) {
-            $instance = [WslInstance]::new()
-            $instance.SetName($name)
-            $found += $instance
-        }
-        return @($found)
-    }
-}
 
-class FakeDocker : DockerRepository {
-    [System.Collections.Generic.List[string]]$Called
-    [hashtable]$States = @{}
-    [bool]$Readable = $true
-    [bool]$Running = $true
-    [bool]$RestartOk = $true
-    [bool]$StartOk = $true
-
-    FakeDocker() : base([System.IO.Path]::GetTempPath()) {
-        $this.Called = [System.Collections.Generic.List[string]]::new()
-    }
-
-    [object] GetDesktopNames() {
-        if (-not $this.Readable) { return $null }
-        $names = @()
-        foreach ($key in @($this.States.Keys)) {
-            if ("$($this.States[$key])" -eq "yes") { $names += "$key" }
-        }
-        return @($names)
-    }
-    [string] GetDesktopState([string]$instanceName) {
-        if (-not $this.Readable) { return "unknown" }
-        if ($this.States.ContainsKey($instanceName)) { return "$($this.States[$instanceName])" }
-        return "no"
-    }
-    [void] SetDesktopState([string]$instanceName) { $this.Called.Add("set $instanceName"); $this.States[$instanceName] = "yes" }
-    [void] RemoveDesktopState([string]$instanceName) { $this.Called.Add("remove $instanceName"); $this.States[$instanceName] = "no" }
-    [bool] RestartDesktop() { $this.Called.Add("restart"); return $this.RestartOk }
-    [bool] StartDesktop() { $this.Called.Add("start"); return $this.StartOk }
-    [bool] TestRunning() { $this.Called.Add("running"); return $this.Running }
-}
 
 class FakeDockerView {
     [System.Collections.Generic.List[string]]$Orders
@@ -82,34 +39,10 @@ class FakeDockerView {
     [void] Show([object]$response) { $this.Orders.Add("report $($response.InstanceName) $($response.Restart)") }
 }
 
-class FakeSelectView {
-    [string]$Answer = ""
-    [string]$Saw = ""
-    [void] ShowNoInstances() { $this.Saw = "none" }
-    [object] AskOffered([object[]]$offered) {
-        $this.Saw = (@($offered) | ForEach-Object { "$($_.Name)" }) -join ","
-        return $this.Answer
-    }
-}
-
-class FakeErrorView {
-    [System.Collections.Generic.List[string]]$Orders
-    FakeErrorView() { $this.Orders = [System.Collections.Generic.List[string]]::new() }
-    [void] Show([string]$failure) { $this.Orders.Add("error $failure") }
-}
 
 $ErrorActionPreference = "Stop"
 
-$Failures = 0
-function Check {
-    param([string]$Name, $Got, $Expected)
-    if ("$Got" -eq "$Expected") {
-        Write-Output "OK   $Name"
-    } else {
-        Write-Output "FAIL $Name : expected '$Expected', got '$Got'"
-        $script:Failures++
-    }
-}
+$global:Failures = 0
 
 # The world: the redirected profile, a root of the suite's own, three live
 # instances carrying their marker and their disk - alpha unregistered, beta
@@ -137,7 +70,7 @@ $fake.Distros = @("alpha", "beta", "gamma")
 $service = [InstanceService]::new($instances, $archives, $fake, $terminal, $docker, $null, $null)
 
 function New-ViewsRoot {
-    return (Join-Path $PSScriptRoot "..\src\windows\Views")
+    return (Join-Path $PSScriptRoot "..\..\src\windows\Views")
 }
 
 # The standard table, posed before every scene: a fresh world of states, a
@@ -266,5 +199,5 @@ try {
 }
 
 Write-Output ""
-Write-Output ("failures: " + $Failures)
-exit $Failures
+Write-Output ("failures: " + $global:Failures)
+exit $global:Failures

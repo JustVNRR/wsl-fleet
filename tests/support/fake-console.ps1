@@ -1,5 +1,5 @@
 # The class it derives from, pulled in by the file itself.
-using module ..\src\windows\Views\cli\MenuCli.psm1
+using module ..\..\src\windows\Views\cli\MenuCli.psm1
 
 # The console the tests give the menu: canned keys, canned answers for the
 # numbered prompt, a canned window, a cursor that mimics a scrolling console,

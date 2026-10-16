@@ -342,21 +342,25 @@ first of all: its `config/` folder is what fills `~/.config/zsh`.
 │   ├── make/                # Documentation of the shell's gmake modules
 │   ├── wsl/                 # Instance administration: the commands, their options, examples
 │   └── zsh/                 # Shell environment documentation (plugins, keys, aliases, tools)
-├── tests/                   # The suites that RUN the code: the arrow menu with a
-│                            # scripted keyboard, the way in with a scripted
-│                            # terminal, the pack checklist, build's
-│                            # questions over a stand-in docker, the icon a name
-│                            # draws, the icon, font and colour commands, the
-│                            # colour a message takes, the name a Windows
-│                            # account proposes, starting and restarting
-│                            # over a stand-in wsl, archiving and coming back
-│                            # from an archive, removing an instance, the
-│                            # window's own files - the XAML, the theme's
-│                            # keys, the colour sets, the runners' calls -
-│                            # the module's surface, and doc drift
-│   ├── fake-docker/         # That stand-in: answers the preflight, fails the import
-│   └── fake-wsl/            # And the suites that drive wsl: logs every call, writes
-│                            # what an export would, creates what an import would
+├── tests/                   # The suites that RUN the code, by kind:
+│   ├── presenters/          # Six benches driving presenters over stand-in
+│                            # repositories - every call recorded
+│   ├── commands/            # The icon, font and colour commands, starting and
+│                            # restarting over a stand-in wsl, archiving and
+│                            # coming back from an archive, removing an
+│                            # instance, the icon a name draws
+│   ├── views/               # The arrow menu with a scripted keyboard, the pack
+│                            # checklist, packs-select, the way in, the colour a
+│                            # message takes, the name a Windows account proposes
+│   ├── gui/                 # The window's own files - the XAML, the theme's
+│                            # keys, the colour sets, the runners' calls
+│   ├── tree/                # Whole-repo readers: parse, the module's surface,
+│                            # doc drift, and build's questions over a stand-in
+│                            # docker
+│   └── support/             # The stand-ins: wsl (logs every call, writes what an
+│                            # export would, creates what an import would), docker
+│                            # (answers the preflight, fails the import), the
+│                            # scripted console, and the shared harness
 ├── .github/
 │   └── workflows/
 │       ├── ci.yml           # Static checks, then the code suites on Windows

@@ -10,62 +10,21 @@
 # redirected profile keeping Terminal's files in the temp - so the five
 # traversals run anywhere, the sandbox and the runner alike.
 #
-# Usage:  pwsh -NoProfile -File tests\instance-presenters-test.ps1
-using module ..\src\windows\Presenters\Instance\RemovePresenter.psm1
-using module ..\src\windows\Presenters\Instance\DeleteArchivePresenter.psm1
-using module ..\src\windows\Presenters\Instance\CompactPresenter.psm1
-using module ..\src\windows\Presenters\Instance\RestorePresenter.psm1
-using module ..\src\windows\Presenters\Instance\DuplicatePresenter.psm1
-using module ..\src\windows\Repositories\WslRepository.psm1
-using module ..\src\windows\Entities\WslInstance.psm1
-using module ..\src\windows\Repositories\InstanceRepository.psm1
-using module ..\src\windows\Repositories\ArchiveRepository.psm1
-using module ..\src\windows\Repositories\TerminalRepository.psm1
-using module ..\src\windows\Repositories\DockerRepository.psm1
-using module ..\src\windows\Services\InstanceService.psm1
+# Usage:  pwsh -NoProfile -File tests\presenters\instance-presenters-test.ps1
+using module ..\..\src\windows\Presenters\Instance\RemovePresenter.psm1
+using module ..\..\src\windows\Presenters\Instance\DeleteArchivePresenter.psm1
+using module ..\..\src\windows\Presenters\Instance\CompactPresenter.psm1
+using module ..\..\src\windows\Presenters\Instance\RestorePresenter.psm1
+using module ..\..\src\windows\Presenters\Instance\DuplicatePresenter.psm1
+using module ..\..\src\windows\Repositories\WslRepository.psm1
+using module ..\..\src\windows\Entities\WslInstance.psm1
+using module ..\..\src\windows\Repositories\InstanceRepository.psm1
+using module ..\..\src\windows\Repositories\ArchiveRepository.psm1
+using module ..\..\src\windows\Repositories\TerminalRepository.psm1
+using module ..\..\src\windows\Repositories\DockerRepository.psm1
+using module ..\..\src\windows\Services\InstanceService.psm1
+using module ..\support\common.psm1
 
-# The instance side of wsl, faked whole: every call the five gestures make is
-# recorded here, so the order and the shape of what the presenters command
-# are what the checks read.
-class FakeWsl : WslRepository {
-    [System.Collections.Generic.List[string]]$Called
-    [string[]]$Distros = @()
-    [string[]]$Running = @()
-    [string]$TruncateVhdx = ""
-
-    FakeWsl() : base([System.IO.Path]::GetTempPath()) {
-        $this.Called = [System.Collections.Generic.List[string]]::new()
-    }
-
-    [WslInstance[]] GetAllDistros() {
-        $found = @()
-        foreach ($name in @($this.Distros)) {
-            $instance = [WslInstance]::new()
-            $instance.SetName($name)
-            $found += $instance
-        }
-        return @($found)
-    }
-
-    [string[]] GetRunningNames() { return @($this.Running) }
-    [void] Terminate([string]$instanceName) { $this.Called.Add("--terminate $instanceName") }
-    [void] TerminateQuietly([string]$instanceName) { $this.Called.Add("--terminate $instanceName") }
-    [void] Unregister([string]$instanceName) { $this.Called.Add("--unregister $instanceName") }
-    [void] Start([string]$instanceName) { $this.Called.Add("-d $instanceName --exec /bin/true") }
-    [void] Compact([string]$instanceName) {
-        $this.Called.Add("--manage $instanceName --compact")
-        # La compaction qui rend vraiment de la place : le disque de la scène
-        # rétrécit pendant l'appel, comme le vrai.
-        if ($this.TruncateVhdx) { Set-Content -Path $this.TruncateVhdx -Value "x" -NoNewline }
-    }
-    [void] Export([string]$instanceName, [string]$tarPath, [string]$format) { $this.Called.Add("--export $instanceName $tarPath --format $format") }
-    [void] Import([string]$instanceName, [string]$folder, [string]$tarPath) {
-        # Le vrai import crée le dossier : la doublure fait de même, sinon la
-        # première écriture qui suit n'a nulle part où aller.
-        New-Item -ItemType Directory -Path $folder -Force | Out-Null
-        $this.Called.Add("--import $instanceName $folder $tarPath --version 2")
-    }
-}
 
 # The four view fakes: every order recorded, every question answered from a
 # script. A view that decided would hide what the presenter decides.
@@ -156,30 +115,10 @@ class FakeDuplicateView {
     }
 }
 
-class FakeSelectView {
-    [string]$Answer = ""
-    [bool]$Asked = $false
-    [bool]$Rang = $false
-
-    [void] ShowNoInstances() { $this.Rang = $true }
-    [object] AskOffered([object[]]$offered) {
-        $this.Asked = $true
-        return $this.Answer
-    }
-}
 
 $ErrorActionPreference = "Stop"
 
-$Failures = 0
-function Check {
-    param([string]$Name, $Got, $Expected)
-    if ("$Got" -eq "$Expected") {
-        Write-Output "OK   $Name"
-    } else {
-        Write-Output "FAIL $Name : expected '$Expected', got '$Got'"
-        $script:Failures++
-    }
-}
+$global:Failures = 0
 
 # The world: the redirected profile (Terminal's files are writes the
 # traversal makes), a root of the suite's own, one instance carrying the
@@ -217,7 +156,7 @@ $fake.Distros = @($Instance)
 $service = [InstanceService]::new($instances, $archives, $fake, $terminal, $docker, $null, $null)
 
 function New-ViewsRoot {
-    return (Join-Path $PSScriptRoot "..\src\windows\Views")
+    return (Join-Path $PSScriptRoot "..\..\src\windows\Views")
 }
 
 try {
@@ -409,5 +348,5 @@ try {
 }
 
 Write-Output ""
-Write-Output ("failures: " + $Failures)
-exit $Failures
+Write-Output ("failures: " + $global:Failures)
+exit $global:Failures

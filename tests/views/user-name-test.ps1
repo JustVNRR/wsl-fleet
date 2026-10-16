@@ -12,21 +12,13 @@
 # same text, since a drift there would propose two different names to two
 # faces.
 #
-# Usage:  pwsh -NoProfile -File tests\user-name-test.ps1
-using module ..\src\windows\ViewModels\BuildViewModel.psm1
+# Usage:  pwsh -NoProfile -File tests\views\user-name-test.ps1
+using module ..\..\src\windows\ViewModels\BuildViewModel.psm1
+using module ..\support\common.psm1
 
 $ErrorActionPreference = "Stop"
 
-$Failures = 0
-function Check {
-    param([string]$Name, $Got, $Expected)
-    if ("$Got" -eq "$Expected") {
-        Write-Output "OK   $Name"
-    } else {
-        Write-Output "FAIL $Name : expected '$Expected', got '$Got'"
-        $script:Failures++
-    }
-}
+$global:Failures = 0
 
 # The proposal of the window's ViewModel: its constructor reads the Windows
 # account name and cleans it, so one build made per case answers the rule.
@@ -72,11 +64,11 @@ function CleaningBlock {
     if (-not $Match.Success) { return "" }
     return ((@($Match.Value -split "`n") | ForEach-Object { "$_".Trim() }) -join "|")
 }
-$InVm = CleaningBlock "..\src\windows\ViewModels\BuildViewModel.psm1"
-$InConsole = CleaningBlock "..\src\windows\Presenters\Instance\BuildPresenter.psm1"
+$InVm = CleaningBlock "..\..\src\windows\ViewModels\BuildViewModel.psm1"
+$InConsole = CleaningBlock "..\..\src\windows\Presenters\Instance\BuildPresenter.psm1"
 Check "the cleaning is found in both homes" (($InVm.Length -gt 0) -and ($InConsole.Length -gt 0)) $true
 Check "and the two copies are the same text" ($InVm -eq $InConsole) $true
 
 Write-Output ""
-Write-Output ("failures: " + $Failures)
-exit $Failures
+Write-Output ("failures: " + $global:Failures)
+exit $global:Failures

@@ -1,6 +1,6 @@
 # Drives the lifecycle commands - restart, shell, compact, list - the way a
 # script would: answers on standard input, no console anywhere, and a
-# stand-in wsl.exe ahead on the PATH - built from tests\fake-wsl\wsl.cs,
+# stand-in wsl.exe ahead on the PATH - built from tests\support\fake-wsl\wsl.cs,
 # logging every call and answering from its own log: a distribution counts as
 # running once a boot command has gone through.
 #
@@ -21,8 +21,9 @@
 #
 # It needs no instance, no console and no Docker Desktop.
 #
-# Usage:  pwsh -NoProfile -File tests\lifecycle-command-test.ps1
-using module ..\src\windows\Services\ServiceFactory.psm1
+# Usage:  pwsh -NoProfile -File tests\commands\lifecycle-command-test.ps1
+using module ..\..\src\windows\Services\ServiceFactory.psm1
+using module ..\support\common.psm1
 
 $ErrorActionPreference = "Stop"
 
@@ -40,12 +41,12 @@ $env:APPDATA = Join-Path $Tmp "AppData"
 New-Item -ItemType Directory -Path (Join-Path $env:LOCALAPPDATA "wsl-fleet") -Force | Out-Null
 New-Item -ItemType Directory -Path $env:APPDATA -Force | Out-Null
 Set-Content -Path (Join-Path $env:LOCALAPPDATA "wsl-fleet\root.txt") -Value $Tmp -Encoding ascii
-# L'instance vit ou le repertoire la cherche : sous la racine, par son nom.
+# The instance lives where the folder seeks it: under the root, by its name.
 $FakeFolder = Join-Path $Tmp $FakeName
 
 # The entry, spelled the way a user's script spells it.
-$Entry = Join-Path $PSScriptRoot "..\wsl-fleet.ps1"
-$RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+$Entry = Join-Path $PSScriptRoot "..\..\wsl-fleet.ps1"
+$RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $Assets = Join-Path $RepoRoot "assets"
 $distroTree = Join-Path $RepoRoot "src\distro"
 if (-not (Test-Path $distroTree)) { $distroTree = "" }
@@ -55,7 +56,7 @@ if (-not (Test-Path $distroTree)) { $distroTree = "" }
 $Engine = if ($PSVersionTable.PSEdition -eq "Core") { "pwsh" } else { "powershell" }
 
 # The stand-in, ahead of any wsl.exe for every child this suite starts: a real
-# binary of that name, compiled here from tests\fake-wsl\wsl.cs - the scripts
+# binary of that name, compiled here from tests\support\fake-wsl\wsl.cs - the scripts
 # call `wsl.exe` with its extension, so only a binary answers to it, never a
 # script. Its answers come from the log it writes: an empty log is a machine
 # where nothing runs, a boot line makes the instance a running one.
@@ -63,7 +64,7 @@ $FakeDir = Join-Path $Tmp "fake-wsl"
 New-Item -ItemType Directory -Path $FakeDir -Force | Out-Null
 $Csc = Join-Path $env:WINDIR "Microsoft.NET\Framework64\v4.0.30319\csc.exe"
 if (-not (Test-Path $Csc)) { $Csc = Join-Path $env:WINDIR "Microsoft.NET\Framework\v4.0.30319\csc.exe" }
-& $Csc /nologo /out:"$(Join-Path $FakeDir 'wsl.exe')" (Join-Path $PSScriptRoot "fake-wsl\wsl.cs")
+& $Csc /nologo /out:"$(Join-Path $FakeDir 'wsl.exe')" (Join-Path $PSScriptRoot "..\support\fake-wsl\wsl.cs")
 if ($LASTEXITCODE -ne 0 -or -not (Test-Path (Join-Path $FakeDir "wsl.exe"))) {
     throw "the stand-in wsl.exe could not be compiled"
 }
@@ -71,16 +72,7 @@ $env:PATH = $FakeDir + [IO.Path]::PathSeparator + $env:PATH
 $env:FAKE_WSL_LOG = $Log
 $env:FAKE_WSL_INSTANCE = $FakeName
 
-$Failures = 0
-function Check {
-    param([string]$Name, $Got, $Expected)
-    if ("$Got" -eq "$Expected") {
-        Write-Output "OK   $Name"
-    } else {
-        Write-Output "FAIL $Name : expected '$Expected', got '$Got'"
-        $script:Failures++
-    }
-}
+$global:Failures = 0
 
 # The child's own exit code, beside its output: a refusal is a result too.
 $script:ChildExit = 0
@@ -191,8 +183,8 @@ try {
     Check "list shows a running one as running" `
         (@($Out | Where-Object { "$_" -match [regex]::Escape($FakeName) -and "$_" -match "running" }).Count -gt 0) $true
 
-    # La cle ET le dossier : le dossier resterait un orphelin, et une
-    # machine qui ne porte qu'un orphelin est une machine vide pour la liste.
+    # The key AND the folder: the folder would stay an orphan, and a
+    # machine carrying only an orphan is an empty machine to the list.
     Remove-Item $Key -Recurse -Force -ErrorAction SilentlyContinue
     Remove-Item $FakeFolder -Recurse -Force -ErrorAction SilentlyContinue
     $Out = Invoke-Child -Word "list" -Answers @("")
@@ -205,11 +197,11 @@ try {
 }
 
 Write-Output ""
-Write-Output ("failures: " + $Failures)
+Write-Output ("failures: " + $global:Failures)
 
-if ($Failures -gt 0) {
+if ($global:Failures -gt 0) {
     Write-Output ""
     Write-Output "--- the last run's own words ---"
     foreach ($Line in @($Out)) { Write-Output "    | $Line" }
 }
-exit $Failures
+exit $global:Failures

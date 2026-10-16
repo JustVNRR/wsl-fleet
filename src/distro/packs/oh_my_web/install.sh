@@ -2,7 +2,7 @@
 # ==============================================================================
 # THE OH_MY_WEB PACK - WHAT IT INSTALLS
 # ==============================================================================
-# `wsl.ps1 add_pack` copies the pack's folder into ~/.config/packs/oh_my_web, then
+# `wsl-fleet.ps1 add_pack` copies the pack's folder into ~/.config/packs/oh_my_web, then
 # runs this script from inside it, as the instance's own user.
 #
 # Firefox comes from Mozilla's own repository (Ubuntu's `firefox` is a snap
@@ -97,5 +97,5 @@ success "Firefox is installed: 'fox' opens it on the light privacy settings, 'pf
 success "WireGuard is installed: gmake vpn_status   (servers first: gmake vpn_edit_profiles)"
 if [ -L /etc/resolv.conf ] || grep -q 'generateResolvConf' /etc/wsl.conf 2>/dev/null; then
     echo "The DNS setting is read when the distro starts: restart it once"
-    echo "   (.\wsl.ps1 restart, from Windows) before the tunnel manages /etc/resolv.conf."
+    echo "   (.\wsl-fleet.ps1 restart, from Windows) before the tunnel manages /etc/resolv.conf."
 fi

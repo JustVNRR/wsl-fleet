@@ -2,7 +2,7 @@
 # ==============================================================================
 # THE OH_MY_DOC PACK - WHAT IT REMOVES
 # ==============================================================================
-# `wsl.ps1 remove_pack` runs this before deleting the pack's folder: what the
+# `wsl-fleet.ps1 remove_pack` runs this before deleting the pack's folder: what the
 # install added leaves the machine, and only that.
 #
 # The packages go one at a time, and one another installed pack still claims

@@ -14,7 +14,7 @@
 # The Windows Terminal fragments go to the redirected LOCALAPPDATA and APPDATA,
 # never the real ones.
 #
-# The children are the entry itself, wsl.ps1, run with the command word.
+# The children are the entry itself, wsl-fleet.ps1, run with the command word.
 #
 # What is checked: for `archive`, the export and its format, the tar written,
 # the look saved beside it, a running instance stopped before the export and
@@ -72,7 +72,7 @@ if ($InTheWay.Count -gt 0) {
 }
 
 # The entry, spelled the way a user's script spells it.
-$Entry = Join-Path $PSScriptRoot "..\wsl.ps1"
+$Entry = Join-Path $PSScriptRoot "..\wsl-fleet.ps1"
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $Assets = Join-Path $RepoRoot "assets"
 $distroTree = Join-Path $RepoRoot "src\distro"

@@ -11,7 +11,7 @@
 # taken back out at the end. Nothing real is started or stopped: what is
 # checked is the command emitted, its order, and what is said.
 #
-# The children are the entry itself, wsl.ps1, run with the command word - the
+# The children are the entry itself, wsl-fleet.ps1, run with the command word - the
 # same door a user's script goes through.
 #
 # What is checked: for `restart`, the stop comes before the boot; for
@@ -44,7 +44,7 @@ Set-Content -Path (Join-Path $env:LOCALAPPDATA "wsl-stack\root.txt") -Value $Tmp
 $FakeFolder = Join-Path $Tmp $FakeName
 
 # The entry, spelled the way a user's script spells it.
-$Entry = Join-Path $PSScriptRoot "..\wsl.ps1"
+$Entry = Join-Path $PSScriptRoot "..\wsl-fleet.ps1"
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $Assets = Join-Path $RepoRoot "assets"
 $distroTree = Join-Path $RepoRoot "src\distro"

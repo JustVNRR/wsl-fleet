@@ -25,9 +25,9 @@ on a foreign Debian the same pack carries the tools too. Its page is
 ```text
 assets/packs/<name>/         # seeded from src/distro/packs/
 ├── pack.conf              # what the shell and the installer read
-├── install.sh             # what `.\wsl.ps1 add_pack` runs inside the instance
+├── install.sh             # what `.\wsl-fleet.ps1 add_pack` runs inside the instance
 ├── install_root.sh        # what needs root, run by the engine as WSL's root, before install.sh
-├── remove.sh              # what `.\wsl.ps1 remove_pack` runs before the folder goes
+├── remove.sh              # what `.\wsl-fleet.ps1 remove_pack` runs before the folder goes
 ├── remove_root.sh         # what needs root, run by remove.sh as one sudo
 ├── make/*.mk              # its targets, loaded as soon as the folder is there
 ├── zsh/*.zsh              # its shell files, read where they live (never copied)
@@ -71,7 +71,7 @@ as one this checkout does not carry.
 
 The folder **is** the state. The shell loads `packs/*/make/*.mk` and asks
 nothing else: a pack is installed exactly when its folder is in
-`~/.config/packs`, which is where `.\wsl.ps1 add_pack` puts it — the files and
+`~/.config/packs`, which is where `.\wsl-fleet.ps1 add_pack` puts it — the files and
 the tool together. Nothing is recorded anywhere, so nothing can disagree with
 what is on the machine.
 
@@ -93,20 +93,20 @@ module, beside the macro it names — and `fnew` names the row's pack on the mak
 command line. A pack that declares nothing names nothing: its projects are
 copied and left alone.
 
-Removing is the same story from the other end: `.\wsl.ps1 remove_pack` runs the
+Removing is the same story from the other end: `.\wsl-fleet.ps1 remove_pack` runs the
 pack's own `remove.sh` first, then deletes the folder, then takes back the
 dependencies that came in with the pack and that no `remove.sh` ever named —
 the bulk of the weight. What the install wrote in your files — a login, a `.env`
 you filled in — stays, because it is yours and not the pack's. The rule that
 decides what may go is in [Instance commands](wsl/commands.md#remove_pack).
 
-Several packs at once go through `.\wsl.ps1 manage_packs`, which is a checklist
+Several packs at once go through `.\wsl-fleet.ps1 manage_packs`, which is a checklist
 of every pack this repository carries: the ones the instance has arrive checked,
 and one Enter installs what is missing and takes out what is not. It copies the
 newcomers' folders before removing anything, so a package two packs share is
 left where it is — [the order, and why](wsl/commands.md#manage_packs).
 
-A new instance can start with its packs already in place: `.\wsl.ps1 build`
+A new instance can start with its packs already in place: `.\wsl-fleet.ps1 build`
 asks the same checklist before it builds — the `oh_my_shell` pack arrives ticked,
 since every visible pack requires it — and installs the answer once the
 instance exists.

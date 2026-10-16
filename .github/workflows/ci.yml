@@ -114,7 +114,7 @@ jobs:
             bad=1
           fi
           # The way in is not a target any more, and neither is the way out:
-          # a pack is installed and removed from Windows, by wsl.ps1.
+          # a pack is installed and removed from Windows, by wsl-fleet.ps1.
           if grep -qE '^  (gcp_install|gcp_uninstall)[[:space:]]' help-bare.txt; then
             echo "::error::gcp_install/gcp_uninstall are gone - a pack arrives from Windows"
             bad=1

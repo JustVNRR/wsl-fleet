@@ -35,7 +35,7 @@ try {
     $count = @($r.Moved).Count
     $what = if ($count -eq 0) { "the archives" } else { ($r.Moved -join ', ') + " and the archives" }
     Write-Host "Moved $what to '$($r.Target)'."
-    Write-Host "Restore them on the other side with  .\wsl.ps1 restore"
+    Write-Host "Restore them on the other side with  .\wsl-fleet.ps1 restore"
     exit 0
 } catch {
     Write-Host ("FAILED: " + ($_.Exception.Message -replace "`r?`n", " "))

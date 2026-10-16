@@ -44,7 +44,7 @@ class CliArchiveView : BaseViewCli {
         Write-Host ""
         Write-Host "------------------------------------------------------------" -ForegroundColor $this.Colour("muted")
         Write-Host "To restore it as a new instance:" -ForegroundColor $this.Colour("hint")
-        Write-Host "  .\wsl.ps1 restore        (it lists the archives, this one included)" -ForegroundColor $this.Colour("hint")
+        Write-Host "  .\wsl-fleet.ps1 restore        (it lists the archives, this one included)" -ForegroundColor $this.Colour("hint")
         Write-Host "------------------------------------------------------------" -ForegroundColor $this.Colour("muted")
         Write-Host ""
         if ($response.Stopped) {

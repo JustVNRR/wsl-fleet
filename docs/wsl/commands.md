@@ -1,10 +1,10 @@
 # Instance Administration
 
-`wsl.ps1`, at the root of the repository, is the only thing to type. The
+`wsl-fleet.ps1`, at the root of the repository, is the only thing to type. The
 commands themselves live in `src\windows\`.
 
 ```powershell
-.\wsl.ps1               # which way in? - the menus below
+.\wsl-fleet.ps1               # which way in? - the menus below
 ```
 
 ```text
@@ -16,7 +16,7 @@ WSL Stack
 ```
 
 `cli` opens the commands themselves — the window stays out of that list, and
-answers to its word all the same, `.\wsl.ps1 gui`:
+answers to its word all the same, `.\wsl-fleet.ps1 gui`:
 
 ```text
 
@@ -59,24 +59,24 @@ read, the colours a console has always had are used.
 
 | Command | What it does |
 | :--- | :--- |
-| [`.\wsl.ps1 gui`](#gui) | WSL Fleet GUI |
-| [`.\wsl.ps1 list`](#list) | list our instances and the archives |
-| [`.\wsl.ps1 build`](#build) | build an instance from the image |
-| [`.\wsl.ps1 restart`](#restart) | restart an instance |
-| [`.\wsl.ps1 shell`](#shell) | open a shell inside an instance |
-| [`.\wsl.ps1 add_pack`](#add_pack) | install a pack into an instance |
-| [`.\wsl.ps1 remove_pack`](#remove_pack) | uninstall a pack from an instance |
-| [`.\wsl.ps1 manage_packs`](#manage_packs) | choose the packs an instance should carry |
-| [`.\wsl.ps1 theme`](#theme) | choose the icon, font and colours |
-| [`.\wsl.ps1 register_docker`](#register_docker) | register an instance with Docker Desktop |
-| [`.\wsl.ps1 unregister_docker`](#unregister_docker) | take an instance out of Docker Desktop |
-| [`.\wsl.ps1 unregister`](#unregister) | remove an instance |
-| [`.\wsl.ps1 archive`](#archive) | write an instance to a named archive |
-| [`.\wsl.ps1 restore`](#restore) | rebuild an instance from an archive |
-| [`.\wsl.ps1 duplicate`](#duplicate) | copy an instance under another name |
-| [`.\wsl.ps1 compact`](#compact) | reclaim the space an instance has freed |
-| [`.\wsl.ps1 wslconfig`](#wslconfig) | open the Windows-wide WSL settings |
-| [`.\wsl.ps1 migrate`](#migrate) | move the fleet to another folder |
+| [`.\wsl-fleet.ps1 gui`](#gui) | WSL Fleet GUI |
+| [`.\wsl-fleet.ps1 list`](#list) | list our instances and the archives |
+| [`.\wsl-fleet.ps1 build`](#build) | build an instance from the image |
+| [`.\wsl-fleet.ps1 restart`](#restart) | restart an instance |
+| [`.\wsl-fleet.ps1 shell`](#shell) | open a shell inside an instance |
+| [`.\wsl-fleet.ps1 add_pack`](#add_pack) | install a pack into an instance |
+| [`.\wsl-fleet.ps1 remove_pack`](#remove_pack) | uninstall a pack from an instance |
+| [`.\wsl-fleet.ps1 manage_packs`](#manage_packs) | choose the packs an instance should carry |
+| [`.\wsl-fleet.ps1 theme`](#theme) | choose the icon, font and colours |
+| [`.\wsl-fleet.ps1 register_docker`](#register_docker) | register an instance with Docker Desktop |
+| [`.\wsl-fleet.ps1 unregister_docker`](#unregister_docker) | take an instance out of Docker Desktop |
+| [`.\wsl-fleet.ps1 unregister`](#unregister) | remove an instance |
+| [`.\wsl-fleet.ps1 archive`](#archive) | write an instance to a named archive |
+| [`.\wsl-fleet.ps1 restore`](#restore) | rebuild an instance from an archive |
+| [`.\wsl-fleet.ps1 duplicate`](#duplicate) | copy an instance under another name |
+| [`.\wsl-fleet.ps1 compact`](#compact) | reclaim the space an instance has freed |
+| [`.\wsl-fleet.ps1 wslconfig`](#wslconfig) | open the Windows-wide WSL settings |
+| [`.\wsl-fleet.ps1 migrate`](#migrate) | move the fleet to another folder |
 
 ## Which WSL instances are ours
 
@@ -121,7 +121,7 @@ The fleet manager, in a window: the mouse-first way in, over the same engine
 everything else asks.
 
 ```powershell
-.\wsl.ps1 gui
+.\wsl-fleet.ps1 gui
 ```
 
 It lists our instances - state and size, the same list `list` prints - with,
@@ -217,7 +217,7 @@ second engine.
 Lists all WSL instances carrying the `.wsl-stack` marker.
 
 ```powershell
-.\wsl.ps1 list
+.\wsl-fleet.ps1 list
 ```
 
 ```text
@@ -254,7 +254,7 @@ Windows Terminal profile, and opens the fresh instance in a shell of its own;
 the console's gesture ends with the run.
 
 ```powershell
-.\wsl.ps1 build
+.\wsl-fleet.ps1 build
 ```
 
 The console takes no options: everything is asked. The window's form (`gui`)
@@ -346,7 +346,7 @@ They are installed **once the instance exists** — after the deployment, and th
 `* Packs` line of the screen that announces it carries the outcome. A pack that
 fails to install does not fail the build: the instance is built, the pack's
 files are taken back out, and the build names the pack and points at
-`.\wsl.ps1 manage_packs`.
+`.\wsl-fleet.ps1 manage_packs`.
 
 The user the instance will open as follows — a lowercase letter
 first, then lowercase letters, digits, `_` and `-`. The Windows account's
@@ -369,7 +369,7 @@ default to no.
 Stops an instance and starts it again, in one command.
 
 ```powershell
-.\wsl.ps1 restart
+.\wsl-fleet.ps1 restart
 ```
 
 Only running instances are listed:
@@ -397,7 +397,7 @@ Opens a shell in one of our instances — the quickest way in when you are
 already in a terminal.
 
 ```powershell
-.\wsl.ps1 shell
+.\wsl-fleet.ps1 shell
 ```
 
 The instance comes from the list, like everywhere else:
@@ -424,7 +424,7 @@ repository) and the pack's files — its gmake targets, its cheatsheets, its
 environment samples.
 
 ```powershell
-.\wsl.ps1 add_pack
+.\wsl-fleet.ps1 add_pack
 ```
 
 Two lists, then it installs:
@@ -495,7 +495,7 @@ The reverse: the pack's own `remove.sh` runs first — the tool and its APT
 repository leave the system — then its folder leaves the instance.
 
 ```powershell
-.\wsl.ps1 remove_pack
+.\wsl-fleet.ps1 remove_pack
 ```
 
 ```text
@@ -578,7 +578,7 @@ the instance already has arrive checked, and what comes back is applied:
 the missing ones installed, the unchecked ones taken out.
 
 ```powershell
-.\wsl.ps1 manage_packs
+.\wsl-fleet.ps1 manage_packs
 ```
 
 ```text
@@ -641,7 +641,7 @@ Escape walks back up the way it came: from the theme menu to the list of
 instances, so another one can be picked, and from that list to the prompt.
 
 ```powershell
-.\wsl.ps1 theme
+.\wsl-fleet.ps1 theme
 ```
 
 ```text
@@ -761,7 +761,7 @@ touching it — nothing here writes to it: it is Terminal's file.
 Puts one of your instances into Docker Desktop's WSL integration list.
 
 ```powershell
-.\wsl.ps1 register_docker
+.\wsl-fleet.ps1 register_docker
 ```
 
 It lists the instances Docker Desktop does not carry yet — one already there is
@@ -777,7 +777,7 @@ running is disturbed. With the restart answered yes and Docker Desktop stopped,
 it is started instead — a start reads the list.
 
 The name can be given directly, which skips the menu:
-`.\wsl.ps1 register_docker mydistro`.
+`.\wsl-fleet.ps1 register_docker mydistro`.
 
 ---
 
@@ -787,7 +787,7 @@ Takes one of your instances out of Docker Desktop's integration list — the
 instance itself is untouched.
 
 ```powershell
-.\wsl.ps1 unregister_docker
+.\wsl-fleet.ps1 unregister_docker
 ```
 
 The same visit in the other direction: the list holds the instances Docker
@@ -802,7 +802,7 @@ restarts — that is when it goes.
 Removes an instance and everything it left on Windows.
 
 ```powershell
-.\wsl.ps1 unregister
+.\wsl-fleet.ps1 unregister
 ```
 
 This is the only command that deletes without rebuilding, and it asks twice:
@@ -842,8 +842,8 @@ carry** — the icon and what it is made of, the font and the colour scheme the
 instance was using, and whether Docker Desktop knew it.
 
 ```powershell
-.\wsl.ps1 archive
-.\wsl.ps1 archive -Format tar.xz
+.\wsl-fleet.ps1 archive
+.\wsl-fleet.ps1 archive -Format tar.xz
 ```
 
 | Option | Default | What it does |
@@ -889,7 +889,7 @@ exact name has to be typed again — the archive is what remains.
 Rebuilds an instance from an archive.
 
 ```powershell
-.\wsl.ps1 restore
+.\wsl-fleet.ps1 restore
 ```
 
 It lists the archives, most recent first, and you pick one:
@@ -923,7 +923,7 @@ consume it.
 Copies an instance under another name, leaving the original alone.
 
 ```powershell
-.\wsl.ps1 duplicate
+.\wsl-fleet.ps1 duplicate
 ```
 
 The source comes from the list, and the copy's name is typed — it is the one
@@ -951,7 +951,7 @@ shows the numbers before starting.
 Gives back to Windows the space the instance has freed inside itself.
 
 ```powershell
-.\wsl.ps1 compact
+.\wsl-fleet.ps1 compact
 ```
 
 Space is only added to a virtual disk, never returned on its own: a 60 GB file
@@ -975,7 +975,7 @@ Opens the Windows-wide WSL settings, `%USERPROFILE%\.wslconfig`, with the
 application Windows gives that file.
 
 ```powershell
-.\wsl.ps1 wslconfig
+.\wsl-fleet.ps1 wslconfig
 ```
 
 This is the machine's own file — the memory cap, the processors, the DNS
@@ -984,7 +984,7 @@ distro and opened from inside with `gmake wsl_config`. When the file is not
 there, it is created commented, so it documents itself; Windows asks which
 application to use the first time if none is set for `.wslconfig`.
 
-A change here is read when the WSL machine starts. `.\wsl.ps1 restart` does not
+A change here is read when the WSL machine starts. `.\wsl-fleet.ps1 restart` does not
 do that — it restarts one instance. Stop the machine with `wsl --shutdown`,
 then open an instance again.
 
@@ -998,11 +998,11 @@ look, the `archive` command's own), then unregistered right away — the space
 frees as it goes, the old disk never overflows — and when nothing is left but
 the archives folder, that folder travels to the target. The working folder
 follows, once every instance made it and nowhere earlier. The instances come
-back on the target side with `.\wsl.ps1 restore`.
+back on the target side with `.\wsl-fleet.ps1 restore`.
 
 ```powershell
-.\wsl.ps1 migrate
-.\wsl.ps1 migrate -Target E:\WSL
+.\wsl-fleet.ps1 migrate
+.\wsl-fleet.ps1 migrate -Target E:\WSL
 ```
 
 The target is the only question. Across volumes the copies land on the target

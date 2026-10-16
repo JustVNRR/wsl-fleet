@@ -4,7 +4,7 @@
 
 The shell's settings — the `.zshrc`, the modules, `gmake`, the cheatsheets,
 the prompt — live in one folder, `src/distro/packs/oh_my_shell/config/`, and the pack
-is what deploys them: `.\wsl.ps1 add_pack` copies the folder in and runs
+is what deploys them: `.\wsl-fleet.ps1 add_pack` copies the folder in and runs
 `install.sh`, which fills `~/.config/zsh`, writes the `.zshenv` that points
 zsh at it, and lays the same files into `/etc/skel` for the accounts that
 come after. Chosen while an instance is built, it runs the same way, right

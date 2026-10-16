@@ -2,7 +2,7 @@
 # ==============================================================================
 # THE OH_MY_WEB PACK - WHAT IT REMOVES
 # ==============================================================================
-# `wsl.ps1 remove_pack` runs this before deleting the pack's folder: what the
+# `wsl-fleet.ps1 remove_pack` runs this before deleting the pack's folder: what the
 # install added to the system leaves it, and only that. A package another
 # installed pack still claims stays where it is. Never a library (apt would
 # take its dependents), and no autoremove here - remove_pack runs the cleanup

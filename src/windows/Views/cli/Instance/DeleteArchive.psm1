@@ -14,8 +14,8 @@ class CliDeleteArchiveView : BaseViewCli {
     [void] ShowNoName() {
         Write-Host ""
         Write-Host "[ABORT] No archive name was given." -ForegroundColor $this.Colour("error")
-        Write-Host "        The archives are listed by  .\wsl.ps1 list" -ForegroundColor $this.Colour("hint")
-        Write-Host "        Then:  .\wsl.ps1 delete_archive <name>" -ForegroundColor $this.Colour("hint")
+        Write-Host "        The archives are listed by  .\wsl-fleet.ps1 list" -ForegroundColor $this.Colour("hint")
+        Write-Host "        Then:  .\wsl-fleet.ps1 delete_archive <name>" -ForegroundColor $this.Colour("hint")
     }
 
     [void] ShowDeleting([string]$name) {

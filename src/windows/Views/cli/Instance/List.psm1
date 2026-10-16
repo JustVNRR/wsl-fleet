@@ -20,7 +20,7 @@ class CliListView : BaseViewCli {
         if (($instances.Count + $archives.Count + $orphans.Count) -eq 0) {
             Write-Host ""
             Write-Host "[ABORT] No instance of this template is registered on this machine." -ForegroundColor $this.Colour("error")
-            Write-Host "        Build one with  .\wsl.ps1 build" -ForegroundColor $this.Colour("hint")
+            Write-Host "        Build one with  .\wsl-fleet.ps1 build" -ForegroundColor $this.Colour("hint")
             Write-Host ""
             return
         }

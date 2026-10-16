@@ -2,7 +2,7 @@
 # ==============================================================================
 # THE HIDE_MY_OPS PACK - WHAT IT REMOVES
 # ==============================================================================
-# `wsl.ps1 remove_pack` runs this before deleting the pack's folder: what the
+# `wsl-fleet.ps1 remove_pack` runs this before deleting the pack's folder: what the
 # install added leaves the machine, and only that.
 #
 # Nothing to take back - it installed nothing - and one thing never to touch:

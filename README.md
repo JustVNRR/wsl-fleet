@@ -2,7 +2,7 @@
 
 A reproducible WSL2 stack: one PowerShell command builds a fresh Ubuntu 24.04 distro with:
 - the shell,
-- optional tooling as packs, added with `.\wsl.ps1 add_pack`:
+- optional tooling as packs, added with `.\wsl-fleet.ps1 add_pack`:
   - `oh_my_py`: Python 3, `uv` and ruff
   - `oh_my_cloud`: the Google Cloud CLI
   - `oh_my_peg`: ffmpeg, ImageMagick and Tesseract OCR
@@ -52,7 +52,7 @@ Make sure Docker Desktop is running before you start.
 2. **Build and register the instance:**
 
    ```powershell
-   .\wsl.ps1 build
+   .\wsl-fleet.ps1 build
    ```
 
    It asks for the instance's name, then confirms where it will live —
@@ -125,8 +125,8 @@ chooses — `oh_my_py` and `oh_my_cloud` require the first, `oh_my_py` the secon
 
 What a pack is, what it must contain, and how to add one:
 [`docs/packs.md`](docs/packs.md). One reaches an instance with
-[`.\wsl.ps1 add_pack`](docs/wsl/commands.md#add_pack) — or by being chosen while
-the instance is built, [`.\wsl.ps1 build`](docs/wsl/commands.md#build) — and
+[`.\wsl-fleet.ps1 add_pack`](docs/wsl/commands.md#add_pack) — or by being chosen while
+the instance is built, [`.\wsl-fleet.ps1 build`](docs/wsl/commands.md#build) — and
 leaves with `remove_pack`.
 
 ---
@@ -146,13 +146,13 @@ leaves with `remove_pack`.
 
 | Category | Tools |
 | :--- | :--- |
-| Claude Code | [Claude Code](src/distro/packs/oh_my_code/docs/claude.md), [`.\wsl.ps1 add_pack`](docs/wsl/commands.md#add_pack) |
-| Google Cloud CLI | [GCP onboarding guide](src/distro/packs/oh_my_cloud/docs/onboarding.md), [`.\wsl.ps1 add_pack`](docs/wsl/commands.md#add_pack) |
-| Pandoc & PDF | [Pandoc & PDF](src/distro/packs/oh_my_doc/docs/pandoc.md), [`.\wsl.ps1 add_pack`](docs/wsl/commands.md#add_pack) |
-| Python | [Python](src/distro/packs/oh_my_py/docs/python.md), [`.\wsl.ps1 add_pack`](docs/wsl/commands.md#add_pack) |
-| Vision & OCR | [Vision & OCR](src/distro/packs/oh_my_peg/docs/vision.md), [`.\wsl.ps1 add_pack`](docs/wsl/commands.md#add_pack) |
-| Firefox & VPN | [Web browser and tunnel](src/distro/packs/oh_my_web/docs/web.md), [`.\wsl.ps1 add_pack`](docs/wsl/commands.md#add_pack) |
-| The shell | [The shell, as a pack](src/distro/packs/oh_my_shell/docs/zsh.md) — the settings; the image carries the tools, and [`.\wsl.ps1 add_pack`](docs/wsl/commands.md#add_pack) also dresses a foreign base with them |
+| Claude Code | [Claude Code](src/distro/packs/oh_my_code/docs/claude.md), [`.\wsl-fleet.ps1 add_pack`](docs/wsl/commands.md#add_pack) |
+| Google Cloud CLI | [GCP onboarding guide](src/distro/packs/oh_my_cloud/docs/onboarding.md), [`.\wsl-fleet.ps1 add_pack`](docs/wsl/commands.md#add_pack) |
+| Pandoc & PDF | [Pandoc & PDF](src/distro/packs/oh_my_doc/docs/pandoc.md), [`.\wsl-fleet.ps1 add_pack`](docs/wsl/commands.md#add_pack) |
+| Python | [Python](src/distro/packs/oh_my_py/docs/python.md), [`.\wsl-fleet.ps1 add_pack`](docs/wsl/commands.md#add_pack) |
+| Vision & OCR | [Vision & OCR](src/distro/packs/oh_my_peg/docs/vision.md), [`.\wsl-fleet.ps1 add_pack`](docs/wsl/commands.md#add_pack) |
+| Firefox & VPN | [Web browser and tunnel](src/distro/packs/oh_my_web/docs/web.md), [`.\wsl-fleet.ps1 add_pack`](docs/wsl/commands.md#add_pack) |
+| The shell | [The shell, as a pack](src/distro/packs/oh_my_shell/docs/zsh.md) — the settings; the image carries the tools, and [`.\wsl-fleet.ps1 add_pack`](docs/wsl/commands.md#add_pack) also dresses a foreign base with them |
 
 ### Python & Data Science
 
@@ -190,8 +190,8 @@ first of all: its `config/` folder is what fills `~/.config/zsh`.
 │   │   │   ├── cleanup_orphans.sh # The one thing a removal runs inside an instance
 │   │   │   ├── oh_my_code/  # Claude Code, the agentic CLI, under ~/.local
 │   │   │   │   ├── pack.conf # what it installs, and the line `add_pack` shows
-│   │   │   │   ├── install.sh # what `wsl.ps1 add_pack` runs inside the instance
-│   │   │   │   ├── remove.sh # what `wsl.ps1 remove_pack` runs before the folder goes
+│   │   │   │   ├── install.sh # what `wsl-fleet.ps1 add_pack` runs inside the instance
+│   │   │   │   ├── remove.sh # what `wsl-fleet.ps1 remove_pack` runs before the folder goes
 │   │   │   │   ├── profiles.sample # the providers, in JSON, waiting for your tokens
 │   │   │   │   ├── env.global.sample # CLAUDE_PROFILE, for .env.global
 │   │   │   │   ├── bin/     # the script behind its targets, and the status line
@@ -200,16 +200,16 @@ first of all: its `config/` folder is what fills `~/.config/zsh`.
 │   │   │   │   └── docs/    # the pack's page
 │   │   │   ├── hide_my_ops/ # the project targets: Docker, GitHub PRs
 │   │   │   │   ├── pack.conf # what it installs, and the line `add_pack` shows
-│   │   │   │   ├── install.sh # what `wsl.ps1 add_pack` runs inside the instance
-│   │   │   │   ├── remove.sh # what `wsl.ps1 remove_pack` runs before the folder goes
+│   │   │   │   ├── install.sh # what `wsl-fleet.ps1 add_pack` runs inside the instance
+│   │   │   │   ├── remove.sh # what `wsl-fleet.ps1 remove_pack` runs before the folder goes
 │   │   │   │   ├── env.project.sample # the pack's project variables (PACKAGE_NAME, DOCKER_*)
 │   │   │   │   ├── make/    # the pack's modules, loaded as soon as the folder is there
 │   │   │   │   ├── cheatsheets/ # its fcheat sheets: the docker commands, its gmake targets
 │   │   │   │   └── docs/    # the pack's pages, one per module
 │   │   │   ├── oh_my_cloud/ # Google Cloud CLI, BigQuery, Cloud Run, VMs, Artifact Registry
-│   │   │   │   ├── install.sh # what `wsl.ps1 add_pack` runs inside the instance
+│   │   │   │   ├── install.sh # what `wsl-fleet.ps1 add_pack` runs inside the instance
 │   │   │   │   ├── install_root.sh # the root half of the install, run by the engine as root, before install.sh
-│   │   │   │   ├── remove.sh # what `wsl.ps1 remove_pack` runs before the folder goes
+│   │   │   │   ├── remove.sh # what `wsl-fleet.ps1 remove_pack` runs before the folder goes
 │   │   │   │   ├── remove_root.sh # the root half of the removal, run by remove.sh
 │   │   │   │   ├── env.global.sample # the pack's shared defaults (GCP_REGION, CLOUDRUN_MEMORY…)
 │   │   │   │   ├── env.project.sample # the pack's project variables (GCP_PROJECT, BUCKET_NAME…)
@@ -218,9 +218,9 @@ first of all: its `config/` folder is what fills `~/.config/zsh`.
 │   │   │   │   └── docs/    # the pack's pages, onboarding walkthrough included
 │   │   │   ├── oh_my_doc/   # Pandoc and XeLaTeX: Markdown to PDF, bibliography included
 │   │   │   │   ├── pack.conf # what it installs, and the line `add_pack` shows
-│   │   │   │   ├── install.sh # what `wsl.ps1 add_pack` runs inside the instance
+│   │   │   │   ├── install.sh # what `wsl-fleet.ps1 add_pack` runs inside the instance
 │   │   │   │   ├── install_root.sh # the root half of the install, run by the engine as root, before install.sh
-│   │   │   │   ├── remove.sh # what `wsl.ps1 remove_pack` runs before the folder goes
+│   │   │   │   ├── remove.sh # what `wsl-fleet.ps1 remove_pack` runs before the folder goes
 │   │   │   │   ├── env.project.sample # the pack's project variables (PDF_SRC, DOCX_REFERENCE...)
 │   │   │   │   ├── bin/     # the scripts behind the targets: the build, the viewer, the styles, the fonts
 │   │   │   │   ├── make/    # its gmake module: the document targets, the styles, the fonts
@@ -228,17 +228,17 @@ first of all: its `config/` folder is what fills `~/.config/zsh`.
 │   │   │   │   └── docs/    # the pack's page
 │   │   │   ├── oh_my_py/ # Python 3, uv, ruff, the compiler a wheel is built with
 │   │   │   │   ├── pack.conf # what it installs, and the line `add_pack` shows
-│   │   │   │   ├── install.sh # what `wsl.ps1 add_pack` runs inside the instance
+│   │   │   │   ├── install.sh # what `wsl-fleet.ps1 add_pack` runs inside the instance
 │   │   │   │   ├── install_root.sh # the root half of the install, run by the engine as root, before install.sh
-│   │   │   │   ├── remove.sh # what `wsl.ps1 remove_pack` runs before the folder goes
+│   │   │   │   ├── remove.sh # what `wsl-fleet.ps1 remove_pack` runs before the folder goes
 │   │   │   │   ├── make/    # its modules: lint, the test lanes, the venv
 │   │   │   │   ├── cheatsheets/ # its fcheat sheets, and the catalog fnew reads
 │   │   │   │   ├── zsh/     # its shell files: uv's PATH and completions
 │   │   │   │   └── docs/    # the pack's pages, one per module
 │   │   │   ├── hide_my_scaff/ # making a project: fnew, the picker, the three targets
 │   │   │   │   ├── pack.conf # what it installs, and the line `add_pack` shows
-│   │   │   │   ├── install.sh # what `wsl.ps1 add_pack` runs inside the instance
-│   │   │   │   ├── remove.sh # what `wsl.ps1 remove_pack` runs before the folder goes
+│   │   │   │   ├── install.sh # what `wsl-fleet.ps1 add_pack` runs inside the instance
+│   │   │   │   ├── remove.sh # what `wsl-fleet.ps1 remove_pack` runs before the folder goes
 │   │   │   │   ├── env.global.sample # the direct-call variables (PROJECT_TEMPLATE_*, TEMPLATE_PACK)
 │   │   │   │   ├── make/    # the scaffolding targets, and the after-copy step
 │   │   │   │   ├── cheatsheets/ # its fcheat sheets: the scaffolding commands
@@ -246,16 +246,16 @@ first of all: its `config/` folder is what fills `~/.config/zsh`.
 │   │   │   │   └── docs/    # the pack's pages, one per module
 │   │   │   ├── oh_my_peg/   # ffmpeg, ImageMagick, Tesseract: media and OCR tools
 │   │   │   │   ├── pack.conf # what it installs, and the line `add_pack` shows
-│   │   │   │   ├── install.sh # what `wsl.ps1 add_pack` runs inside the instance
+│   │   │   │   ├── install.sh # what `wsl-fleet.ps1 add_pack` runs inside the instance
 │   │   │   │   ├── install_root.sh # the root half of the install, run by the engine as root, before install.sh
-│   │   │   │   ├── remove.sh # what `wsl.ps1 remove_pack` runs before the folder goes
+│   │   │   │   ├── remove.sh # what `wsl-fleet.ps1 remove_pack` runs before the folder goes
 │   │   │   │   ├── cheatsheets/ # their commands, in the fcheat picker
 │   │   │   │   └── docs/    # the pack's page
 │   │   │   ├── oh_my_web/   # Firefox (Mozilla's repository) and the WireGuard tunnel
 │   │   │   │   ├── pack.conf # what it installs, and the line `add_pack` shows
-│   │   │   │   ├── install.sh # what `wsl.ps1 add_pack` runs inside the instance
+│   │   │   │   ├── install.sh # what `wsl-fleet.ps1 add_pack` runs inside the instance
 │   │   │   │   ├── install_root.sh # the root half of the install, run by the engine as root, before install.sh
-│   │   │   │   ├── remove.sh # what `wsl.ps1 remove_pack` runs before the folder goes
+│   │   │   │   ├── remove.sh # what `wsl-fleet.ps1 remove_pack` runs before the folder goes
 │   │   │   │   ├── fox-privacy-*.js # the two privacy profiles (light, strict) the launchers choose
 │   │   │   │   ├── privacy-check.html # the live check page pfox opens
 │   │   │   │   ├── vpn.servers.sample # the servers, in JSON, waiting for your keys
@@ -268,9 +268,9 @@ first of all: its `config/` folder is what fills `~/.config/zsh`.
 │   │   │   └── oh_my_shell/ # The shell's settings as a pack; on a foreign Debian
 │   │   │       │            #   the pack carries the tools too
 │   │   │       ├── pack.conf # what it installs, and the line `add_pack` shows
-│   │   │       ├── install.sh # what `wsl.ps1 add_pack` runs inside the instance
+│   │   │       ├── install.sh # what `wsl-fleet.ps1 add_pack` runs inside the instance
 │   │   │       ├── install_root.sh # the root half of the install, run by the engine as root, before install.sh
-│   │   │       ├── remove.sh # what `wsl.ps1 remove_pack` runs before the folder goes
+│   │   │       ├── remove.sh # what `wsl-fleet.ps1 remove_pack` runs before the folder goes
 │   │   │       ├── docs/    # the pack's page
 │   │   │       └── config/  # The shell's files, copied into ~/.config/zsh
 │   │   │           ├── .zshrc       # Main orchestrator (loads OMZ, modules, prompts)
@@ -361,7 +361,7 @@ first of all: its `config/` folder is what fills `~/.config/zsh`.
 │   └── workflows/
 │       ├── ci.yml           # Static checks, then the code suites on Windows
 │       └── image.yml        # Rootfs image build (push/PR + weekly, catches upstream drift)
-├── wsl.ps1                  # The way in: one command at the root, the scripts in src\windows\
+├── wsl-fleet.ps1                  # The way in: one command at the root, the scripts in src\windows\
 ├── .gitattributes           # Enforces strict LF line endings for shell scripts
 ├── .gitignore               # Prevents committing build artifacts (*.tar, *.vhdx)
 ├── LICENSE                  # MIT
@@ -384,7 +384,7 @@ deleting the distro deletes all of it.
 └── .zshrc, modules, lib/, prompts/, cheatsheets/
 
 ~/.config/packs/             # A pack lands here, its files and its tool together:
-└── oh_my_cloud/             # added by `.\wsl.ps1 add_pack`, removed by remove_pack.
+└── oh_my_cloud/             # added by `.\wsl-fleet.ps1 add_pack`, removed by remove_pack.
                              # ~/.zshrc reads its zsh/ here, gmake its make/ - nothing is copied
 
 ~/projects/<project>/        # One directory per project
@@ -415,39 +415,39 @@ Two GitHub Actions workflows, in `.github/workflows/`:
 | `image.yml` — Rootfs image build | every push, PRs onto `main`, weekly, manual | the Dockerfile still resolves end to end: apt repositories, download URLs, git clones |
 
 They check the **repository** — the files, and the code run against stand-ins,
-never a running distro — so none replaces a real `.\wsl.ps1 build` run. The
+never a running distro — so none replaces a real `.\wsl-fleet.ps1 build` run. The
 weekly `image.yml` run is the one that catches **upstream drift** — a package
 that moved, a URL that changed — while the repository sits untouched. Each
 workflow is documented in full at the top of its own file.
 
 ---
 
-## Instance Administration (wsl.ps1)
+## Instance Administration (wsl-fleet.ps1)
 
 Instances are listed, built, restarted, opened, copied, archived, restored,
-compacted and removed from `wsl.ps1`, at the root of the repository.
-The scripts themselves live in `src\windows\` — `wsl.ps1` is the only thing to type.
+compacted and removed from `wsl-fleet.ps1`, at the root of the repository.
+The scripts themselves live in `src\windows\` — `wsl-fleet.ps1` is the only thing to type.
 
 | Command | What it does |
 | :--- | :--- |
-| [`.\wsl.ps1 gui`](docs/wsl/commands.md#gui) | WSL Fleet GUI |
-| [`.\wsl.ps1 list`](docs/wsl/commands.md#list) | list our instances and the archives |
-| [`.\wsl.ps1 build`](docs/wsl/commands.md#build) | build an instance from the image |
-| [`.\wsl.ps1 restart`](docs/wsl/commands.md#restart) | restart an instance |
-| [`.\wsl.ps1 shell`](docs/wsl/commands.md#shell) | open a shell inside an instance |
-| [`.\wsl.ps1 add_pack`](docs/wsl/commands.md#add_pack) | install a pack into an instance |
-| [`.\wsl.ps1 remove_pack`](docs/wsl/commands.md#remove_pack) | uninstall a pack from an instance |
-| [`.\wsl.ps1 manage_packs`](docs/wsl/commands.md#manage_packs) | choose the packs an instance should carry |
-| [`.\wsl.ps1 theme`](docs/wsl/commands.md#theme) | choose the icon, font and colours |
-| [`.\wsl.ps1 register_docker`](docs/wsl/commands.md#register_docker) | register an instance with Docker Desktop |
-| [`.\wsl.ps1 unregister_docker`](docs/wsl/commands.md#unregister_docker) | take an instance out of Docker Desktop |
-| [`.\wsl.ps1 unregister`](docs/wsl/commands.md#unregister) | remove an instance |
-| [`.\wsl.ps1 archive`](docs/wsl/commands.md#archive) | write an instance to a named archive |
-| [`.\wsl.ps1 restore`](docs/wsl/commands.md#restore) | rebuild an instance from an archive |
-| [`.\wsl.ps1 duplicate`](docs/wsl/commands.md#duplicate) | copy an instance under another name |
-| [`.\wsl.ps1 compact`](docs/wsl/commands.md#compact) | reclaim the space an instance has freed |
-| [`.\wsl.ps1 wslconfig`](docs/wsl/commands.md#wslconfig) | open the Windows-wide WSL settings |
-| [`.\wsl.ps1 migrate`](docs/wsl/commands.md#migrate) | move the fleet to another folder |
+| [`.\wsl-fleet.ps1 gui`](docs/wsl/commands.md#gui) | WSL Fleet GUI |
+| [`.\wsl-fleet.ps1 list`](docs/wsl/commands.md#list) | list our instances and the archives |
+| [`.\wsl-fleet.ps1 build`](docs/wsl/commands.md#build) | build an instance from the image |
+| [`.\wsl-fleet.ps1 restart`](docs/wsl/commands.md#restart) | restart an instance |
+| [`.\wsl-fleet.ps1 shell`](docs/wsl/commands.md#shell) | open a shell inside an instance |
+| [`.\wsl-fleet.ps1 add_pack`](docs/wsl/commands.md#add_pack) | install a pack into an instance |
+| [`.\wsl-fleet.ps1 remove_pack`](docs/wsl/commands.md#remove_pack) | uninstall a pack from an instance |
+| [`.\wsl-fleet.ps1 manage_packs`](docs/wsl/commands.md#manage_packs) | choose the packs an instance should carry |
+| [`.\wsl-fleet.ps1 theme`](docs/wsl/commands.md#theme) | choose the icon, font and colours |
+| [`.\wsl-fleet.ps1 register_docker`](docs/wsl/commands.md#register_docker) | register an instance with Docker Desktop |
+| [`.\wsl-fleet.ps1 unregister_docker`](docs/wsl/commands.md#unregister_docker) | take an instance out of Docker Desktop |
+| [`.\wsl-fleet.ps1 unregister`](docs/wsl/commands.md#unregister) | remove an instance |
+| [`.\wsl-fleet.ps1 archive`](docs/wsl/commands.md#archive) | write an instance to a named archive |
+| [`.\wsl-fleet.ps1 restore`](docs/wsl/commands.md#restore) | rebuild an instance from an archive |
+| [`.\wsl-fleet.ps1 duplicate`](docs/wsl/commands.md#duplicate) | copy an instance under another name |
+| [`.\wsl-fleet.ps1 compact`](docs/wsl/commands.md#compact) | reclaim the space an instance has freed |
+| [`.\wsl-fleet.ps1 wslconfig`](docs/wsl/commands.md#wslconfig) | open the Windows-wide WSL settings |
+| [`.\wsl-fleet.ps1 migrate`](docs/wsl/commands.md#migrate) | move the fleet to another folder |
 
 Each command, with its options, its examples and what it prints, is documented
 in [**Instance commands**](docs/wsl/commands.md).

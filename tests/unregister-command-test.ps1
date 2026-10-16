@@ -8,7 +8,7 @@
 # folder carrying the marker, under the suite's root - only the suite's own
 # paths are ever written there and they are all taken back out at the end.
 #
-# The children are the entry itself, wsl.ps1, run with the command word.
+# The children are the entry itself, wsl-fleet.ps1, run with the command word.
 #
 # What is checked: the confirmation refuses anything but the exact name, case
 # included, and a cancelled run touches nothing; a failed archive stops the
@@ -76,7 +76,7 @@ $LiveGuid = "{aaaaaaaa-1111-2222-3333-444444444444}"
 $DeadGuid = "{dddddddd-1111-2222-3333-444444444444}"
 
 # The entry, spelled the way a user's script spells it.
-$Entry = Join-Path $PSScriptRoot "..\wsl.ps1"
+$Entry = Join-Path $PSScriptRoot "..\wsl-fleet.ps1"
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $Assets = Join-Path $RepoRoot "assets"
 $distroTree = Join-Path $RepoRoot "src\distro"

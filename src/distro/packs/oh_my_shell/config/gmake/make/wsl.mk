@@ -25,12 +25,12 @@ GATE_EXEMPT_GOALS += windows_path_up windows_path_down fstab_up fstab_down
 # that applies it, in green inside a yellow sentence. One line on purpose: it
 # expands inside a recipe's joined command.
 define apply_hint
-	printf '$(C_HINT)Run $(C_COMMAND).\\wsl.ps1 restart$(C_HINT) from Windows to apply.$(C_RESET)\n'
+	printf '$(C_HINT)Run $(C_COMMAND).\\wsl-fleet.ps1 restart$(C_HINT) from Windows to apply.$(C_RESET)\n'
 endef
 
 wsl_config: ## Open /etc/wsl.conf in nano (sudo): default user, automount, interop
 	@sudo nano /etc/wsl.conf
-	@printf '\n$(C_HINT)Run $(C_COMMAND).\\wsl.ps1 restart$(C_HINT) from Windows to apply any change.$(C_RESET)\n'
+	@printf '\n$(C_HINT)Run $(C_COMMAND).\\wsl-fleet.ps1 restart$(C_HINT) from Windows to apply any change.$(C_RESET)\n'
 
 # The resolver file: as long as it is a symlink to WSL's own
 # (/mnt/wsl/resolv.conf), WSL writes it again at every start, and an edit goes
@@ -50,7 +50,7 @@ dns_resolve: ## Open /etc/resolv.conf in nano (sudo)
 fstab_config: ## Open /etc/fstab in nano (sudo) - the mounts to apply at start
 	@sudo nano /etc/fstab
 	@if grep -q '^[[:space:]]*mountFsTab[[:space:]]*=[[:space:]]*true' /etc/wsl.conf 2>/dev/null; then \
-		printf '\n$(C_HINT)Run $(C_COMMAND).\\wsl.ps1 restart$(C_HINT) from Windows to apply.$(C_RESET)\n'; \
+		printf '\n$(C_HINT)Run $(C_COMMAND).\\wsl-fleet.ps1 restart$(C_HINT) from Windows to apply.$(C_RESET)\n'; \
 	else \
 		printf '\n$(C_HINT)Nothing here is mounted at start: set mountFsTab = true first - gmake fstab_up.$(C_RESET)\n'; \
 	fi
@@ -98,7 +98,7 @@ wsl_status: ## Show what this instance runs on: base image, init, WSL's files, m
 		elif [ -f "$$wslconfig" ]; then \
 			cat "$$wslconfig"; \
 		else \
-			echo "No $$wslconfig - WSL runs with its own defaults (.\wsl.ps1 wslconfig creates it)."; \
+			echo "No $$wslconfig - WSL runs with its own defaults (.\wsl-fleet.ps1 wslconfig creates it)."; \
 		fi; \
 	fi
 	@$(call title,Memory and services)

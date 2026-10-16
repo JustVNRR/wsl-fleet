@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Exercises the FIRST HALF of .\wsl.ps1 build - the questions - with no Docker
+# Exercises the FIRST HALF of .\wsl-fleet.ps1 build - the questions - with no Docker
 # Desktop and no instance.
 #
 # fake-docker-run.ps1 puts a stand-in docker on the PATH: it answers the

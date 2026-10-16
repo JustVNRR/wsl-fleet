@@ -51,7 +51,7 @@ class CliMigrateView : BaseViewCli {
         } else {
             Write-Host "==> Moved the archives to '$($response.Target)'." -ForegroundColor $this.Colour("success")
         }
-        Write-Host "    Restore them on the other side with  .\wsl.ps1 restore" -ForegroundColor $this.Colour("muted")
+        Write-Host "    Restore them on the other side with  .\wsl-fleet.ps1 restore" -ForegroundColor $this.Colour("muted")
         Write-Host ""
     }
 }

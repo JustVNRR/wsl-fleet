@@ -2,7 +2,7 @@
 # ==============================================================================
 # THE OH_MY_SHELL PACK - WHAT IT REMOVES
 # ==============================================================================
-# `wsl.ps1 remove_pack` runs this before deleting the pack's folder: what the
+# `wsl-fleet.ps1 remove_pack` runs this before deleting the pack's folder: what the
 # install added leaves the machine, and only that.
 #
 # The packages come from the note the install wrote beside this file -

@@ -8,7 +8,7 @@
 #
 # It lists what the user CHOSE: a pack marked PACK_VISIBLE := no is a shared
 # dependency of the packs that require it, so the list answers "what did I ask
-# for?". What it cannot say is what is AVAILABLE - that is `.\wsl.ps1 add_pack`,
+# for?". What it cannot say is what is AVAILABLE - that is `.\wsl-fleet.ps1 add_pack`,
 # from Windows, which is also where a pack arrives or leaves.
 
 packs_list: ## List the packs this instance carries
@@ -16,7 +16,7 @@ packs_list: ## List the packs this instance carries
 		echo ""; \
 		echo "No pack currently installed."; \
 		echo ""; \
-		printf '$(C_MUTED)Packs are managed from Windows (.\\wsl.ps1)$(C_RESET)\n'; \
+		printf '$(C_MUTED)Packs are managed from Windows (.\\wsl-fleet.ps1)$(C_RESET)\n'; \
 	else \
 		echo ""; \
 		echo "Packs currently installed:"; \
@@ -36,5 +36,5 @@ packs_list: ## List the packs this instance carries
 			echo "  Packs that required them are gone."; \
 		fi; \
 		echo ""; \
-		printf '$(C_MUTED)Packs are managed from Windows (.\\wsl.ps1)$(C_RESET)\n'; \
+		printf '$(C_MUTED)Packs are managed from Windows (.\\wsl-fleet.ps1)$(C_RESET)\n'; \
 	fi

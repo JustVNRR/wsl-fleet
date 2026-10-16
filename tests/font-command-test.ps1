@@ -1,4 +1,4 @@
-# Drives the font half of `.\wsl.ps1 theme` the way a script would: the
+# Drives the font half of `.\wsl-fleet.ps1 theme` the way a script would: the
 # numbered prompt, answers on standard input, no console anywhere.
 #
 # The instance it works on exists for the length of the test: a registry key
@@ -7,7 +7,7 @@
 # suite's, kept by the root file in the redirected profile. All of it taken
 # back out at the end.
 #
-# The children are the entry itself, wsl.ps1, run with the theme word.
+# The children are the entry itself, wsl-fleet.ps1, run with the theme word.
 #
 # What is checked is what the font question is for: the list is the fonts
 # that carry the glyphs a prompt is drawn with, the font in use is marked,
@@ -47,7 +47,7 @@ $OurFragment = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments
 $OurFragmentExisted = Test-Path $OurFragment
 
 # The entry, spelled the way a user's script spells it.
-$Entry = Join-Path $PSScriptRoot "..\wsl.ps1"
+$Entry = Join-Path $PSScriptRoot "..\wsl-fleet.ps1"
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $Assets = Join-Path $RepoRoot "assets"
 $distroTree = Join-Path $RepoRoot "src\distro"

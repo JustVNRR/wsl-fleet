@@ -3,7 +3,7 @@
 # requires: tesseract
 # ==========================================
 # The three tools the `oh_my_peg` pack brings, and the commands one actually
-# reaches for. The pack is installed from Windows (`.\wsl.ps1 add_pack`) and
+# reaches for. The pack is installed from Windows (`.\wsl-fleet.ps1 add_pack`) and
 # removed the same way; the page is packs/oh_my_peg/docs/vision.md.
 # Offered only while the tools are installed - the header above is what hides
 # the sheet when they were removed by hand.

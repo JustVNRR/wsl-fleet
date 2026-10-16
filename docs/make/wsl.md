@@ -81,7 +81,7 @@ Each comes back as a trailing comment on the pair's line of `/etc/wsl.conf` —
 see [the status command](#the-status-command).
 
 Turning the drives off does not cut an instance off from its packs:
-`.\wsl.ps1 add_pack` travels through Windows' own share when nothing is mounted.
+`.\wsl-fleet.ps1 add_pack` travels through Windows' own share when nothing is mounted.
 
 When it is on: services started with the instance, `journalctl`, timers.
 
@@ -100,6 +100,6 @@ When it is on: services started with the instance, `journalctl`, timers.
 Three lines can carry that comment: `[automount] enabled`, `[interop] enabled`
 and `[interop] appendWindowsPath`. `# OK` means the instance really is in the
 state the line declares, `# NOK` that it is not — most often a switch just
-thrown whose restart has not happened yet (`.\wsl.ps1 restart`, from Windows).
+thrown whose restart has not happened yet (`.\wsl-fleet.ps1 restart`, from Windows).
 The other lines are printed as they are.
 

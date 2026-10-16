@@ -2,7 +2,7 @@
 # ==============================================================================
 # THE OH_MY_CLOUD PACK - WHAT IT REMOVES
 # ==============================================================================
-# `wsl.ps1 remove_pack` runs this before deleting the pack's folder: what the
+# `wsl-fleet.ps1 remove_pack` runs this before deleting the pack's folder: what the
 # install added to the system leaves it - the CLI, the signing key, the APT
 # address - and nothing else.
 #

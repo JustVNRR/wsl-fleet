@@ -8,7 +8,7 @@
 #     a file under Views\cli (the Instance folder, the Fleet folder, their
 #     shared ones) - a renamed view file is the same kind of silence;
 #   - the menu of Start-Cli.ps1 shows each gesture word it routes, and the
-#     way-in menu of wsl.ps1 its own two;
+#     way-in menu of wsl-fleet.ps1 its own two;
 #   - no cli view exits or judges: no exit, no StopCancelled, no Abort - a
 #     view paints and reads, and the only way out is the gesture's
 #     ActionResult, at the entry.
@@ -101,7 +101,7 @@ foreach ($word in $seen.Keys) {
 foreach ($word in $menuWords) {
     if (-not $seen.ContainsKey($word)) { Fail "the menu shows '$word' - no gesture answers it" }
 }
-$entry = Get-Content (Join-Path $Root "wsl.ps1") -Raw
+$entry = Get-Content (Join-Path $Root "wsl-fleet.ps1") -Raw
 foreach ($word in @("gui", "cli")) {
     if ($entry -notmatch "Add\(""$word"",") { Fail "the way-in menu lost its '$word' row" }
 }

@@ -1,4 +1,4 @@
-# The way in: wsl.ps1, the one door at the root. Its menu offers the window
+# The way in: wsl-fleet.ps1, the one door at the root. Its menu offers the window
 # and the console, a word routes to the console, and both entries are checked
 # for before they are called - a missing one is said, not a crash.
 #
@@ -14,7 +14,7 @@
 $ErrorActionPreference = "Stop"
 
 $Root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
-$entry = Get-Content (Join-Path $Root "wsl.ps1") -Raw
+$entry = Get-Content (Join-Path $Root "wsl-fleet.ps1") -Raw
 $bad = 0
 
 function Check([string]$Name, [bool]$Ok) {

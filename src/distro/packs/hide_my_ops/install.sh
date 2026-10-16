@@ -2,7 +2,7 @@
 # ==============================================================================
 # THE HIDE_MY_OPS PACK - WHAT IT INSTALLS
 # ==============================================================================
-# `wsl.ps1 add_pack` copies this pack's folder into ~/.config/packs/hide_my_ops, then
+# `wsl-fleet.ps1 add_pack` copies this pack's folder into ~/.config/packs/hide_my_ops, then
 # runs this script from inside it, as the instance's own user.
 
 set -euo pipefail

@@ -3,7 +3,7 @@
 # requires: pandoc
 # ==========================================
 # Pandoc, the LaTeX engine and the PDF tools the `oh_my_doc` pack installs
-# (`.\wsl.ps1 add_pack`), and the seven targets it adds.
+# (`.\wsl-fleet.ps1 add_pack`), and the seven targets it adds.
 # The pack is removed the same way; its page is packs/oh_my_doc/docs/pandoc.md.
 # Offered only while pandoc is installed - the header above is what hides the
 # sheet when it was removed by hand.

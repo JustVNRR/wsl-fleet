@@ -19,8 +19,8 @@ result, `gmake csl_from_catalog` fetches a citation style, and the three
 ## Installing and removing it
 
 ```powershell
-.\wsl.ps1 add_pack      # pick the instance, then pandoc
-.\wsl.ps1 remove_pack   # the reverse
+.\wsl-fleet.ps1 add_pack      # pick the instance, then pandoc
+.\wsl-fleet.ps1 remove_pack   # the reverse
 ```
 
 ## The targets

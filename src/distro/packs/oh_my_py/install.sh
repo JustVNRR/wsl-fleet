@@ -2,7 +2,7 @@
 # ==============================================================================
 # THE OH_MY_PY PACK - WHAT IT INSTALLS
 # ==============================================================================
-# `wsl.ps1 add_pack` copies this pack's folder into ~/.config/packs/oh_my_py, then
+# `wsl-fleet.ps1 add_pack` copies this pack's folder into ~/.config/packs/oh_my_py, then
 # runs this script from inside it, as the instance's own user.
 
 set -euo pipefail

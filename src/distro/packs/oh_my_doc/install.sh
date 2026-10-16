@@ -2,7 +2,7 @@
 # ==============================================================================
 # THE OH_MY_DOC PACK - WHAT IT INSTALLS
 # ==============================================================================
-# `wsl.ps1 add_pack` copies this pack's folder into ~/.config/packs/oh_my_doc, then
+# `wsl-fleet.ps1 add_pack` copies this pack's folder into ~/.config/packs/oh_my_doc, then
 # runs this script from inside it, as the instance's own user.
 #
 # Everything this script PRINTS is plain ASCII: it travels through wsl.exe to

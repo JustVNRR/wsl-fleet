@@ -150,7 +150,7 @@ class MenuCli {
         $this.Items   = [System.Collections.Generic.List[MenuItemCli]]::new()
     }
 
-    # The list is built by the caller - wsl.ps1, or a door below - one row per
+    # The list is built by the caller - wsl-fleet.ps1, or a door below - one row per
     # line. The fluent return keeps the construction one statement.
     [MenuCli] Add([MenuItemCli]$Row) {
         $this.Items.Add($Row)
@@ -158,7 +158,7 @@ class MenuCli {
     }
 
     # The same row for a command - the word, the line, the gesture - so the
-    # sixteen can be declared in one fluent chain in wsl.ps1.
+    # sixteen can be declared in one fluent chain in wsl-fleet.ps1.
     [MenuCli] Add([string]$Key, [string]$Description, [scriptblock]$Action) {
         return $this.Add([MenuItemCli]::new($Key, $Description, $Action))
     }

@@ -2,7 +2,7 @@
 # ==============================================================================
 # THE OH_MY_CLOUD PACK - WHAT IT INSTALLS
 # ==============================================================================
-# `wsl.ps1 add_pack` copies this pack's folder into ~/.config/packs/oh_my_cloud, then
+# `wsl-fleet.ps1 add_pack` copies this pack's folder into ~/.config/packs/oh_my_cloud, then
 # runs this script from inside it, as the instance's own user.
 #
 # The root half - the repository, the key, the package - is in install_root.sh,

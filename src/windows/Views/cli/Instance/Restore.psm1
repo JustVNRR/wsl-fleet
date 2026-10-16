@@ -14,7 +14,7 @@ class CliRestoreView : BaseViewCli {
         Write-Host ""
         Write-Host "[ABORT] There are no archives." -ForegroundColor $this.Colour("error")
         Write-Host "        Nothing to restore:" -ForegroundColor $this.Colour("hint")
-        Write-Host "            - Create one with  .\wsl.ps1 archive" -ForegroundColor $this.Colour("hint")
+        Write-Host "            - Create one with  .\wsl-fleet.ps1 archive" -ForegroundColor $this.Colour("hint")
     }
 
     # La vue ne décide plus : le presenter a constaté le vide et l'abandon,

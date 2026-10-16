@@ -23,7 +23,7 @@ Packs currently installed:
   oh_my_py     Python 3, uv and ruff
   oh_my_peg    ffmpeg, ImageMagick and Tesseract OCR
 
-Packs are managed from Windows (.\wsl.ps1)
+Packs are managed from Windows (.\wsl-fleet.ps1)
 ```
 
 A pack marked `PACK_VISIBLE := no` in its `pack.conf` has no line here either.

@@ -1,4 +1,4 @@
-# Drives the icon half of `.\wsl.ps1 theme` the way a script would: the
+# Drives the icon half of `.\wsl-fleet.ps1 theme` the way a script would: the
 # numbered prompt, answers on standard input, no console anywhere.
 #
 # The instance it works on exists for the length of the test: a registry key
@@ -8,7 +8,7 @@
 # installed; everything lives under a working folder of the suite's, and is
 # taken back out at the end.
 #
-# The children are the entry itself, wsl.ps1, run with the theme word.
+# The children are the entry itself, wsl-fleet.ps1, run with the theme word.
 #
 # What is checked is what the icon question is for: one change keeps the
 # others, Enter takes the letters offered, an image of your own leaves the
@@ -43,7 +43,7 @@ $WslFragment = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments
 $Settings = Join-Path $env:LOCALAPPDATA "Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json"
 
 # The entry, spelled the way a user's script spells it.
-$Entry = Join-Path $PSScriptRoot "..\wsl.ps1"
+$Entry = Join-Path $PSScriptRoot "..\wsl-fleet.ps1"
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $Assets = Join-Path $RepoRoot "assets"
 $distroTree = Join-Path $RepoRoot "src\distro"

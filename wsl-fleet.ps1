@@ -5,11 +5,11 @@
 # elle pose la question — flèches et Entrée, Échap pour abandonner. Avec un
 # mot, la console le route ; gui et cli gardent leur sens.
 #
-#   .\wsl.ps1                la question
-#   .\wsl.ps1 gui            la fenêtre
-#   .\wsl.ps1 cli            le menu de la console
-#   .\wsl.ps1 archive        une commande, par son mot
-#   .\wsl.ps1 restore wagon_archive   par son nom
+#   .\wsl-fleet.ps1                la question
+#   .\wsl-fleet.ps1 gui            la fenêtre
+#   .\wsl-fleet.ps1 cli            le menu de la console
+#   .\wsl-fleet.ps1 archive        une commande, par son mot
+#   .\wsl-fleet.ps1 restore wagon_archive   par son nom
 #
 # Rien ne vit ici : l'assemblage et les gestes sont chez eux, sous
 # src\windows\ — Start-Gui.ps1 et Start-Cli.ps1, les deux entrées.

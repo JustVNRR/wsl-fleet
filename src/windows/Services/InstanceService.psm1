@@ -319,7 +319,7 @@ class InstanceService {
         # L'image : une Dockerfile se construit (le tag de travail), une image
         # montée se charge (son nom à elle), une référence de registre passe
         # telle quelle.
-        $tag = "wsl-stack:$name"
+        $tag = "wsl-fleet:$name"
         $imageRef = $dto.BuildPath
         if ($dto.BuildType -in @([WslBuildType]::Dockerfile, [WslBuildType]::Recipe)) {
             # A recipe is a Dockerfile build like the other road: the file

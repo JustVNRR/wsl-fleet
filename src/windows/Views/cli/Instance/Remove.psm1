@@ -69,7 +69,7 @@ class CliRemoveView : BaseViewCli {
     [void] Show() {
         Write-Host ""
         Write-Host "============================================================" -ForegroundColor $this.Colour("success")
-        Write-Host "                WSL Stack Instance Removed!                 " -ForegroundColor $this.Colour("success")
+        Write-Host "                Wsl Fleet Instance Removed!                 " -ForegroundColor $this.Colour("success")
         Write-Host "============================================================" -ForegroundColor $this.Colour("success")
         Write-Host ""
         Write-Host ""

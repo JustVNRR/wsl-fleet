@@ -109,7 +109,7 @@ tunnel — **for this instance only**: all distros share one kernel and one
 firewall, so each rule names this instance's own place in it (its cgroup).
 
 ```bash
-sudo iptables -S OUTPUT | grep -c 'wsl-stack kill switch'   # 2, one per family
+sudo iptables -S OUTPUT | grep -c 'wsl-fleet kill switch'   # 2, one per family
 ```
 
 Both carry that label so they can be found from anywhere: `vpn_ks_off` sweeps

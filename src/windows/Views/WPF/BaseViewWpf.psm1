@@ -374,7 +374,7 @@ class BaseViewWpf : System.Windows.Window {
     [bool] ConfirmAs([object]$owner, [string]$title, [string]$question, [string]$danger) {
         $dialog = [BaseViewWpf]::new()
         $vm = [ConfirmViewModel]::new($title, $question, $danger)
-        $dialog.Title = "WSL Stack"
+        $dialog.Title = "Wsl Fleet"
         $dialog.SizeToContent = [System.Windows.SizeToContent]::WidthAndHeight
         $dialog.WindowStartupLocation = [System.Windows.WindowStartupLocation]::CenterScreen
         $dialog.ResizeMode = [System.Windows.ResizeMode]::NoResize

@@ -22,7 +22,7 @@ class WpfMainView : BaseViewWpf {
         $self = $this
         $this.Vm = $vm
 
-        $this.Title = "WSL Stack Manager"
+        $this.Title = "Wsl Fleet Manager"
         $this.SizeToContent = [System.Windows.SizeToContent]::WidthAndHeight
         $this.WindowStartupLocation = [System.Windows.WindowStartupLocation]::CenterScreen
         $this.MinHeight = 240

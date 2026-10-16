@@ -389,15 +389,15 @@ class WslRepository {
     [bool] OpenPackSudoWindow([string]$instanceName) {
         $user = Split-Path -Leaf ($this.GetHome($instanceName))
         if (-not $user) { return $false }
-        $command = "printf '%s`n' '$user ALL=(ALL) NOPASSWD: ALL' > /tmp/wsl-stack-pack-sudo" +
-            " && chmod 0440 /tmp/wsl-stack-pack-sudo" +
-            " && visudo -cf /tmp/wsl-stack-pack-sudo > /dev/null" +
-            " && mv /tmp/wsl-stack-pack-sudo /etc/sudoers.d/90-wsl-stack-packs"
+        $command = "printf '%s`n' '$user ALL=(ALL) NOPASSWD: ALL' > /tmp/wsl-fleet-pack-sudo" +
+            " && chmod 0440 /tmp/wsl-fleet-pack-sudo" +
+            " && visudo -cf /tmp/wsl-fleet-pack-sudo > /dev/null" +
+            " && mv /tmp/wsl-fleet-pack-sudo /etc/sudoers.d/90-wsl-fleet-packs"
         return ($this.RunInInstance($instanceName, "root", @("bash", "-c", $command), "") -eq 0)
     }
 
     [void] ClosePackSudoWindow([string]$instanceName) {
-        $null = $this.RunInInstance($instanceName, "root", @("rm", "-f", "/etc/sudoers.d/90-wsl-stack-packs"), "")
+        $null = $this.RunInInstance($instanceName, "root", @("rm", "-f", "/etc/sudoers.d/90-wsl-fleet-packs"), "")
     }
 
     # Ce que les retraits ont laissé sur le système : les dépendances que

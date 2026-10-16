@@ -386,7 +386,7 @@ try {
     Check "  ... and the conversation in order" `
         ($view.Orders -join " | ") "clear | name | clear | road dockerfile | source Dockerfile | clear | packs | onboarding-run default-no=False | onboarding | account-breath | user | hint-user | user | keep | register"
     Check "  ... the builder called with the Dto's own shape" `
-        (($docker.Called -join " | ") -like "running | build wsl-stack:bench-build*bench-b*") $true
+        (($docker.Called -join " | ") -like "running | build wsl-fleet:bench-build*bench-b*") $true
     Check "  ... and the refusal painted" ($failureView.Orders -join " | ") "error the builder refused"
 
     # 6. A source folder with no Dockerfile, and one with no saved image:
@@ -463,7 +463,7 @@ try {
     $docker.Responsive = $true
     $result = $recipe.Run()
     Check "the recipe road builds its Dockerfile with the folder as context" `
-        (($docker.Called -join " | ") -eq "running | build wsl-stack:bench-build $(Join-Path $RecipeSlot 'Dockerfile') $RecipeSlot") $true
+        (($docker.Called -join " | ") -eq "running | build wsl-fleet:bench-build $(Join-Path $RecipeSlot 'Dockerfile') $RecipeSlot") $true
     Check "  ... the single recipe shown, not taken in silence" ($view.Orders -contains "source Recipe") $true
     Check "  ... and the onboarding is offered unchecked" ($view.Orders -contains "onboarding-run default-no=True") $true
     Check "  ... the keep question asked, the builder refusing" "$($result.Status)/$($result.Message)" "Nok/Build : bench-build - the builder refused"

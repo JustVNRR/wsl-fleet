@@ -7,7 +7,7 @@
 # jamais, et sous une méthode de classe un natif perd son terminal. L'enfant,
 # lui, a un hôte.
 #
-# CACHÉ : personne ne le regarde — le journal (%TEMP%\wsl-stack-gui-job.log)
+# CACHÉ : personne ne le regarde — le journal (%TEMP%\wsl-fleet-gui-job.log)
 # dit l'étape et la fin, la fenêtre le guette.
 #
 # Ce dont ce fichier nomme, déclaré ici : il tire ses modules lui-même. Ce
@@ -23,7 +23,7 @@ param(
     [string]$Root
 )
 
-$Log = Join-Path $env:TEMP "wsl-stack-gui-job.log"
+$Log = Join-Path $env:TEMP "wsl-fleet-gui-job.log"
 function Write-Stamp($Message) { $null = Add-Content -LiteralPath $Log -Value "$(Get-Date -Format HH:mm:ss) $Message" }
 
 $distroTree = ""

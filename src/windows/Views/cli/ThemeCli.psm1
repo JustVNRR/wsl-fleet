@@ -37,7 +37,7 @@ class ThemeCli {
 
     # And the ones this repository writes for its instances: one per instance,
     # by name, layered over the profile WSL made for it.
-    hidden static [string]$OurFragments = (Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-stack")
+    hidden static [string]$OurFragments = (Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-fleet")
 
     # -----------------------------------------------------------------------
     # Where a scheme keeps the sixteen names

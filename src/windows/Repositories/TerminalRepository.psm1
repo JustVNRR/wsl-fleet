@@ -28,7 +28,7 @@ class TerminalRepository {
 
     # Notre dossier de fragments : un fichier par instance.
     [string] GetFragmentPath([string]$instanceName) {
-        return (Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-stack\$instanceName.json")
+        return (Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-fleet\$instanceName.json")
     }
 
     [bool] HasFragment([string]$instanceName) {
@@ -40,7 +40,7 @@ class TerminalRepository {
     # ligne de l'icône s'omet quand il n'y a pas d'icône. L'écriture est sans
     # BOM : une marque ne fait pas partie d'un JSON.
     [void] SaveFragment([string]$instanceName, [string]$guid, [WslTheme]$theme) {
-        $fragmentDir = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-stack"
+        $fragmentDir = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-fleet"
         $null = New-Item -ItemType Directory -Force $fragmentDir
         $iconPath = $theme.GetIconPath()
         $iconJson = if ($iconPath -and (Test-Path $iconPath)) {
@@ -167,7 +167,7 @@ $iconJson
     [string[]] RemoveStaleFragments([string[]]$liveGuids) {
         $removed = @()
         if (@($liveGuids).Count -eq 0) { return @() }
-        $ours = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-stack"
+        $ours = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-fleet"
         if (-not (Test-Path $ours)) { return @() }
         foreach ($file in (Get-ChildItem $ours -Filter *.json)) {
             try {
@@ -282,7 +282,7 @@ $iconJson
             }
         }
 
-        $ours = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-stack"
+        $ours = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-fleet"
         foreach ($file in @(Get-ChildItem $ours -Filter *.json -ErrorAction SilentlyContinue)) {
             $parsed = $this.ReadTerminalJson($file.FullName)
             $named = @($parsed.profiles)[0].colorScheme

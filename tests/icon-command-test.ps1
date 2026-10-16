@@ -30,10 +30,10 @@ $Key = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss\{2f9f0a4e-58b1-4a3c
 $env:USERPROFILE = $Tmp
 $env:LOCALAPPDATA = Join-Path $Tmp "LocalAppData"
 $env:APPDATA = Join-Path $Tmp "AppData"
-New-Item -ItemType Directory -Path (Join-Path $env:LOCALAPPDATA "wsl-stack") -Force | Out-Null
+New-Item -ItemType Directory -Path (Join-Path $env:LOCALAPPDATA "wsl-fleet") -Force | Out-Null
 New-Item -ItemType Directory -Path $env:APPDATA -Force | Out-Null
 $Root = Join-Path $Tmp "WSL"
-Set-Content -Path (Join-Path $env:LOCALAPPDATA "wsl-stack\root.txt") -Value $Root -Encoding ascii
+Set-Content -Path (Join-Path $env:LOCALAPPDATA "wsl-fleet\root.txt") -Value $Root -Encoding ascii
 $FakeFolder = Join-Path $Root $FakeName
 $IconPath = Join-Path $FakeFolder "terminal-icon.png"
 # One file per instance, in its folder: the look's own record.
@@ -83,7 +83,7 @@ function Get-Recipe {
 }
 
 New-Item -ItemType Directory -Path $FakeFolder -Force | Out-Null
-New-Item -ItemType File -Path (Join-Path $FakeFolder ".wsl-stack") -Force | Out-Null
+New-Item -ItemType File -Path (Join-Path $FakeFolder ".wsl-fleet") -Force | Out-Null
 
 try {
     Remove-Item $Key -Recurse -Force -ErrorAction SilentlyContinue

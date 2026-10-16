@@ -37,9 +37,9 @@ $Log = Join-Path $Tmp "wsl-calls.log"
 $env:USERPROFILE = $Tmp
 $env:LOCALAPPDATA = Join-Path $Tmp "LocalAppData"
 $env:APPDATA = Join-Path $Tmp "AppData"
-New-Item -ItemType Directory -Path (Join-Path $env:LOCALAPPDATA "wsl-stack") -Force | Out-Null
+New-Item -ItemType Directory -Path (Join-Path $env:LOCALAPPDATA "wsl-fleet") -Force | Out-Null
 New-Item -ItemType Directory -Path $env:APPDATA -Force | Out-Null
-Set-Content -Path (Join-Path $env:LOCALAPPDATA "wsl-stack\root.txt") -Value $Tmp -Encoding ascii
+Set-Content -Path (Join-Path $env:LOCALAPPDATA "wsl-fleet\root.txt") -Value $Tmp -Encoding ascii
 # L'instance vit ou le repertoire la cherche : sous la racine, par son nom.
 $FakeFolder = Join-Path $Tmp $FakeName
 
@@ -108,7 +108,7 @@ function Get-Calls {
 }
 
 New-Item -ItemType Directory -Path $FakeFolder -Force | Out-Null
-New-Item -ItemType File -Path (Join-Path $FakeFolder ".wsl-stack") -Force | Out-Null
+New-Item -ItemType File -Path (Join-Path $FakeFolder ".wsl-fleet") -Force | Out-Null
 
 try {
     Remove-Item $Key -Recurse -Force -ErrorAction SilentlyContinue

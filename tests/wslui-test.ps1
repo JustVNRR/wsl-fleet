@@ -28,7 +28,7 @@ function Check([string]$Name, [bool]$Ok) {
 
 # The menu: its title, its two rows - the words, and the descriptions the
 # pages repeat.
-Check "the way-in menu is titled WSL Stack" ($entry -match 'Add\("gui",\s*"WSL Fleet GUI",\s*\{\s*\}\)' -or $entry -match 'MenuCli\]::new\("WSL Stack"\)')
+Check "the way-in menu is titled Wsl Fleet" ($entry -match 'Add\("gui",\s*"WSL Fleet GUI",\s*\{\s*\}\)' -or $entry -match 'MenuCli\]::new\("Wsl Fleet"\)')
 Check "the window is offered first, by its word" ($entry -match 'Add\("gui",\s*"WSL Fleet GUI"')
 Check "the console after it" ($entry -match 'Add\("cli",\s*"WSL Fleet CLI"')
 

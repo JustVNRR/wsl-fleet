@@ -404,7 +404,7 @@ Set-Content -Path (Join-Path $World "icon.png") -Value "fake-png" -NoNewline
 function Reset-World {
     Remove-Item -Recurse -Force $Root -ErrorAction SilentlyContinue
     New-Item -ItemType Directory -Path $FakeFolder -Force | Out-Null
-    New-Item -ItemType File -Path (Join-Path $FakeFolder ".wsl-stack") -Force | Out-Null
+    New-Item -ItemType File -Path (Join-Path $FakeFolder ".wsl-fleet") -Force | Out-Null
     Set-Content -Path (Join-Path $FakeFolder "ext4.vhdx") -Value "fake-disk" -NoNewline
 }
 Reset-World

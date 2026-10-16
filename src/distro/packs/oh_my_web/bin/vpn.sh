@@ -32,7 +32,7 @@ AUTO_FLAG=$HOME/.config/vpn/auto
 
 # The rules carry this label, so any instance can find and sweep them - scoped
 # to this distro's cgroup path: the firewall is shared by every distro.
-KS_COMMENT='wsl-stack kill switch'
+KS_COMMENT='wsl-fleet kill switch'
 
 # This distro's root in WSL's cgroup tree: the id is renumbered at every start,
 # and matching the root covers the sessions (iptables' --path covers

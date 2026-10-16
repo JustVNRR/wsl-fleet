@@ -66,12 +66,12 @@ Before=$(tree_state)
 # dies before its first question. The Windows forms are what the children
 # read: a posix path never reaches the same folder twice.
 World=$(mktemp -d)
-mkdir -p "$World/LocalAppData/wsl-stack" "$World/AppData" "$World/User" "$World/WSL"
+mkdir -p "$World/LocalAppData/wsl-fleet" "$World/AppData" "$World/User" "$World/WSL"
 export LOCALAPPDATA APPDATA USERPROFILE
 LOCALAPPDATA=$(cygpath -w "$World/LocalAppData")
 APPDATA=$(cygpath -w "$World/AppData")
 USERPROFILE=$(cygpath -w "$World/User")
-printf '%s' "$(cygpath -w "$World/WSL")" > "$World/LocalAppData/wsl-stack/root.txt"
+printf '%s' "$(cygpath -w "$World/WSL")" > "$World/LocalAppData/wsl-fleet/root.txt"
 
 # The world the questions need: a fresh checkout has the assets folders empty,
 # so the suite stages its own slots - two Dockerfiles of the Debian family (a

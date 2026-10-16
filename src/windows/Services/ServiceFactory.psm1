@@ -34,7 +34,7 @@ class ServiceFactory {
     static [LoggerService] CreateLoggerService() {
         $base = "$env:LOCALAPPDATA"
         if (-not $base) { $base = [IO.Path]::GetTempPath() }
-        return [LoggerService]::new((Join-Path $base "wsl-stack\wsl-stack.log"))
+        return [LoggerService]::new((Join-Path $base "wsl-fleet\wsl-fleet.log"))
     }
 
     static [string] ResolveRoot([string]$assets, [string]$distroTree) {

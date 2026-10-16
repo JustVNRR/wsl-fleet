@@ -124,7 +124,7 @@ $Root = Join-Path $World "WSL"
 foreach ($name in @("alpha", "beta", "gamma")) {
     $folder = Join-Path $Root $name
     New-Item -ItemType Directory -Path $folder -Force | Out-Null
-    New-Item -ItemType File -Path (Join-Path $folder ".wsl-stack") -Force | Out-Null
+    New-Item -ItemType File -Path (Join-Path $folder ".wsl-fleet") -Force | Out-Null
     Set-Content -Path (Join-Path $folder "ext4.vhdx") -Value "fake-disk" -NoNewline
 }
 

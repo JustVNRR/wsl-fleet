@@ -180,18 +180,18 @@ $World = Join-Path ([System.IO.Path]::GetTempPath()) ("fleet-presenters-" + [Gui
 $env:USERPROFILE = $World
 $env:LOCALAPPDATA = Join-Path $World "LocalAppData"
 $env:APPDATA = Join-Path $World "AppData"
-New-Item -ItemType Directory -Path (Join-Path $env:LOCALAPPDATA "wsl-stack") -Force | Out-Null
+New-Item -ItemType Directory -Path (Join-Path $env:LOCALAPPDATA "wsl-fleet") -Force | Out-Null
 New-Item -ItemType Directory -Path $env:APPDATA -Force | Out-Null
 $Root = Join-Path $World "WSL"
 $Instance = "bench-agent"
 $FakeFolder = Join-Path $Root $Instance
 $LeftBehind = Join-Path $Root "left-behind"
-Set-Content -Path (Join-Path $env:LOCALAPPDATA "wsl-stack\root.txt") -Value $Root -Encoding ascii -NoNewline
+Set-Content -Path (Join-Path $env:LOCALAPPDATA "wsl-fleet\root.txt") -Value $Root -Encoding ascii -NoNewline
 
 function Reset-World {
     Remove-Item -Recurse -Force $Root -ErrorAction SilentlyContinue
     New-Item -ItemType Directory -Path $FakeFolder -Force | Out-Null
-    New-Item -ItemType File -Path (Join-Path $FakeFolder ".wsl-stack") -Force | Out-Null
+    New-Item -ItemType File -Path (Join-Path $FakeFolder ".wsl-fleet") -Force | Out-Null
     Set-Content -Path (Join-Path $FakeFolder "ext4.vhdx") -Value "fake-disk" -NoNewline
 }
 Reset-World
@@ -238,7 +238,7 @@ try {
     Check "  ... the running name read once for the table" ($listView.Orders -join " | ") "show rows=1 orphans=0 running=$Instance"
 
     New-Item -ItemType Directory -Path $LeftBehind -Force | Out-Null
-    New-Item -ItemType File -Path (Join-Path $LeftBehind ".wsl-stack") -Force | Out-Null
+    New-Item -ItemType File -Path (Join-Path $LeftBehind ".wsl-fleet") -Force | Out-Null
     $listView.Orders.Clear()
     $result = $presenter.Run()
     Check "an orphan folder is a row, not an abort" "$($result.Status)/$($result.Message)" "Ok/List : 2 row(s)"
@@ -363,7 +363,7 @@ try {
     $result = $presenter.Run("")
     Check "a good target goes" "$($result.Status)/$($result.Message)" "Ok/Migrate : $NewRoot"
     Check "  ... the lead then the report" ($migrateView.Orders -join " | ") "ask root=$Root | lead | report $NewRoot moved="
-    Check "  ... and the root file follows" "$(Get-Content (Join-Path $env:LOCALAPPDATA 'wsl-stack\root.txt') -Raw)".Trim() "$NewRoot"
+    Check "  ... and the root file follows" "$(Get-Content (Join-Path $env:LOCALAPPDATA 'wsl-fleet\root.txt') -Raw)".Trim() "$NewRoot"
 
     # 12. A target GIVEN passes both refusals, as the window's launch does -
     # and the service's own guard still answers a target it hates.

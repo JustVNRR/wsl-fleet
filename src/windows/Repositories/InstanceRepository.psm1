@@ -116,12 +116,12 @@ class InstanceRepository {
         # [ordered] : un hashtable imprimerait ses clés dans un ordre qui
         # change d'une fois à l'autre.
         $marker = [ordered]@{
-            template = "wsl-stack"
+            template = "wsl-fleet"
             created  = (Get-Date).ToString("yyyy-MM-dd")
             by       = $by
         }
         $json = ($marker | ConvertTo-Json) -replace "`r`n", "`n"
-        [System.IO.File]::WriteAllText((Join-Path $folder ".wsl-stack"), $json,
+        [System.IO.File]::WriteAllText((Join-Path $folder ".wsl-fleet"), $json,
             (New-Object System.Text.UTF8Encoding($false)))
     }
 
@@ -133,7 +133,7 @@ class InstanceRepository {
     # cherche une inscrite là où le registre dit qu'elle vit.
     [bool] HasMarkerIn([string]$folder) {
         if (-not $folder) { return $false }
-        return (Test-Path (Join-Path $folder ".wsl-stack"))
+        return (Test-Path (Join-Path $folder ".wsl-fleet"))
     }
 
     # Les dossiers du foyer qui portent le marqueur, par leur nom — ce que la
@@ -142,7 +142,7 @@ class InstanceRepository {
         $names = @()
         if (-not (Test-Path $this.InstancesRoot)) { return @() }
         foreach ($dir in (Get-ChildItem -Path $this.InstancesRoot -Directory -ErrorAction SilentlyContinue | Sort-Object Name)) {
-            if (Test-Path (Join-Path $dir.FullName ".wsl-stack")) { $names += $dir.Name }
+            if (Test-Path (Join-Path $dir.FullName ".wsl-fleet")) { $names += $dir.Name }
         }
         return @($names)
     }

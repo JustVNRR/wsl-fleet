@@ -1,4 +1,4 @@
-# WSL Stack
+# Wsl Fleet
 
 A reproducible WSL2 stack: one PowerShell command builds a fresh Ubuntu 24.04 distro with:
 - the shell,
@@ -45,8 +45,8 @@ Make sure Docker Desktop is running before you start.
 
 1. **Clone the repository:**
    ```powershell
-   git clone https://github.com/JustVNRR/wsl-stack.git
-   cd wsl-stack
+   git clone https://github.com/JustVNRR/wsl-fleet.git
+   cd wsl-fleet
    ```
 
 2. **Build and register the instance:**
@@ -304,7 +304,7 @@ first of all: its `config/` folder is what fills `~/.config/zsh`.
 │   │       ├── Dockerfile.dockerignore # Keeps the context lean, keeps .env.global out of the image
 │   │       └── onboarding.sh # User creation, sudo, timezone, /etc/wsl.conf
 │   ├── windows/             # Instance administration, one file per command
-│   │   ├── WslStack/        # The module: one nested file per family - the
+│   │   ├── WslFleet/        # The module: one nested file per family - the
 │   │                        #   messages, the instances' family, the pack
 │   │                        #   moves, the questions and the menus
 │   │   ├── WslUI.psm1       # The menu's classes, a module the naming files

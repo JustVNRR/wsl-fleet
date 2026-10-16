@@ -45,10 +45,10 @@ $Log = Join-Path $Tmp "wsl-calls.log"
 $env:USERPROFILE = $Tmp
 $env:LOCALAPPDATA = Join-Path $Tmp "LocalAppData"
 $env:APPDATA = Join-Path $Tmp "AppData"
-New-Item -ItemType Directory -Path (Join-Path $env:LOCALAPPDATA "wsl-stack") -Force | Out-Null
+New-Item -ItemType Directory -Path (Join-Path $env:LOCALAPPDATA "wsl-fleet") -Force | Out-Null
 New-Item -ItemType Directory -Path $env:APPDATA -Force | Out-Null
 $Root = Join-Path $Tmp "WSL"
-Set-Content -Path (Join-Path $env:LOCALAPPDATA "wsl-stack\root.txt") -Value $Root -Encoding ascii
+Set-Content -Path (Join-Path $env:LOCALAPPDATA "wsl-fleet\root.txt") -Value $Root -Encoding ascii
 $FakeFolder = Join-Path $Root $FakeName
 
 # The paths this suite writes, and takes back out in the end - names no real
@@ -146,7 +146,7 @@ function Get-FileText {
 # The instance: a folder carrying the marker, the disk, the icon, and a look
 # in the shape the tree reads and writes - the Theme block of instance.json.
 New-Item -ItemType Directory -Path $FakeFolder -Force | Out-Null
-New-Item -ItemType File -Path (Join-Path $FakeFolder ".wsl-stack") -Force | Out-Null
+New-Item -ItemType File -Path (Join-Path $FakeFolder ".wsl-fleet") -Force | Out-Null
 Set-Content -Path (Join-Path $FakeFolder "ext4.vhdx") -Value "fake-disk" -NoNewline
 Set-Content -Path (Join-Path $FakeFolder "terminal-icon.png") -Value "fake-icon" -NoNewline
 @{
@@ -191,7 +191,7 @@ try {
 
     $ArchiveDir = Join-Path $Root "archives\$ArchiveName"
     $TarPath = Join-Path $ArchiveDir "$ArchiveName.tar.gz"
-    $Fragments = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-stack"
+    $Fragments = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-fleet"
 
     # 0. restore with no archive anywhere: it says how to make one instead of
     # printing a list over nothing. Skipped when the root already holds
@@ -248,7 +248,7 @@ try {
     $Install = Join-Path $Root "restored-one"
     Check "restore imports the tar it picked, as version 2" (@(Get-Calls | Where-Object { $_ -eq "--import restored-one $Install $TarPath --version 2" }).Count) 1
     Check "and says the instance came back" (@($Out | Where-Object { "$_".Contains("'restored-one' restored from an archive") }).Count -gt 0) $true
-    $Raw = Get-FileText (Join-Path $Install ".wsl-stack")
+    $Raw = Get-FileText (Join-Path $Install ".wsl-fleet")
     $Marker = if ($Raw) { ($Raw | ConvertFrom-Json).by } else { "" }
     Check "and the marker is written, credited to restore" "$Marker" "restore"
     Check "and ends on zero" $script:ChildExit 0
@@ -293,7 +293,7 @@ try {
     Check "and imports the copy, as version 2" (@($Calls | Where-Object { $_ -eq "--import copied-one $CopyDir $TempTar --version 2" }).Count) 1
     Check "and the temporary tar is removed" (Test-Path $TempTar) $false
     Check "and says what it made" (@($Out | Where-Object { "$_".Contains("'copied-one' is a copy of '$FakeName'") }).Count -gt 0) $true
-    $Raw = Get-FileText (Join-Path $CopyDir ".wsl-stack")
+    $Raw = Get-FileText (Join-Path $CopyDir ".wsl-fleet")
     $Marker = if ($Raw) { ($Raw | ConvertFrom-Json).by } else { "" }
     Check "and the marker is written, credited to duplicate" "$Marker" "duplicate"
     Check "and ends on zero" $script:ChildExit 0

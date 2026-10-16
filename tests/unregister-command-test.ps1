@@ -40,10 +40,10 @@ $Log = Join-Path $Tmp "wsl-calls.log"
 $env:USERPROFILE = $Tmp
 $env:LOCALAPPDATA = Join-Path $Tmp "LocalAppData"
 $env:APPDATA = Join-Path $Tmp "AppData"
-New-Item -ItemType Directory -Path (Join-Path $env:LOCALAPPDATA "wsl-stack") -Force | Out-Null
+New-Item -ItemType Directory -Path (Join-Path $env:LOCALAPPDATA "wsl-fleet") -Force | Out-Null
 New-Item -ItemType Directory -Path $env:APPDATA -Force | Out-Null
 $Root = Join-Path $Tmp "WSL"
-Set-Content -Path (Join-Path $env:LOCALAPPDATA "wsl-stack\root.txt") -Value $Root -Encoding ascii
+Set-Content -Path (Join-Path $env:LOCALAPPDATA "wsl-fleet\root.txt") -Value $Root -Encoding ascii
 $FakeFolder = Join-Path $Root $FakeName
 
 # The paths this suite writes, and takes back out in the end - names no real
@@ -65,7 +65,7 @@ if ($InTheWay.Count -gt 0) {
 # redirected folders.
 $SettingsPath = Join-Path $env:LOCALAPPDATA "Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json"
 $WslFragmentDir = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\Microsoft.WSL"
-$OurFragmentDir = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-stack"
+$OurFragmentDir = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-fleet"
 $DockerFile = Join-Path $env:APPDATA "Docker\settings-store.json"
 $ArchiveDir = Join-Path $Root "archives\$ArchiveName"
 
@@ -157,7 +157,7 @@ function Reset-World {
     Set-ItemProperty -Path $Key -Name BasePath -Value $FakeFolder
 
     New-Item -ItemType Directory -Path $FakeFolder -Force | Out-Null
-    New-Item -ItemType File -Path (Join-Path $FakeFolder ".wsl-stack") -Force | Out-Null
+    New-Item -ItemType File -Path (Join-Path $FakeFolder ".wsl-fleet") -Force | Out-Null
     Set-Content -Path (Join-Path $FakeFolder "ext4.vhdx") -Value "fake-disk" -NoNewline
     Set-Content -Path (Join-Path $FakeFolder "terminal-icon.png") -Value "fake-icon" -NoNewline
     @{
@@ -286,7 +286,7 @@ try {
     Check "and the rest of the list stays" (@($DockerAfter.IntegratedWslDistros) -contains "other-distro") $true
     Check "and Docker's file got a backup too" (Test-Path "$DockerFile.bak") $true
 
-    Check "and the removal is reported" (@($Out | Where-Object { "$_".Contains("WSL Stack Instance Removed!") }).Count -gt 0) $true
+    Check "and the removal is reported" (@($Out | Where-Object { "$_".Contains("Wsl Fleet Instance Removed!") }).Count -gt 0) $true
     Check "and ends on zero" $script:ChildExit 0
 
     # 4. The same without the archive: nothing is exported, everything else

@@ -17,7 +17,7 @@ class WpfPackDuplicateView : BaseViewWpf {
         $self = $this
         $this.Vm = [PackDuplicateViewModel]::new($source, $description, $taken)
 
-        $this.Title = "WSL Stack"
+        $this.Title = "Wsl Fleet"
         $this.SizeToContent = [System.Windows.SizeToContent]::WidthAndHeight
         $this.WindowStartupLocation = [System.Windows.WindowStartupLocation]::CenterScreen
         $this.ResizeMode = [System.Windows.ResizeMode]::NoResize

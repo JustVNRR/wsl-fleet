@@ -132,7 +132,7 @@ class MainWindowViewModel : BaseViewModel {
             $this.OnPropertyChanged("Rows")
             $this.OnPropertyChanged("Root")
             if ($this.Rows.Count -eq 0) {
-                $this.SetStatus("No WSL Stack instances found.", $false)
+                $this.SetStatus("No Wsl Fleet instances found.", $false)
                 return
             }
             $this.SetStatus("$($this.Rows.Count) row(s) loaded.", $false)
@@ -327,7 +327,7 @@ class MainWindowViewModel : BaseViewModel {
 
     hidden [void] StartLong([string]$verb, [string]$name, [string]$arg1, [string]$message, [string]$arg2) {
         $workerPath = Join-Path $this._runners "$($verb)Runner.ps1"
-        $log = Join-Path $env:TEMP "wsl-stack-gui-job.log"
+        $log = Join-Path $env:TEMP "wsl-fleet-gui-job.log"
         Remove-Item -LiteralPath $log -ErrorAction SilentlyContinue
 
         $this.SpinRow($name, $true)
@@ -389,7 +389,7 @@ class MainWindowViewModel : BaseViewModel {
             # réelle (mesuré au parse).
             $alarm = $false
             $keepLog = $false
-            $log = Join-Path $env:TEMP "wsl-stack-gui-job.log"
+            $log = Join-Path $env:TEMP "wsl-fleet-gui-job.log"
             try {
                 $this.Ticks = 0
                 $trail = @(Get-Content -LiteralPath $log -ErrorAction SilentlyContinue)
@@ -448,7 +448,7 @@ class MainWindowViewModel : BaseViewModel {
         $dto = $this.ShowFace("Build", @($this._instance))
         if (-not $dto) { return }
 
-        $json = Join-Path $env:TEMP "wsl-stack-build.json"
+        $json = Join-Path $env:TEMP "wsl-fleet-build.json"
         $payload = [PSCustomObject]@{
             Name           = "$($dto.Name)"
             User           = "$($dto.User)"

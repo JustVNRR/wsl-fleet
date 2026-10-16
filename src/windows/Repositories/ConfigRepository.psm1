@@ -422,10 +422,10 @@ class ConfigRepository {
     # dossier ne peut pas dire où il est.
     hidden [string] RootFile() {
         if (-not $env:LOCALAPPDATA) { return "" }
-        return (Join-Path $env:LOCALAPPDATA "wsl-stack\root.txt")
+        return (Join-Path $env:LOCALAPPDATA "wsl-fleet\root.txt")
     }
 
     hidden [string] WpfSettingsFile() {
-        return (Join-Path $env:LOCALAPPDATA "wsl-stack\gui-settings.json")
+        return (Join-Path $env:LOCALAPPDATA "wsl-fleet\gui-settings.json")
     }
 }

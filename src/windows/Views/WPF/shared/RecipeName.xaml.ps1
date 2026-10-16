@@ -15,7 +15,7 @@ class WpfRecipeNameView : BaseViewWpf {
         $self = $this
         $this.Vm = [RecipeNameViewModel]::new()
 
-        $this.Title = "WSL Stack"
+        $this.Title = "Wsl Fleet"
         $this.SizeToContent = [System.Windows.SizeToContent]::WidthAndHeight
         $this.WindowStartupLocation = [System.Windows.WindowStartupLocation]::CenterScreen
         $this.ResizeMode = [System.Windows.ResizeMode]::NoResize

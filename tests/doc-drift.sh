@@ -98,7 +98,7 @@ check_sample() {
         }
     done <<< "$rows"
 }
-check_sample "WSL Stack" wsl-fleet.ps1
+check_sample "Wsl Fleet" wsl-fleet.ps1
 check_sample "WSL Fleet CLI" src/windows/Start-Cli.ps1
 
 echo

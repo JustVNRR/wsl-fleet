@@ -8,7 +8,7 @@ using module .\BaseViewModel.psm1
 # La plus petite boîte : un titre, une question, la ligne rouge quand il y en
 # a une. CONFIRM rend oui, la porte de fermeture porte la réponse.
 class ConfirmViewModel : BaseViewModel {
-    [string]$Title = "WSL Stack"
+    [string]$Title = "Wsl Fleet"
     [string]$Question = ""
     [string]$Danger = ""
     [object]$Result = $null

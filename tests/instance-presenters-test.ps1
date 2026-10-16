@@ -198,7 +198,7 @@ $FakeFolder = Join-Path $Root $Instance
 function Reset-World {
     Remove-Item -Recurse -Force $Root -ErrorAction SilentlyContinue
     New-Item -ItemType Directory -Path $FakeFolder -Force | Out-Null
-    New-Item -ItemType File -Path (Join-Path $FakeFolder ".wsl-stack") -Force | Out-Null
+    New-Item -ItemType File -Path (Join-Path $FakeFolder ".wsl-fleet") -Force | Out-Null
     Set-Content -Path (Join-Path $FakeFolder "ext4.vhdx") -Value "fake-disk" -NoNewline
     Set-Content -Path (Join-Path $FakeFolder "periodic-file") -Value "x" -NoNewline
     $Seeded = Join-Path $Root "archives\$($Instance)_archive"
@@ -349,7 +349,7 @@ try {
     $result = $presenter.Run("")
     Check "restore goes with a pick and a name" "$($result.Status)/$($result.Message)" "Ok/Restore : restored-one"
     Check "  ... the import at version 2" (($fake.Called -join " | ") -like "--import restored-one * --version 2") $true
-    $marker = Get-Content -Raw (Join-Path (Join-Path $Root "restored-one") ".wsl-stack") | ConvertFrom-Json
+    $marker = Get-Content -Raw (Join-Path (Join-Path $Root "restored-one") ".wsl-fleet") | ConvertFrom-Json
     Check "  ... and the marker says restore" "$($marker.by)" "restore"
 
     # 8. An empty name cancels, before anything is imported.
@@ -391,7 +391,7 @@ try {
     Check "duplicate goes with a good name" "$($result.Status)/$($result.Message)" "Ok/Duplicate : copied-one"
     Check "  ... export then import, version 2" `
         ("$(($fake.Called | Where-Object { $_ -like '--export*' }).Count)/$(($fake.Called | Where-Object { $_ -like '--import copied-one * --version 2' }).Count)") "1/1"
-    $marker = Get-Content -Raw (Join-Path (Join-Path $Root "copied-one") ".wsl-stack") | ConvertFrom-Json
+    $marker = Get-Content -Raw (Join-Path (Join-Path $Root "copied-one") ".wsl-fleet") | ConvertFrom-Json
     Check "  ... and the marker says duplicate" "$($marker.by)" "duplicate"
 
     # 11. The avis answered no: nothing runs.

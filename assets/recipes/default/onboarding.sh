@@ -14,7 +14,7 @@ fi
 
 clear
 echo "============================================================"
-echo "            Welcome to your WSL Stack environment"
+echo "            Welcome to your Wsl Fleet environment"
 echo "============================================================"
 echo ""
 

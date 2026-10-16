@@ -9,7 +9,7 @@ commands themselves live in `src\windows\`.
 
 ```text
 
-WSL Stack
+Wsl Fleet
   > gui          WSL Fleet GUI
     cli          WSL Fleet CLI
   up/down to move, Enter to choose, Escape to cancel
@@ -81,7 +81,7 @@ read, the colours a console has always had are used.
 ## Which WSL instances are ours
 
 Every instance created by `build`, `restore` or `duplicate` carries a
-**marker**, named `.wsl-stack`, in its own folder next to its
+**marker**, named `.wsl-fleet`, in its own folder next to its
 virtual disk:
 
 ```text
@@ -89,13 +89,13 @@ D:\WSL\ubuntu-template\
 ├── ext4.vhdx
 ├── terminal-icon.png        drawn from the name, and kept here
 ├── instance.json            its look: the font, the colours, the icon's recipe
-└── .wsl-stack
+└── .wsl-fleet
 ```
 
 ## Where things live
 
 One working folder, decided once and remembered: the choice is kept in
-`%LOCALAPPDATA%\wsl-stack\root.txt`. The first time, it is the folder the
+`%LOCALAPPDATA%\wsl-fleet\root.txt`. The first time, it is the folder the
 registered instances already live under when there is exactly one, then
 `D:\WSL` when the D: drive exists, `%USERPROFILE%\WSL` otherwise. A remembered
 folder that is gone is never silently replaced: when the instances still sit
@@ -214,7 +214,7 @@ second engine.
 
 ## `list`
 
-Lists all WSL instances carrying the `.wsl-stack` marker.
+Lists all WSL instances carrying the `.wsl-fleet` marker.
 
 ```powershell
 .\wsl-fleet.ps1 list

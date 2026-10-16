@@ -58,7 +58,7 @@ if ($Command) {
 }
 
 # Nue : la première question, comme les questions du dedans — le même menu.
-$Menu = [MenuCli]::new("WSL Stack")
+$Menu = [MenuCli]::new("Wsl Fleet")
 $Menu = $Menu.Add("gui", "WSL Fleet GUI", { })
 $Menu = $Menu.Add("cli", "WSL Fleet CLI", { })
 $Choice = $Menu.Prompt()

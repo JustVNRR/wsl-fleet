@@ -102,7 +102,7 @@ $Root = Join-Path $World "WSL"
 $Instance = "bench-agent"
 $InstanceFolder = Join-Path $Root $Instance
 New-Item -ItemType Directory -Path $InstanceFolder -Force | Out-Null
-New-Item -ItemType File -Path (Join-Path $InstanceFolder ".wsl-stack") -Force | Out-Null
+New-Item -ItemType File -Path (Join-Path $InstanceFolder ".wsl-fleet") -Force | Out-Null
 Set-Content -Path (Join-Path $InstanceFolder "ext4.vhdx") -Value "fake-disk" -NoNewline
 $SeededArchive = Join-Path $Root "archives\$($Instance)_archive"
 New-Item -ItemType Directory -Path $SeededArchive -Force | Out-Null

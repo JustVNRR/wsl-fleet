@@ -71,6 +71,11 @@
                                             Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="Transparent"
                                             Style="{DynamicResource LiveRowButton}"
                                             ToolTip="Shell"/>
+                                    <Button Name="BtnRowRestart" Command="{Binding DataContext.RestartCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding Name}" Content="&#xF01E;" FontFamily="{DynamicResource IconFace}"
+                                            Margin="0,0,4,0" Background="Transparent"
+                                            Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="Transparent"
+                                            Style="{DynamicResource LiveRowButton}"
+                                            ToolTip="Restart"/>
                                     <Button Name="BtnRowEdit" Command="{Binding DataContext.EditCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding Name}" Content="&#xF304;" FontFamily="{DynamicResource IconFace}"
                                             Margin="0,0,4,0" Background="Transparent"
                                             Foreground="{DynamicResource AppForegroundBrush}" BorderBrush="Transparent"

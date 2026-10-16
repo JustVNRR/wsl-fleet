@@ -94,9 +94,9 @@ Write-Host "the views' exits and judgements: read."
 
 # 3. The menu shows each routed word, and the way-in its own two.
 $menuWords = [regex]::Matches($startCli, '\$menu = \$menu\.Add\("([a-z_]+)",\s*"([^"]*)"') | ForEach-Object { $_.Groups[1].Value }
+$actionWords = [regex]::Matches($startCli, '= \[MenuItemCli\]::new\("([a-z_]+)"') | ForEach-Object { $_.Groups[1].Value }
 foreach ($word in $seen.Keys) {
-    if ($word -eq "delete_archive") { continue }      # not in the menu by design: named, not listed
-    if ($menuWords -notcontains $word) { Fail "gesture '$word' has no line in Start-Cli's menu" }
+    if ($menuWords -notcontains $word -and $actionWords -notcontains $word) { Fail "gesture '$word' is in no entry of Start-Cli.ps1" }
 }
 foreach ($word in $menuWords) {
     if (-not $seen.ContainsKey($word)) { Fail "the menu shows '$word' - no gesture answers it" }

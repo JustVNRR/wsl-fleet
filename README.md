@@ -435,7 +435,8 @@ The scripts themselves live in `src\windows\` — `wsl-fleet.ps1` is the only th
 | Command | What it does |
 | :--- | :--- |
 | [`.\wsl-fleet.ps1 gui`](docs/wsl/commands.md#gui) | WSL Fleet GUI |
-| [`.\wsl-fleet.ps1 list`](docs/wsl/commands.md#list) | list our instances and the archives |
+| [`.\wsl-fleet.ps1 instances`](docs/wsl/commands.md#instances) | choose an instance and act on it |
+| [`.\wsl-fleet.ps1 archives`](docs/wsl/commands.md#archives) | choose an archive: restore or delete |
 | [`.\wsl-fleet.ps1 build`](docs/wsl/commands.md#build) | build an instance from the image |
 | [`.\wsl-fleet.ps1 restart`](docs/wsl/commands.md#restart) | restart an instance |
 | [`.\wsl-fleet.ps1 shell`](docs/wsl/commands.md#shell) | open a shell inside an instance |
@@ -446,6 +447,7 @@ The scripts themselves live in `src\windows\` — `wsl-fleet.ps1` is the only th
 | [`.\wsl-fleet.ps1 unregister`](docs/wsl/commands.md#unregister) | remove an instance |
 | [`.\wsl-fleet.ps1 archive`](docs/wsl/commands.md#archive) | write an instance to a named archive |
 | [`.\wsl-fleet.ps1 restore`](docs/wsl/commands.md#restore) | rebuild an instance from an archive |
+| [`.\wsl-fleet.ps1 delete_archive`](docs/wsl/commands.md#delete_archive) | delete an archive |
 | [`.\wsl-fleet.ps1 duplicate`](docs/wsl/commands.md#duplicate) | copy an instance under another name |
 | [`.\wsl-fleet.ps1 compact`](docs/wsl/commands.md#compact) | reclaim the space an instance has freed |
 | [`.\wsl-fleet.ps1 wslconfig`](docs/wsl/commands.md#wslconfig) | open the Windows-wide WSL settings |

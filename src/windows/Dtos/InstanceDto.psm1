@@ -273,13 +273,6 @@ class WslConfigResponseDto {
     [bool]$Created
 }
 
-class ListResponseDto {
-
-    [object[]]$Rows = @()
-    [object[]]$Orphans = @()
-    [string[]]$Running = @()
-}
-
 class RegisterDockerDto {
 
     [string]$InstanceName

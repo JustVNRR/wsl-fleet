@@ -4,7 +4,7 @@
 # looks up by name must exist in its markup, every {Binding} must land on a
 # real property of the ViewModel its window binds to, the colour sets under
 # assets\themes must be well-formed and tell only keys the theme knows, and
-# the nine runners must parse, keep the one parameter family and the two
+# the runners must parse, keep the one parameter family and the two
 # argument lines the window feeds them.
 #
 # The binding check matters most: WPF reads a type's real .NET properties

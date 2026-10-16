@@ -49,6 +49,7 @@ class MainWindowViewModel : BaseViewModel {
     [System.Windows.Input.ICommand]$SettingsCommand
     [System.Windows.Input.ICommand]$ThemeCommand
     [System.Windows.Input.ICommand]$OpenCommand
+    [System.Windows.Input.ICommand]$RestartCommand
     [System.Windows.Input.ICommand]$EditCommand
     [System.Windows.Input.ICommand]$AppearanceCommand
     [System.Windows.Input.ICommand]$DuplicateCommand
@@ -80,6 +81,7 @@ class MainWindowViewModel : BaseViewModel {
         $this.SettingsCommand = $this.NewCommand({ param($vm) $vm.Settings() })
         $this.ThemeCommand = $this.NewCommand({ param($vm) $vm.ToggleTheme() })
         $this.OpenCommand = $this.NewCommand({ param($vm, $rowName) $vm.Open($rowName) })
+        $this.RestartCommand = $this.NewCommand({ param($vm, $rowName) $vm.Restart($rowName) })
         $this.EditCommand = $this.NewCommand({ param($vm, $rowName) $vm.ManagePacks($rowName) })
         $this.AppearanceCommand = $this.NewCommand({ param($vm, $rowName) $vm.SetAppearance($rowName) })
         $this.DuplicateCommand = $this.NewCommand({ param($vm, $rowName) $vm.Duplicate($rowName) })
@@ -218,6 +220,10 @@ class MainWindowViewModel : BaseViewModel {
         if (-not $dto) { return }
         $first = if ([bool]$dto.ArchiveFirst) { "True" } else { "False" }
         $this.StartLong("Compact", $name, $first, "Compacting '$name'...")
+    }
+
+    [void] Restart([string]$name) {
+        $this.StartLong("Restart", $name, "", "Restarting '$name'...")
     }
 
     [void] DockerDesktop([string]$name) {

@@ -10,7 +10,7 @@ using module .\Presenters\Instance\SetAppearancePresenter.psm1
 using module .\Presenters\Instance\RegisterDockerPresenter.psm1
 using module .\Presenters\Instance\UnregisterDockerPresenter.psm1
 using module .\Presenters\Instance\BuildPresenter.psm1
-using module .\Presenters\Instance\ListPresenter.psm1
+using module .\Presenters\Fleet\BrowsePresenter.psm1
 using module .\Presenters\Instance\OpenPresenter.psm1
 using module .\Presenters\Instance\RestartPresenter.psm1
 using module .\Presenters\Fleet\MigratePresenter.psm1
@@ -36,6 +36,51 @@ $root = [ServiceFactory]::ResolveRoot($Assets, $distroTree)
 $fleetService = [ServiceFactory]::CreateFleetService($root, $Assets, $distroTree)
 $instanceService = [ServiceFactory]::CreateInstanceService($root, $Assets, $distroTree)
 
+$gestures = [ordered]@{
+    "build"          = { param($Name, $Presenters) $Presenters.Build.Run() }
+    "migrate"        = { param($Name, $Presenters) $Presenters.Migrate.Run($Name) }
+    "wslconfig"      = { param($Name, $Presenters) $Presenters.WslConfig.Run() }
+    "instances"      = { param($Name, $Presenters) $Presenters.Browse.Run($Presenters, "instances") }
+    "archives"       = { param($Name, $Presenters) $Presenters.Browse.Run($Presenters, "archives") }
+
+    "restart"        = { param($Name, $Presenters) $Presenters.Restart.Run($Name) }
+    "shell"          = { param($Name, $Presenters) $Presenters.Open.Run($Name) }
+    "manage_packs"   = { param($Name, $Presenters) $Presenters.ManagePacks.Run($Name) }
+    "theme"          = { param($Name, $Presenters) $Presenters.SetAppearance.Run($Name) }
+    "register_docker"   = { param($Name, $Presenters) $Presenters.RegisterDocker.Run($Name) }
+    "unregister_docker" = { param($Name, $Presenters) $Presenters.UnregisterDocker.Run($Name) }
+    "unregister"     = { param($Name, $Presenters) $Presenters.Remove.Run($Name) }
+    "archive"        = { param($Name, $Presenters) $Presenters.Archive.Run($Name) }
+    "restore"        = { param($Name, $Presenters) $Presenters.Restore.Run($Name) }
+    "duplicate"      = { param($Name, $Presenters) $Presenters.Duplicate.Run($Name) }
+    "compact"        = { param($Name, $Presenters) $Presenters.Compact.Run($Name) }
+
+    "delete_archive" = { param($Name, $Presenters) $Presenters.DeleteArchive.Run($Name) }
+}
+
+$actions = @{
+    "shell"             = [MenuItemCli]::new("shell", "open a shell inside an instance", $gestures["shell"])
+    "restart"           = [MenuItemCli]::new("restart", "restart an instance", $gestures["restart"])
+    "manage_packs"      = [MenuItemCli]::new("manage_packs", "choose the packs an instance should carry", $gestures["manage_packs"])
+    "theme"             = [MenuItemCli]::new("theme", "choose the icon, font and colours", $gestures["theme"])
+    "duplicate"         = [MenuItemCli]::new("duplicate", "copy an instance under another name", $gestures["duplicate"])
+    "archive"           = [MenuItemCli]::new("archive", "write an instance to a named archive", $gestures["archive"])
+    "compact"           = [MenuItemCli]::new("compact", "reclaim the space an instance has freed", $gestures["compact"])
+    "register_docker"   = [MenuItemCli]::new("register_docker", "register an instance with Docker Desktop", $gestures["register_docker"])
+    "unregister_docker" = [MenuItemCli]::new("unregister_docker", "take an instance out of Docker Desktop", $gestures["unregister_docker"])
+    "unregister"        = [MenuItemCli]::new("unregister", "remove an instance", $gestures["unregister"])
+    "restore"           = [MenuItemCli]::new("restore", "rebuild an instance from an archive", $gestures["restore"])
+    "delete_archive"    = [MenuItemCli]::new("delete_archive", "delete an archive", $gestures["delete_archive"])
+}
+
+$console = [ConsoleCli]::new()
+$menu = [MenuCli]::new("WSL Fleet CLI")
+$menu = $menu.Add("build",     "build an instance from the image",     $gestures["build"])
+$menu = $menu.Add("migrate",   "move the fleet to another folder",     $gestures["migrate"])
+$menu = $menu.Add("wslconfig", "open the Windows-wide WSL settings",   $gestures["wslconfig"])
+$menu = $menu.Add("instances", "choose an instance and act on it",     $gestures["instances"])
+$menu = $menu.Add("archives",  "choose an archive: restore or delete", $gestures["archives"])
+
 $presenters = @{
     Archive       = [ArchivePresenter]::new($instanceService, $ViewsRoot, "cli")
     Remove        = [RemovePresenter]::new($instanceService, $ViewsRoot, "cli")
@@ -48,50 +93,18 @@ $presenters = @{
     RegisterDocker   = [RegisterDockerPresenter]::new($instanceService, $ViewsRoot, "cli")
     UnregisterDocker = [UnregisterDockerPresenter]::new($instanceService, $ViewsRoot, "cli")
     Build         = [BuildPresenter]::new($instanceService, $ViewsRoot, "cli")
-    List          = [ListPresenter]::new($instanceService, $ViewsRoot, "cli")
     Open          = [OpenPresenter]::new($instanceService, $ViewsRoot, "cli")
     Restart       = [RestartPresenter]::new($instanceService, $ViewsRoot, "cli")
     Migrate       = [MigratePresenter]::new($fleetService, $ViewsRoot, "cli")
     WslConfig     = [WslConfigPresenter]::new($fleetService, $ViewsRoot, "cli")
 }
 
-$gestures = [ordered]@{
-    "list"           = { param($Name, $Presenters) $Presenters.List.Run() }
-    "build"          = { param($Name, $Presenters) $Presenters.Build.Run() }
-    "restart"        = { param($Name, $Presenters) $Presenters.Restart.Run($Name) }
-    "shell"          = { param($Name, $Presenters) $Presenters.Open.Run($Name) }
-    "manage_packs"   = { param($Name, $Presenters) $Presenters.ManagePacks.Run($Name) }
-    "theme"          = { param($Name, $Presenters) $Presenters.SetAppearance.Run($Name) }
-    "register_docker"   = { param($Name, $Presenters) $Presenters.RegisterDocker.Run($Name) }
-    "unregister_docker" = { param($Name, $Presenters) $Presenters.UnregisterDocker.Run($Name) }
-    "unregister"     = { param($Name, $Presenters) $Presenters.Remove.Run($Name) }
-    "archive"        = { param($Name, $Presenters) $Presenters.Archive.Run($Name) }
-    "restore"        = { param($Name, $Presenters) $Presenters.Restore.Run($Name) }
-    "duplicate"      = { param($Name, $Presenters) $Presenters.Duplicate.Run($Name) }
-    "compact"         = { param($Name, $Presenters) $Presenters.Compact.Run($Name) }
-    "wslconfig"      = { param($Name, $Presenters) $Presenters.WslConfig.Run() }
-    "migrate"        = { param($Name, $Presenters) $Presenters.Migrate.Run($Name) }
-
-    "delete_archive" = { param($Name, $Presenters) $Presenters.DeleteArchive.Run($Name) }
-}
-
-$console = [ConsoleCli]::new()
-$menu = [MenuCli]::new("WSL Fleet CLI")
-$menu = $menu.Add("list",         "list our instances and the archives",      $gestures["list"])
-$menu = $menu.Add("build",        "build an instance from the image",         $gestures["build"])
-$menu = $menu.Add("restart",      "restart an instance",                      $gestures["restart"])
-$menu = $menu.Add("shell",        "open a shell inside an instance",          $gestures["shell"])
-$menu = $menu.Add("manage_packs", "choose the packs an instance should carry", $gestures["manage_packs"])
-$menu = $menu.Add("theme",        "choose the icon, font and colours",        $gestures["theme"])
-$menu = $menu.Add("register_docker",   "register an instance with Docker Desktop",   $gestures["register_docker"])
-$menu = $menu.Add("unregister_docker", "take an instance out of Docker Desktop",    $gestures["unregister_docker"])
-$menu = $menu.Add("unregister",   "remove an instance",                       $gestures["unregister"])
-$menu = $menu.Add("archive",      "write an instance to a named archive",     $gestures["archive"])
-$menu = $menu.Add("restore",      "rebuild an instance from an archive",      $gestures["restore"])
-$menu = $menu.Add("duplicate",    "copy an instance under another name",      $gestures["duplicate"])
-$menu = $menu.Add("compact",       "reclaim the space an instance has freed",  $gestures["compact"])
-$menu = $menu.Add("wslconfig",    "open the Windows-wide WSL settings",       $gestures["wslconfig"])
-$menu = $menu.Add("migrate",      "move the fleet to another folder",         $gestures["migrate"])
+$presenters.Browse = [BrowsePresenter]::new($instanceService, $ViewsRoot, "cli",
+    @($actions["shell"], $actions["restart"], $actions["manage_packs"], $actions["theme"],
+      $actions["duplicate"], $actions["archive"], $actions["compact"], $actions["unregister"]),
+    $actions["register_docker"],
+    $actions["unregister_docker"],
+    @($actions["restore"], $actions["delete_archive"]))
 
 $item = $null
 if ($Command) {

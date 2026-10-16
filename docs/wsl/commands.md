@@ -21,21 +21,11 @@ answers to its word all the same, `.\wsl-fleet.ps1 gui`:
 ```text
 
 WSL Fleet CLI
-  > list         list our instances and the archives
-    build        build an instance from the image
-    restart      restart an instance
-    shell        open a shell inside an instance
-    manage_packs choose the packs an instance should carry
-    theme        choose the icon, font and colours
-    register_docker register an instance with Docker Desktop
-    unregister_docker take an instance out of Docker Desktop
-    unregister   remove an instance
-    archive      write an instance to a named archive
-    restore      rebuild an instance from an archive
-    duplicate    copy an instance under another name
-    compact       reclaim the space an instance has freed
-    wslconfig    open the Windows-wide WSL settings
+  > build        build an instance from the image
     migrate      move the fleet to another folder
+    wslconfig    open the Windows-wide WSL settings
+    instances    choose an instance and act on it
+    archives     choose an archive: restore or delete
   up/down to move, Enter to choose, Escape to cancel
 ```
 
@@ -58,7 +48,8 @@ read, the colours a console has always had are used.
 | Command | What it does |
 | :--- | :--- |
 | [`.\wsl-fleet.ps1 gui`](#gui) | WSL Fleet GUI |
-| [`.\wsl-fleet.ps1 list`](#list) | list our instances and the archives |
+| [`.\wsl-fleet.ps1 instances`](#instances) | choose an instance and act on it |
+| [`.\wsl-fleet.ps1 archives`](#archives) | choose an archive: restore or delete |
 | [`.\wsl-fleet.ps1 build`](#build) | build an instance from the image |
 | [`.\wsl-fleet.ps1 restart`](#restart) | restart an instance |
 | [`.\wsl-fleet.ps1 shell`](#shell) | open a shell inside an instance |
@@ -69,6 +60,7 @@ read, the colours a console has always had are used.
 | [`.\wsl-fleet.ps1 unregister`](#unregister) | remove an instance |
 | [`.\wsl-fleet.ps1 archive`](#archive) | write an instance to a named archive |
 | [`.\wsl-fleet.ps1 restore`](#restore) | rebuild an instance from an archive |
+| [`.\wsl-fleet.ps1 delete_archive`](#delete_archive) | delete an archive |
 | [`.\wsl-fleet.ps1 duplicate`](#duplicate) | copy an instance under another name |
 | [`.\wsl-fleet.ps1 compact`](#compact) | reclaim the space an instance has freed |
 | [`.\wsl-fleet.ps1 wslconfig`](#wslconfig) | open the Windows-wide WSL settings |
@@ -120,7 +112,7 @@ everything else asks.
 .\wsl-fleet.ps1 gui
 ```
 
-It lists our instances - state and size, the same list `list` prints - with,
+It lists our instances - state and size, the same list `.\wsl-fleet.ps1 instances` opens - with,
 on each row, its verbs: **open** (a new terminal window on the instance's
 own profile - its icon, colours and font ride along - where `shell` would
 borrow the console), **edit** (the packs: tickboxes with the same rules
@@ -208,36 +200,72 @@ second engine.
 
 ---
 
-## `list`
+## `instances`
 
-Lists all WSL instances carrying the `.wsl-fleet` marker.
+The fleet's instances — state and size, the same list the window shows — then
+what to do with the one you pick. Folders no instance claims are said under
+the list; they are nobody's to act on, and no command removes them.
 
 ```powershell
-.\wsl-fleet.ps1 list
+.\wsl-fleet.ps1 instances
 ```
 
 ```text
-Instances of this template:
-   1.  template-bac       running       1.1 GB  D:\WSL\template-bac
-   2.  ubuntu-template    stopped       2.4 GB  D:\WSL\ubuntu-template
-
-Archives in D:\WSL\archives (most recent first):
-      ubuntu-template            29 MB    2026-09-23 16:50
+Our Instances
+  > ubuntu-template                running      1.1 GB
+    template-bac                   stopped      2.4 GB
+  up/down to move, Enter to choose, Escape to cancel
 ```
 
-### Folders left behind by an unregistered instance
-
-Removing an instance happens in two steps — Windows forgets the distribution,
-then the folder and its disk are erased — and the second sometimes fails. The
-folder stays, marker included, taking up room; no instance claims it and no
-command removes it. `list` says it exists, what it weighs, and that it is to be
-deleted by hand:
+Picking one opens its actions — each of them is also a word of its own, run
+straight when the name follows it (`.\wsl-fleet.ps1 shell ubuntu-template`):
 
 ```text
-Folders left behind by an instance that is gone:
-      vieux-test                        1.2 GB  D:\WSL\vieux-test
-      No instance claims them, and no command removes them: delete them by hand.
+What to do with 'ubuntu-template'
+  > shell        open a shell inside an instance
+    restart      restart an instance
+    manage_packs choose the packs an instance should carry
+    theme        choose the icon, font and colours
+    duplicate    copy an instance under another name
+    archive      write an instance to a named archive
+    compact      reclaim the space an instance has freed
+    register_docker register an instance with Docker Desktop
+    unregister   remove an instance
+  up/down to move, Enter to choose, Escape to cancel
 ```
+
+The docker word is the one that changes: `register_docker` while the instance
+is not in Docker Desktop, `unregister_docker` once it is — the same question
+the window's cube asks. The action runs, and the console closes behind it.
+
+---
+
+## `archives`
+
+The archives, most recent first, then what to do with the one you pick:
+rebuild it as a new instance with `restore`, or take it away for good with
+`delete_archive`.
+
+```powershell
+.\wsl-fleet.ps1 archives
+```
+
+```text
+Our Archives
+  > azerty_archive                     1.6 GB
+    pres_rest_archive                  2.2 GB
+  up/down to move, Enter to choose, Escape to cancel
+```
+
+```text
+What to do with 'azerty_archive'
+  > restore      rebuild an instance from an archive
+    delete_archive delete an archive
+  up/down to move, Enter to choose, Escape to cancel
+```
+
+Both are words of their own as well: `.\wsl-fleet.ps1 restore azerty_archive`,
+`.\wsl-fleet.ps1 delete_archive azerty_archive`.
 
 ---
 
@@ -864,6 +892,21 @@ Windows, the script says so rather than failing.
 
 **The archive is kept**: restoring copies it into a new instance, it does not
 consume it.
+
+---
+
+## `delete_archive`
+
+Deletes an archive for good — the folder under `archives\`, its `instance.json`
+and the tar it holds. Nothing is kept, and no question is asked once the
+archive is named.
+
+```powershell
+.\wsl-fleet.ps1 delete_archive
+```
+
+Reach it by name, or from the `archives` menu. With no name it is the fault
+the other name-hungry commands make: nothing is touched.
 
 ---
 

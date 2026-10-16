@@ -12,8 +12,8 @@
 #
 # Ce dont ce fichier nomme, déclaré ici : il tire ses modules lui-même. Ce
 # qu'il voit : la fabrique — un service, pas ses dépôts.
-using module ..\Service\ServiceFactory.psm1
-using module ..\Dto\InstanceDto.psm1
+using module ..\Services\ServiceFactory.psm1
+using module ..\Dtos\InstanceDto.psm1
 
 param(
     [string]$Name,   # l'instance

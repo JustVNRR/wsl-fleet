@@ -3,10 +3,10 @@
 # ==============================================================================
 # Ce dont ce fichier nomme, déclaré ici : un module résout un type qu'il a tiré
 # lui-même.
-using module ..\Dto\WpfDto.psm1
-using module ..\Repository\ConfigRepository.psm1
-using module ..\Repository\TerminalRepository.psm1
-using module ..\Mapper\WpfMapper.psm1
+using module ..\Dtos\WpfDto.psm1
+using module ..\Repositories\ConfigRepository.psm1
+using module ..\Repositories\TerminalRepository.psm1
+using module ..\Mappers\WpfMapper.psm1
 
 # Le look de la fenêtre : le lire, le poser pièce par pièce, et les listes
 # qu'il offre — les jeux de couleurs du dossier des thèmes, les familles que

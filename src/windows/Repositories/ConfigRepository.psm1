@@ -3,7 +3,7 @@
 # ==============================================================================
 # Ce dont ce fichier nomme, déclaré ici : un module résout un type qu'il a tiré
 # lui-même.
-using module ..\Model\WpfTheme.psm1
+using module ..\Entities\WpfTheme.psm1
 
 # L'appli propre et le foyer Windows : root.txt (la racine de la flotte, lue et
 # écrite — la règle, elle, vit sur FleetService.GetRoot), gui-settings.json (le

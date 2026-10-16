@@ -3,7 +3,7 @@
 # ==============================================================================
 # Ce dont ce fichier nomme, déclaré ici : un module résout ce qu'il a tiré
 # lui-même.
-using module ..\Dto\InstanceDto.psm1
+using module ..\Dtos\InstanceDto.psm1
 
 # The log: one file, one line per entry - when, level, words, all carried by
 # the Dto the caller built - and the same line echoed to the terminal the

@@ -6,7 +6,7 @@
 using module ..\ActionResult.psm1
 using module ..\BasePresenter.psm1
 using module .\shared\SelectInstancePresenter.psm1
-using module ..\..\Service\InstanceService.psm1
+using module ..\..\Services\InstanceService.psm1
 
 # L'arrêt et le départ : l'avis d'abord, le oui relu ici, la ligne du geste —
 # la vue affiche et demande, elle ne décide plus. L'ActionResult est la seule

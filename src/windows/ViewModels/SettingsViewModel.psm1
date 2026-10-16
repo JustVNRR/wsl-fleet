@@ -4,8 +4,8 @@
 # Ce dont ce fichier nomme, déclaré ici : un module résout lui-même ce qu'il
 # tire.
 using module .\BaseViewModel.psm1
-using module ..\Dto\WpfDto.psm1
-using module ..\Dto\PackCatalogDto.psm1
+using module ..\Dtos\WpfDto.psm1
+using module ..\Dtos\PackCatalogDto.psm1
 using module ..\Tools\Helpers.psm1
 
 # Les lignes des listes : le libellé que la liste montre. De VRAIES classes —

@@ -6,8 +6,8 @@
 using module ..\ActionResult.psm1
 using module ..\BasePresenter.psm1
 using module .\shared\SelectInstancePresenter.psm1
-using module ..\..\Service\InstanceService.psm1
-using module ..\..\Dto\InstanceDto.psm1
+using module ..\..\Services\InstanceService.psm1
+using module ..\..\Dtos\InstanceDto.psm1
 
 # La destruction : la porte qui demande le nom retapé vit ici — la
 # comparaison est une décision, la vue ne porte que l'écran et la lecture. Le dernier moment

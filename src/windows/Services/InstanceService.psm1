@@ -3,20 +3,20 @@
 # ==============================================================================
 # Ce dont ce fichier nomme, déclaré ici : un module résout un type qu'il a tiré
 # lui-même.
-using module ..\Model\WslInstance.psm1
-using module ..\Model\WslTheme.psm1
-using module ..\Model\WslPack.psm1
-using module ..\Model\WslPackCatalog.psm1
-using module ..\Dto\InstanceDto.psm1
-using module ..\Dto\DockerDto.psm1
-using module ..\Repository\InstanceRepository.psm1
-using module ..\Repository\ArchiveRepository.psm1
-using module ..\Repository\WslRepository.psm1
-using module ..\Repository\TerminalRepository.psm1
-using module ..\Repository\DockerRepository.psm1
-using module ..\Repository\PackCatalogRepository.psm1
-using module ..\Repository\ConfigRepository.psm1
-using module ..\Mapper\InstanceMapper.psm1
+using module ..\Entities\WslInstance.psm1
+using module ..\Entities\WslTheme.psm1
+using module ..\Entities\WslPack.psm1
+using module ..\Entities\WslPackCatalog.psm1
+using module ..\Dtos\InstanceDto.psm1
+using module ..\Dtos\DockerDto.psm1
+using module ..\Repositories\InstanceRepository.psm1
+using module ..\Repositories\ArchiveRepository.psm1
+using module ..\Repositories\WslRepository.psm1
+using module ..\Repositories\TerminalRepository.psm1
+using module ..\Repositories\DockerRepository.psm1
+using module ..\Repositories\PackCatalogRepository.psm1
+using module ..\Repositories\ConfigRepository.psm1
+using module ..\Mappers\InstanceMapper.psm1
 using module ..\Tools\Helpers.psm1
 
 # Tout ce qui agit sur une instance. La règle : méthode Xxx → XxxDto en

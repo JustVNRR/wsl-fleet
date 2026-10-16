@@ -3,8 +3,8 @@
 # ==============================================================================
 # Ce dont ce fichier nomme, déclaré ici : un module résout un type qu'il a tiré
 # lui-même.
-using module ..\Model\WslInstance.psm1
-using module ..\Model\WslTheme.psm1
+using module ..\Entities\WslInstance.psm1
+using module ..\Entities\WslTheme.psm1
 
 # Le dossier d'une instance, sur le disque : son fichier instance.json (le
 # user, le thème), son icône, son marqueur, et ce que le dossier dit tout seul

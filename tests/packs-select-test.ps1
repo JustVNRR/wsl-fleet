@@ -21,12 +21,12 @@
 # No standard input is read any more: the old answers file is left alone.
 #
 # Usage:  pwsh -NoProfile -File tests\packs-select-test.ps1
-using module ..\src\windows\Model\WslPackCatalog.psm1
-using module ..\src\windows\Service\InstanceService.psm1
-using module ..\src\windows\Repository\WslRepository.psm1
-using module ..\src\windows\Repository\InstanceRepository.psm1
-using module ..\src\windows\Repository\PackCatalogRepository.psm1
-using module ..\src\windows\Dto\InstanceDto.psm1
+using module ..\src\windows\Entities\WslPackCatalog.psm1
+using module ..\src\windows\Services\InstanceService.psm1
+using module ..\src\windows\Repositories\WslRepository.psm1
+using module ..\src\windows\Repositories\InstanceRepository.psm1
+using module ..\src\windows\Repositories\PackCatalogRepository.psm1
+using module ..\src\windows\Dtos\InstanceDto.psm1
 
 # The instance's own side of the moves, faked whole: every pack move answers
 # here and is recorded here - the order of the record is what the scenes read.

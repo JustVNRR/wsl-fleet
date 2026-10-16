@@ -12,7 +12,7 @@
 # ligne qui court — la fabrique et le ViewModel sont du PowerShell pur (pas
 # une once de WPF), ils passent ; la vue de base ÉTEND une fenêtre, elle
 # s'importe APRÈS les Add-Type, et son type se résout à l'exécution.
-using module .\Service\ServiceFactory.psm1
+using module .\Services\ServiceFactory.psm1
 using module .\ViewModels\MainWindowViewModel.psm1
 
 [CmdletBinding()]

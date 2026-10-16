@@ -6,8 +6,8 @@
 using module ..\ActionResult.psm1
 using module ..\BasePresenter.psm1
 using module .\shared\SelectInstancePresenter.psm1
-using module ..\..\Service\InstanceService.psm1
-using module ..\..\Dto\InstanceDto.psm1
+using module ..\..\Services\InstanceService.psm1
+using module ..\..\Dtos\InstanceDto.psm1
 
 # Le pack qui entre : le catalogue lu ici, la liste affichée par la vue, le
 # choix relu — le vide et l'Échap lus ici, le Dto bâti ici, un seul appel au

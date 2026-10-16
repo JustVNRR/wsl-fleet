@@ -6,8 +6,8 @@
 using module ..\ActionResult.psm1
 using module ..\BasePresenter.psm1
 using module .\shared\SelectInstancePresenter.psm1
-using module ..\..\Service\InstanceService.psm1
-using module ..\..\Dto\InstanceDto.psm1
+using module ..\..\Services\InstanceService.psm1
+using module ..\..\Dtos\InstanceDto.psm1
 
 # L'archivage, mené d'un bout à l'autre : le presenter lit l'index, pose
 # chaque question, lit chaque réponse, construit le Dto, appelle le service,

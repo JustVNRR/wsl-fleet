@@ -4,7 +4,7 @@
 # Ce dont ce fichier nomme, déclaré ici : un module résout ce qu'il a tiré
 # lui-même.
 using module ..\BaseViewWpf.psm1
-using module ..\..\..\Dto\WpfDto.psm1
+using module ..\..\..\Dtos\WpfDto.psm1
 using module ..\..\..\ViewModels\SettingsViewModel.psm1
 
 # La fenêtre Réglages : le DataContext est le SettingsViewModel — la racine,

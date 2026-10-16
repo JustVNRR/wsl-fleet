@@ -4,7 +4,7 @@
 # Ce dont ce fichier nomme, déclaré ici : un module résout lui-même ce qu'il
 # tire.
 using module .\BaseViewModel.psm1
-using module ..\Dto\InstanceDto.psm1
+using module ..\Dtos\InstanceDto.psm1
 
 # La restauration : la phrase avec l'archive, et le nom que la nouvelle
 # instance prend — l'archive préremplie, la ramener sous son nom étant la

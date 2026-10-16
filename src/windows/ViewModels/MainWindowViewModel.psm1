@@ -17,8 +17,8 @@
 # la vue : un minuteur qui toppe Tick — le ViewModel regarde l'enfant de là.
 using module .\BaseViewModel.psm1
 using module ..\Tools\Helpers.psm1
-using module ..\Service\LoggerService.psm1
-using module ..\Dto\InstanceDto.psm1
+using module ..\Services\LoggerService.psm1
+using module ..\Dtos\InstanceDto.psm1
 
 # Une ligne du tableau : ce qu'elle montre, et si elle travaille. Le petit
 # ruban remplace ses icônes pendant qu'un geste court.

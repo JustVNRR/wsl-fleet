@@ -3,7 +3,7 @@
 # ==============================================================================
 # Ce dont ce fichier nomme, déclaré ici : un module résout un type qu'il a tiré
 # lui-même.
-using module ..\Model\WslTheme.psm1
+using module ..\Entities\WslTheme.psm1
 
 # Windows Terminal, sur la machine : nos fragments (le profil posé au-dessus de
 # celui de WSL, jamais dans le settings.json de l'utilisateur), le guid que WSL

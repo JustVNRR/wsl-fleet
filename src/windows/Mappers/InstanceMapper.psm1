@@ -3,12 +3,12 @@
 # ==============================================================================
 # Ce dont ce fichier nomme, déclaré ici : un module résout un type qu'il a tiré
 # lui-même.
-using module ..\Model\WslInstance.psm1
-using module ..\Model\WslTheme.psm1
-using module ..\Model\WslPack.psm1
-using module ..\Dto\InstanceDto.psm1
+using module ..\Entities\WslInstance.psm1
+using module ..\Entities\WslTheme.psm1
+using module ..\Entities\WslPack.psm1
+using module ..\Dtos\InstanceDto.psm1
 # WslPackDto vit chez le PackCatalog — un type se résout là où il se lit.
-using module ..\Dto\PackCatalogDto.psm1
+using module ..\Dtos\PackCatalogDto.psm1
 
 # Les conversions entre le Modèle et les Dto — le service les appelle au lieu
 # de recopier les champs, et chaque conversion ne vit qu'ici. Les méthodes se

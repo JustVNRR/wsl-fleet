@@ -4,7 +4,7 @@
 # Ce dont ce fichier nomme, déclaré ici : un module résout lui-même ce qu'il
 # tire.
 using module .\BaseViewModel.psm1
-using module ..\Dto\InstanceDto.psm1
+using module ..\Dtos\InstanceDto.psm1
 
 # Une ligne de la checklist : le nom, la description, et sa case —
 # cochée et pas portée entre, portée et décochée sort ; chaque bascule

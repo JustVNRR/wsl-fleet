@@ -5,7 +5,7 @@
 # lui-même.
 using module ..\ActionResult.psm1
 using module ..\BasePresenter.psm1
-using module ..\..\Service\InstanceService.psm1
+using module ..\..\Services\InstanceService.psm1
 
 # La corbeille d'une archive : le nom vient de la ligne de commande — ce
 # geste n'est offert dans aucun menu, et le nom tapé EST la confirmation.

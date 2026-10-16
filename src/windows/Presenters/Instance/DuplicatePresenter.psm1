@@ -6,8 +6,8 @@
 using module ..\ActionResult.psm1
 using module ..\BasePresenter.psm1
 using module .\shared\SelectInstancePresenter.psm1
-using module ..\..\Service\InstanceService.psm1
-using module ..\..\Dto\InstanceDto.psm1
+using module ..\..\Services\InstanceService.psm1
+using module ..\..\Dtos\InstanceDto.psm1
 
 # La copie : le nom se demande jusqu'à ce qu'il en soit un — la boucle et la
 # règle sont ici, la vue ne fait que poser la question et dire l'indice de

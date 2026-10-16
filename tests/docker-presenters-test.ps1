@@ -9,13 +9,13 @@
 # Usage:  pwsh -NoProfile -File tests\docker-presenters-test.ps1
 using module ..\src\windows\Presenters\Instance\RegisterDockerPresenter.psm1
 using module ..\src\windows\Presenters\Instance\UnregisterDockerPresenter.psm1
-using module ..\src\windows\Repository\WslRepository.psm1
-using module ..\src\windows\Model\WslInstance.psm1
-using module ..\src\windows\Repository\InstanceRepository.psm1
-using module ..\src\windows\Repository\ArchiveRepository.psm1
-using module ..\src\windows\Repository\TerminalRepository.psm1
-using module ..\src\windows\Repository\DockerRepository.psm1
-using module ..\src\windows\Service\InstanceService.psm1
+using module ..\src\windows\Repositories\WslRepository.psm1
+using module ..\src\windows\Entities\WslInstance.psm1
+using module ..\src\windows\Repositories\InstanceRepository.psm1
+using module ..\src\windows\Repositories\ArchiveRepository.psm1
+using module ..\src\windows\Repositories\TerminalRepository.psm1
+using module ..\src\windows\Repositories\DockerRepository.psm1
+using module ..\src\windows\Services\InstanceService.psm1
 
 # wsl, faked to the little the index needs: the distro names - the rest of
 # the world lives in the folder each name points at.

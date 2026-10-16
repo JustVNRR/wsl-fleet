@@ -5,8 +5,8 @@
 # lui-même.
 using module ..\ActionResult.psm1
 using module ..\BasePresenter.psm1
-using module ..\..\Service\InstanceService.psm1
-using module ..\..\Dto\InstanceDto.psm1
+using module ..\..\Services\InstanceService.psm1
+using module ..\..\Dtos\InstanceDto.psm1
 
 # La naissance, dans l'ordre de l'ancienne : le nom, la route et sa source,
 # les packs, l'onboarding, le compte, et les deux dernières questions — la

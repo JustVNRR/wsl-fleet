@@ -16,13 +16,13 @@ using module ..\src\windows\Presenters\Instance\DeleteArchivePresenter.psm1
 using module ..\src\windows\Presenters\Instance\CompactPresenter.psm1
 using module ..\src\windows\Presenters\Instance\RestorePresenter.psm1
 using module ..\src\windows\Presenters\Instance\DuplicatePresenter.psm1
-using module ..\src\windows\Repository\WslRepository.psm1
-using module ..\src\windows\Model\WslInstance.psm1
-using module ..\src\windows\Repository\InstanceRepository.psm1
-using module ..\src\windows\Repository\ArchiveRepository.psm1
-using module ..\src\windows\Repository\TerminalRepository.psm1
-using module ..\src\windows\Repository\DockerRepository.psm1
-using module ..\src\windows\Service\InstanceService.psm1
+using module ..\src\windows\Repositories\WslRepository.psm1
+using module ..\src\windows\Entities\WslInstance.psm1
+using module ..\src\windows\Repositories\InstanceRepository.psm1
+using module ..\src\windows\Repositories\ArchiveRepository.psm1
+using module ..\src\windows\Repositories\TerminalRepository.psm1
+using module ..\src\windows\Repositories\DockerRepository.psm1
+using module ..\src\windows\Services\InstanceService.psm1
 
 # The instance side of wsl, faked whole: every call the five gestures make is
 # recorded here, so the order and the shape of what the presenters command

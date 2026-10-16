@@ -4,7 +4,7 @@
 # Ce dont ce fichier nomme, déclaré ici : un module résout lui-même ce qu'il
 # tire.
 using module .\BaseViewModel.psm1
-using module ..\Dto\InstanceDto.psm1
+using module ..\Dtos\InstanceDto.psm1
 
 # La porte de la destruction : la phrase avec le nom, l'écho de ce qui part,
 # la case « archiver d'abord », et le nom exact retapé — REMOVE ne s'éveille

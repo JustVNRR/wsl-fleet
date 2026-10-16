@@ -17,7 +17,7 @@
 # It needs no instance, no console and no Docker Desktop.
 #
 # Usage:  pwsh -NoProfile -File tests\icon-command-test.ps1
-using module ..\src\windows\Service\ServiceFactory.psm1
+using module ..\src\windows\Services\ServiceFactory.psm1
 
 $ErrorActionPreference = "Stop"
 

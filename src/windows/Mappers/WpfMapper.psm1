@@ -3,8 +3,8 @@
 # ==============================================================================
 # Ce dont ce fichier nomme, déclaré ici : un module résout un type qu'il a tiré
 # lui-même.
-using module ..\Model\WpfTheme.psm1
-using module ..\Dto\WpfDto.psm1
+using module ..\Entities\WpfTheme.psm1
+using module ..\Dtos\WpfDto.psm1
 
 # Les conversions entre le Modèle de la fenêtre et ses Dto — le service les
 # appelle au lieu de recopier les champs, et chaque conversion ne vit qu'ici.

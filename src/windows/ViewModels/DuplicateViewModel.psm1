@@ -4,7 +4,7 @@
 # Ce dont ce fichier nomme, déclaré ici : un module résout lui-même ce qu'il
 # tire.
 using module .\BaseViewModel.psm1
-using module ..\Dto\InstanceDto.psm1
+using module ..\Dtos\InstanceDto.psm1
 
 # La copie : la phrase, l'avertissement d'arrêt (la liste ne porte plus
 # l'état — il se dit toujours), le nom de la copie — celui de la source

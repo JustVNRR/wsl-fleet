@@ -17,7 +17,7 @@
 # autre — mesuré).
 #
 # Ce dont ce fichier nomme, déclaré ici : il tire ses modules lui-même.
-using module .\Service\ServiceFactory.psm1
+using module .\Services\ServiceFactory.psm1
 using module .\Presenters\Instance\ArchivePresenter.psm1
 using module .\Presenters\Instance\RemovePresenter.psm1
 using module .\Presenters\Instance\DeleteArchivePresenter.psm1

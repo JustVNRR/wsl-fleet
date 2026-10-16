@@ -5,8 +5,8 @@
 # lui-même.
 using module ..\ActionResult.psm1
 using module ..\BasePresenter.psm1
-using module ..\..\Service\InstanceService.psm1
-using module ..\..\Dto\InstanceDto.psm1
+using module ..\..\Services\InstanceService.psm1
+using module ..\..\Dtos\InstanceDto.psm1
 
 # La reconstruction : l'archive se choisit (une ligne déjà désignée se
 # reprend telle quelle), le nom de l'instance rebâtie se demande — un vide

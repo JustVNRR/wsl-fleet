@@ -3,7 +3,7 @@
 # ==============================================================================
 # Ce dont ce fichier nomme, déclaré ici : un module résout un type qu'il a tiré
 # lui-même.
-using module ..\Model\WslInstance.psm1
+using module ..\Entities\WslInstance.psm1
 using module ..\Tools\Native.psm1
 
 # Tout ce qui parle à wsl.exe, et le registre des distributions : le listage

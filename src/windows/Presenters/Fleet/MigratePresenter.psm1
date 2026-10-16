@@ -5,7 +5,7 @@
 # lui-même.
 using module ..\ActionResult.psm1
 using module ..\BasePresenter.psm1
-using module ..\..\Service\FleetService.psm1
+using module ..\..\Services\FleetService.psm1
 using module ..\..\Tools\Helpers.psm1
 
 # Le déménagement : une seule question — le dossier d'arrivée, posée avec la

@@ -16,7 +16,7 @@
 # d'être. Les sélecteurs de fichiers sont chez la vue (graphisme), qui
 # rappelle ici avec le chemin choisi.
 using module .\BaseViewModel.psm1
-using module ..\Dto\InstanceDto.psm1
+using module ..\Dtos\InstanceDto.psm1
 
 class BuildViewModel : BaseViewModel {
     hidden [object]$_instance

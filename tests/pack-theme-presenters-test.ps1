@@ -16,16 +16,16 @@ using module ..\src\windows\Presenters\Instance\AddPackPresenter.psm1
 using module ..\src\windows\Presenters\Instance\RemovePackPresenter.psm1
 using module ..\src\windows\Presenters\Instance\ManagePacksPresenter.psm1
 using module ..\src\windows\Presenters\Instance\SetAppearancePresenter.psm1
-using module ..\src\windows\Repository\WslRepository.psm1
-using module ..\src\windows\Repository\InstanceRepository.psm1
-using module ..\src\windows\Repository\ArchiveRepository.psm1
-using module ..\src\windows\Repository\TerminalRepository.psm1
-using module ..\src\windows\Repository\DockerRepository.psm1
-using module ..\src\windows\Repository\PackCatalogRepository.psm1
-using module ..\src\windows\Repository\ConfigRepository.psm1
-using module ..\src\windows\Model\WslInstance.psm1
-using module ..\src\windows\Model\WslTheme.psm1
-using module ..\src\windows\Service\InstanceService.psm1
+using module ..\src\windows\Repositories\WslRepository.psm1
+using module ..\src\windows\Repositories\InstanceRepository.psm1
+using module ..\src\windows\Repositories\ArchiveRepository.psm1
+using module ..\src\windows\Repositories\TerminalRepository.psm1
+using module ..\src\windows\Repositories\DockerRepository.psm1
+using module ..\src\windows\Repositories\PackCatalogRepository.psm1
+using module ..\src\windows\Repositories\ConfigRepository.psm1
+using module ..\src\windows\Entities\WslInstance.psm1
+using module ..\src\windows\Entities\WslTheme.psm1
+using module ..\src\windows\Services\InstanceService.psm1
 
 # The instance side of wsl, faked whole: every pack move answers here and is
 # recorded here - the order of the record is what the scenes read. The

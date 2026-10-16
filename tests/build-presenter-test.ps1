@@ -12,16 +12,16 @@
 #
 # Usage:  pwsh -NoProfile -File tests\build-presenter-test.ps1
 using module ..\src\windows\Presenters\Instance\BuildPresenter.psm1
-using module ..\src\windows\Repository\WslRepository.psm1
-using module ..\src\windows\Repository\InstanceRepository.psm1
-using module ..\src\windows\Repository\ArchiveRepository.psm1
-using module ..\src\windows\Repository\TerminalRepository.psm1
-using module ..\src\windows\Repository\DockerRepository.psm1
-using module ..\src\windows\Repository\PackCatalogRepository.psm1
-using module ..\src\windows\Repository\ConfigRepository.psm1
-using module ..\src\windows\Dto\InstanceDto.psm1
-using module ..\src\windows\Model\WslInstance.psm1
-using module ..\src\windows\Service\InstanceService.psm1
+using module ..\src\windows\Repositories\WslRepository.psm1
+using module ..\src\windows\Repositories\InstanceRepository.psm1
+using module ..\src\windows\Repositories\ArchiveRepository.psm1
+using module ..\src\windows\Repositories\TerminalRepository.psm1
+using module ..\src\windows\Repositories\DockerRepository.psm1
+using module ..\src\windows\Repositories\PackCatalogRepository.psm1
+using module ..\src\windows\Repositories\ConfigRepository.psm1
+using module ..\src\windows\Dtos\InstanceDto.psm1
+using module ..\src\windows\Entities\WslInstance.psm1
+using module ..\src\windows\Services\InstanceService.psm1
 
 # The instance side of wsl, faked whole - the distros the duplicate-name check
 # reads, and the pack moves the birth would make (unreached here: the scenes

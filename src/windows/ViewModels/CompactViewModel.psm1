@@ -4,7 +4,7 @@
 # Ce dont ce fichier nomme, déclaré ici : un module résout lui-même ce qu'il
 # tire.
 using module .\BaseViewModel.psm1
-using module ..\Dto\InstanceDto.psm1
+using module ..\Dtos\InstanceDto.psm1
 
 # La porte de la compacité : la phrase avec le nom, l'avertissement d'arrêt,
 # et la même case « archiver d'abord » que la corbeille.

@@ -3,11 +3,11 @@
 # ==============================================================================
 # Ce dont ce fichier nomme, déclaré ici : un module résout un type qu'il a tiré
 # lui-même.
-using module ..\Model\WslPack.psm1
-using module ..\Model\WslPackCatalog.psm1
-using module ..\Dto\PackCatalogDto.psm1
-using module ..\Repository\PackCatalogRepository.psm1
-using module ..\Mapper\InstanceMapper.psm1
+using module ..\Entities\WslPack.psm1
+using module ..\Entities\WslPackCatalog.psm1
+using module ..\Dtos\PackCatalogDto.psm1
+using module ..\Repositories\PackCatalogRepository.psm1
+using module ..\Mappers\InstanceMapper.psm1
 
 # Le CRUD du catalogue — chaque nom dit son objet : lister les packs, en lire
 # un, en créer un (la copie d'une source), réécrire sa ligne, le supprimer,

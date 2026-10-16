@@ -4,7 +4,7 @@
 # Ce dont ce fichier nomme, déclaré ici : un module résout ce qu'il a tiré
 # lui-même.
 using module ..\BaseViewCli.psm1
-using module ..\..\..\Dto\InstanceDto.psm1
+using module ..\..\..\Dtos\InstanceDto.psm1
 
 # La naissance, dans l'ordre de l'ancienne : le nom, la route et sa source,
 # les packs, l'onboarding, le compte, et les deux dernières questions. La vue

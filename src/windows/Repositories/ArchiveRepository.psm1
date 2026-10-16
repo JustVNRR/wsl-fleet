@@ -3,7 +3,7 @@
 # ==============================================================================
 # Ce dont ce fichier nomme, déclaré ici : un module résout un type qu'il a tiré
 # lui-même.
-using module ..\Model\WslInstance.psm1
+using module ..\Entities\WslInstance.psm1
 using module .\InstanceRepository.psm1
 
 # Le dossier des archives, sur le disque : une archive par dossier — le tar

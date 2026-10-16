@@ -3,12 +3,12 @@
 # ==============================================================================
 # Ce dont ce fichier nomme, déclaré ici : un module résout un type qu'il a tiré
 # lui-même.
-using module ..\Repository\ConfigRepository.psm1
-using module ..\Repository\WslRepository.psm1
-using module ..\Repository\InstanceRepository.psm1
-using module ..\Repository\ArchiveRepository.psm1
+using module ..\Repositories\ConfigRepository.psm1
+using module ..\Repositories\WslRepository.psm1
+using module ..\Repositories\InstanceRepository.psm1
+using module ..\Repositories\ArchiveRepository.psm1
 using module .\InstanceService.psm1
-using module ..\Dto\InstanceDto.psm1
+using module ..\Dtos\InstanceDto.psm1
 using module ..\Tools\Helpers.psm1
 
 # La racine : elle se dit, et elle se déplace. Trois méthodes, et aucun Dto —

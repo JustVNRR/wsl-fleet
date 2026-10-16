@@ -4,7 +4,7 @@
 # Ce dont ce fichier nomme, déclaré ici : un module résout ce qu'il a tiré
 # lui-même.
 using module ..\BaseViewCli.psm1
-using module ..\..\..\Dto\InstanceDto.psm1
+using module ..\..\..\Dtos\InstanceDto.psm1
 
 class CliArchiveView : BaseViewCli {
     # La vue ne décide plus : le presenter a ordonné chaque ligne, et la

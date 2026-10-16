@@ -3,7 +3,7 @@
 # ==============================================================================
 # Ce dont ce fichier nomme, déclaré ici : un module résout un type qu'il a tiré
 # lui-même.
-using module ..\Model\WslPack.psm1
+using module ..\Entities\WslPack.psm1
 
 # Le dossier des packs, sur le disque : les dossiers qui portent un pack.conf,
 # lus en déclarations ; la conf réécrite ; les copies et les suppressions de

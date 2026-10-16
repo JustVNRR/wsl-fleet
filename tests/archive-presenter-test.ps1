@@ -11,12 +11,12 @@
 #
 # Usage:  pwsh -NoProfile -File tests\archive-presenter-test.ps1
 using module ..\src\windows\Presenters\Instance\ArchivePresenter.psm1
-using module ..\src\windows\Repository\WslRepository.psm1
-using module ..\src\windows\Model\WslInstance.psm1
-using module ..\src\windows\Repository\InstanceRepository.psm1
-using module ..\src\windows\Repository\ArchiveRepository.psm1
-using module ..\src\windows\Repository\DockerRepository.psm1
-using module ..\src\windows\Service\InstanceService.psm1
+using module ..\src\windows\Repositories\WslRepository.psm1
+using module ..\src\windows\Entities\WslInstance.psm1
+using module ..\src\windows\Repositories\InstanceRepository.psm1
+using module ..\src\windows\Repositories\ArchiveRepository.psm1
+using module ..\src\windows\Repositories\DockerRepository.psm1
+using module ..\src\windows\Services\InstanceService.psm1
 
 # The instance side of wsl, faked whole: the list the presenter reads, and
 # the export it commands - recorded, so the Dto the presenter built shows in

@@ -5,7 +5,7 @@
 # lui-même.
 using module ..\ActionResult.psm1
 using module ..\BasePresenter.psm1
-using module ..\..\Service\FleetService.psm1
+using module ..\..\Services\FleetService.psm1
 
 # Le fichier des réglages Windows : l'annonce, l'ouverture au service — né de
 # son gabarit quand il manquait — puis le rapport. L'ActionResult est la

@@ -13,7 +13,7 @@
 #
 # Ce dont ce fichier nomme, déclaré ici : il tire ses modules lui-même. Ce
 # qu'il voit : la fabrique — une flotte, pas ses dépôts.
-using module ..\Service\ServiceFactory.psm1
+using module ..\Services\ServiceFactory.psm1
 
 param(
     [string]$Name,   # le dossier d'arrivée

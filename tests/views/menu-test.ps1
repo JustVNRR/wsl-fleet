@@ -239,11 +239,12 @@ Write-Output ""
 Write-Output "--- a clean screen between levels ---"
 # One call, and that is the point: the version before remembered each menu's
 # rows and blanked exactly those - a row number is absolute and the console
-# moves, so one scroll drew the next menu over the prompt. The device now
-# holds the one call every view makes.
+# moves, so one scroll drew the next menu over the prompt. The menu now holds
+# the one call, on the way in and on the way out, and every window it draws
+# and everything the choice leads to starts clean.
 Check "clearing the screen is safe without one" (& {
-    $Probe = [BaseViewCli]::new()
-    $Probe.ClearScreen()
+    $Probe = [ConsoleCli]::new()
+    $Probe.Clear()
     "survived"
 }) "survived"
 

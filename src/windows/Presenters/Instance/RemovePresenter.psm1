@@ -39,6 +39,10 @@ class RemovePresenter : BasePresenter {
         $view.ShowGateOpened()
 
         $archiveFirst = $view.Confirm("Archive it before deleting?", $true)
+        if ($null -eq $archiveFirst) {
+            $view.ShowCancelled("deleted")
+            return [ActionResult]::Ok("Remove : cancelled")
+        }
         if ($archiveFirst) {
             if (@($rows | Where-Object { $_.IsArchive -and "$($_.Name)" -eq "$($name)_archive" }).Count -gt 0) {
                 $view.ShowReplacingArchive($name)

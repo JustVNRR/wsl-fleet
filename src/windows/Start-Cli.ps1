@@ -12,6 +12,7 @@ using module .\Presenters\Instance\UnregisterDockerPresenter.psm1
 using module .\Presenters\Instance\BuildPresenter.psm1
 using module .\Presenters\Fleet\BrowsePresenter.psm1
 using module .\Presenters\Fleet\SettingsPresenter.psm1
+using module .\Presenters\Fleet\NavigationPresenter.psm1
 using module .\Presenters\Instance\OpenPresenter.psm1
 using module .\Presenters\Instance\RestartPresenter.psm1
 using module .\Presenters\Fleet\MigratePresenter.psm1
@@ -40,9 +41,9 @@ $catalogueService = [ServiceFactory]::CreatePackCatalogService($Assets, $distroT
 
 $gestures = [ordered]@{
     "build"          = { param($Name, $Presenters) $Presenters.Build.Run() }
-    "settings"       = { param($Name, $Presenters) $Presenters.Settings.Run($Presenters) }
-    "instances"      = { param($Name, $Presenters) $Presenters.Browse.Run($Presenters, "instances") }
-    "archives"       = { param($Name, $Presenters) $Presenters.Browse.Run($Presenters, "archives") }
+    "settings"       = { param($Name, $Presenters) $Presenters.Navigation.Run("settings", $Presenters) }
+    "instances"      = { param($Name, $Presenters) $Presenters.Navigation.Run("instances", $Presenters) }
+    "archives"       = { param($Name, $Presenters) $Presenters.Navigation.Run("archives", $Presenters) }
 
     "restart"        = { param($Name, $Presenters) $Presenters.Restart.Run($Name) }
     "shell"          = { param($Name, $Presenters) $Presenters.Open.Run($Name) }
@@ -112,8 +113,8 @@ $presenters.Browse = [BrowsePresenter]::new($instanceService, $ViewsRoot, "cli",
 
 $presenters.Settings = [SettingsPresenter]::new($catalogueService, $ViewsRoot, "cli",
     @($actions["migrate"], $actions["wslconfig"], [MenuItemCli]::new("availables packs", "edit, duplicate or delete a catalogue pack", $null)))
+$presenters.Navigation = [NavigationPresenter]::new($presenters.Browse, $presenters.Settings)
 
-$item = $null
 if ($Command) {
     $item = $menu.Dispatch($Command)
     if (-not $item) {
@@ -127,12 +128,21 @@ if ($Command) {
         foreach ($key in @($gestures.Keys)) { if ($key -ne "delete_archive") { $console.Line("          $key", "hint") } }
         exit 1
     }
-} else {
-    $item = $menu.Prompt()
-    if (-not $item) { exit 1 }
+    $console.Clear()
+    $result = & $item.Action "$Name" $presenters
+    if ($null -eq $result) { exit 1 }
+    if ("$($result.Status)" -eq "Nok") { exit 1 }
+    exit 0
 }
 
-$result = & $item.Action "$Name" $presenters
-if ($null -eq $result) { exit 1 }
-if ("$($result.Status)" -eq "Nok") { exit 1 }
-exit 0
+while ($true) {
+    $console.Clear()
+    $item = $menu.Prompt()
+    if (-not $item) { exit 1 }
+    $console.Clear()
+    $result = & $item.Action "$Name" $presenters
+    if ($null -eq $result) { exit 1 }
+    if ("$($result.Status)" -eq "Nok") { exit 1 }
+    if ("$($result.Message)" -like "*: cancelled") { continue }
+    exit 0
+}

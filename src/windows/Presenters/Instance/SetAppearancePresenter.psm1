@@ -46,8 +46,8 @@ class SetAppearancePresenter : BasePresenter {
             $view.ShowNoFragmentWarning()
         }
 
-        $dto = [SetAppearanceDto]::new()
-        $dto.InstanceName = $name
+        $font = "$($appearance.Font)"
+        $scheme = "$($appearance.ColourScheme)"
 
         $recipe = [WslIconDto]::new()
         if ($appearance.Icon) {
@@ -57,51 +57,38 @@ class SetAppearancePresenter : BasePresenter {
             $recipe.TextColor = "$($appearance.Icon.TextColor)"
         }
 
-        $decided = $false
         while ($true) {
-            $view.ClearScreen()
             $chosen = $view.AskTheme($name)
-            if (-not $chosen) { break }
-            $view.ClearScreen()
+            if (-not $chosen) { return [ActionResult]::Ok("SetAppearance : cancelled") }
+
+            $dto = [SetAppearanceDto]::new()
+            $dto.InstanceName = $name
+            $changed = $false
 
             if ($chosen -eq "font") {
-                $current = "$($appearance.Font)"
-                while ($true) {
-                    $view.ClearScreen()
-                    $picked = $view.AskFont($name, $fonts, $current)
-                    if (-not $picked) { break }
-                    $dto.Font = $picked
-                    $current = $picked
-                    $decided = $true
-                }
+                $picked = $view.AskFont($name, $fonts, $font)
+                if ($picked) { $dto.Font = $picked; $font = $picked; $changed = $true }
             } elseif ($chosen -eq "color") {
-                $current = "$($appearance.ColourScheme)"
-                while ($true) {
-                    $view.ClearScreen()
-                    $picked = $view.AskColour($name, $schemes, $current)
-                    if (-not $picked) { break }
-                    $dto.ColourScheme = $picked
-                    $current = $picked
-                    $decided = $true
-                }
+                $picked = $view.AskColour($name, $schemes, $scheme)
+                if ($picked) { $dto.ColourScheme = $picked; $scheme = $picked; $changed = $true }
             } else {
                 while ($true) {
-                    $view.ClearScreen()
                     $how = $view.AskIconType($name)
                     if (-not $how) { break }
-                    $view.ClearScreen()
 
                     if ($how -eq "auto") {
                         $recipe.Text = ""; $recipe.Top = ""; $recipe.Bottom = ""; $recipe.TextColor = ""
                         $dto.Icon = $this.CopyRecipe($recipe)
                         $dto.IconImage = ""
-                        $decided = $true
+                        $changed = $true
+                        break
                     } elseif ($how -eq "letters") {
                         $suggestion = "$($recipe.Text)"
                         $question = if ($suggestion) { "Letters, 1 to 3 [$suggestion]" } else { "Letters, 1 to 3" }
                         $settled = $false
                         while ($true) {
                             $answer = $view.AskLetters($question)
+                            if ($null -eq $answer) { break }
                             if ([string]::IsNullOrWhiteSpace($answer)) {
                                 if ($suggestion) { $recipe.Text = $suggestion.ToUpper(); $settled = $true }
                                 break
@@ -109,24 +96,27 @@ class SetAppearancePresenter : BasePresenter {
                             if ($answer -match '^[A-Za-z0-9]{1,3}$') { $recipe.Text = $answer.ToUpper(); $settled = $true; break }
                             $view.ShowLettersHint()
                         }
-                        if (-not $settled) { break }
+                        if (-not $settled) { continue }
                         $dto.Icon = $this.CopyRecipe($recipe)
                         $dto.IconImage = ""
-                        $decided = $true
+                        $changed = $true
+                        break
                     } elseif ($how -eq "colours") {
                         $suggestion = "$($recipe.Text)"
                         $pair = $view.AskIconPair($name, $pairs, $suggestion, "$($recipe.Top)", "$($recipe.Bottom)")
-                        if (-not $pair) { break }
+                        if (-not $pair) { continue }
                         $recipe.Top = "$($pair.Top)"
                         $recipe.Bottom = "$($pair.Bottom)"
                         $recipe.TextColor = "$($pair.TextColor)"
                         $dto.Icon = $this.CopyRecipe($recipe)
                         $dto.IconImage = ""
-                        $decided = $true
+                        $changed = $true
+                        break
                     } else {
                         $settled = $false
                         while ($true) {
                             $answer = $view.AskImagePath()
+                            if ($null -eq $answer) { break }
                             if (-not (Test-Path -LiteralPath $answer -PathType Leaf)) {
                                 $view.ShowNoFile()
                                 continue
@@ -139,23 +129,22 @@ class SetAppearancePresenter : BasePresenter {
                             $settled = $true
                             break
                         }
-                        if ($settled) { $decided = $true }
+                        if ($settled) { $changed = $true; break }
                     }
                 }
             }
-        }
 
-        $view.ClearScreen()
-        if (-not $decided) { return [ActionResult]::Ok("SetAppearance : cancelled") }
+            if (-not $changed) { continue }
 
-        try {
-            $response = $this.Service.SetAppearance($dto)
-        } catch {
-            $this.ShowFailure($_.Exception.Message)
-            return [ActionResult]::Nok("SetAppearance : $($dto.InstanceName) - $($_.Exception.Message)")
+            try {
+                $response = $this.Service.SetAppearance($dto)
+            } catch {
+                $this.ShowFailure($_.Exception.Message)
+                return [ActionResult]::Nok("SetAppearance : $name - $($_.Exception.Message)")
+            }
+            $view.Show($response)
         }
-        $view.Show($response)
-        return [ActionResult]::Ok("SetAppearance : $($dto.InstanceName)")
+        return [ActionResult]::Ok("SetAppearance : cancelled")
     }
 
     hidden [WslIconDto] CopyRecipe([WslIconDto]$recipe) {

@@ -9,10 +9,6 @@ class BaseViewCli {
         return [ThemeCli]::GetColor($tone)
     }
 
-    [void] ClearScreen() {
-        try { Clear-Host } catch { }
-    }
-
     [bool] KeyInput() {
         if ([Console]::IsInputRedirected) { return $false }
         try {
@@ -71,9 +67,15 @@ class BaseViewCli {
         return @($Picked | ForEach-Object { $_.Value })
     }
 
-    [bool] Confirm([string]$question, [bool]$defaultNo) {
+    [object] AskLine([string]$prompt) {
+        $Console = [ConsoleCli]::new()
+        return $Console.ReadLine($prompt)
+    }
+
+    [object] Confirm([string]$question, [bool]$defaultNo) {
         $Shown = if ($defaultNo) { "$question [y/N]" } else { "$question [Y/n]" }
-        $Answer = [string](Read-Host $Shown)
+        $Answer = $this.AskLine($Shown)
+        if ($null -eq $Answer) { return $null }
         if ($defaultNo) { return ($Answer -match "^[yY]") }
         return ($Answer -notmatch "^[nN]")
     }

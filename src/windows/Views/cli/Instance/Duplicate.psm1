@@ -2,8 +2,10 @@ using module ..\BaseViewCli.psm1
 
 class CliDuplicateView : BaseViewCli {
 
-    [string] AskCopyName() {
-        return [string](Read-Host "Name of the copy").Trim()
+    [object] AskCopyName() {
+        $answer = $this.AskLine("Name of the copy")
+        if ($null -eq $answer) { return $null }
+        return "$answer".Trim()
     }
 
     [void] ShowNameHint() {

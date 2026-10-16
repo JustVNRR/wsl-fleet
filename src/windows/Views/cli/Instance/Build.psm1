@@ -7,8 +7,8 @@ class CliBuildView : BaseViewCli {
         Write-Host "  Letters, digits, '.', '_' and '-' only." -ForegroundColor $this.Colour("hint")
     }
 
-    [string] AskInstanceName([string]$question) {
-        return [string](Read-Host $question)
+    [object] AskInstanceName([string]$question) {
+        return $this.AskLine($question)
     }
 
     [object] AskRoad() {
@@ -23,9 +23,11 @@ class CliBuildView : BaseViewCli {
         return $road
     }
 
-    [string] AskRegistryReference([string]$question) {
+    [object] AskRegistryReference([string]$question) {
         Write-Host -NoNewline "${question}: "
-        return [string](Read-Host).Trim()
+        $answer = $this.AskLine("")
+        if ($null -eq $answer) { return $null }
+        return "$answer".Trim()
     }
 
     [void] ShowUnknownRegistry([string]$reference, [string]$why) {
@@ -68,7 +70,7 @@ class CliBuildView : BaseViewCli {
         Write-Host "  No onboarding shell under 'assets\onboardings' - the instance will be built without one." -ForegroundColor $this.Colour("muted")
     }
 
-    [bool] AskRunOnboarding([bool]$defaultNo) {
+    [object] AskRunOnboarding([bool]$defaultNo) {
         Write-Host ""
         return $this.Confirm("Run the onboarding shell?", $defaultNo)
     }
@@ -83,21 +85,23 @@ class CliBuildView : BaseViewCli {
         Write-Host ""
     }
 
-    [string] AskUserName([string]$prompt) {
+    [object] AskUserName([string]$prompt) {
         Write-Host -NoNewline "${prompt}: " -ForegroundColor $this.Colour("warning")
-        return "$(Read-Host)".Trim()
+        $answer = $this.AskLine("")
+        if ($null -eq $answer) { return $null }
+        return "$answer".Trim()
     }
 
     [void] ShowUserHint() {
         Write-Host "  Lowercase letters, digits, '_' and '-' only, starting with a letter." -ForegroundColor $this.Colour("hint")
     }
 
-    [bool] AskKeepImage() {
+    [object] AskKeepImage() {
         Write-Host ""
         return $this.Confirm("Keep Docker image?", $false)
     }
 
-    [bool] AskRegisterDocker([string]$name) {
+    [object] AskRegisterDocker([string]$name) {
         Write-Host ""
         return $this.Confirm("Add '$name' to Docker Desktop? (it will be restarted)", $false)
     }

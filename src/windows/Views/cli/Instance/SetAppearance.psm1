@@ -62,9 +62,11 @@ class CliSetAppearanceView : BaseViewCli {
         return "$($chosen.How)"
     }
 
-    [string] AskLetters([string]$question) {
+    [object] AskLetters([string]$question) {
         Write-Host -NoNewline "${question}: "
-        return [string](Read-Host).Trim()
+        $answer = $this.AskLine("")
+        if ($null -eq $answer) { return $null }
+        return "$answer".Trim()
     }
 
     [void] ShowLettersHint() {
@@ -89,8 +91,10 @@ class CliSetAppearanceView : BaseViewCli {
         return $picked.Pair
     }
 
-    [string] AskImagePath() {
-        return [string](Read-Host "Path of the image, PNG JPG ICO or BMP (CTRL+C to abort)").Trim('"')
+    [object] AskImagePath() {
+        $answer = $this.AskLine("Path of the image, PNG JPG ICO or BMP (CTRL+C to abort)")
+        if ($null -eq $answer) { return $null }
+        return "$answer".Trim('"')
     }
 
     [void] ShowNoFile() {

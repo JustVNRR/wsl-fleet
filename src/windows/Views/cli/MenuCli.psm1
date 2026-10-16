@@ -41,7 +41,11 @@ class ConsoleCli {
     }
 
     [ConsoleKey] ReadKey() {
-        return [Console]::ReadKey($true).Key
+        $Info = [Console]::ReadKey($true)
+        if ($Info.Key -eq [ConsoleKey]::C -and ($Info.Modifiers -band [ConsoleModifiers]::Control)) {
+            return [ConsoleKey]::Escape
+        }
+        return $Info.Key
     }
 
     [object] Top() {
@@ -76,6 +80,57 @@ class ConsoleCli {
 
     [string] Prompt([string]$Prompt) {
         return [string](Read-Host $Prompt)
+    }
+
+    [void] Clear() {
+        if ([Console]::IsOutputRedirected) { return }
+        try { Clear-Host } catch { }
+    }
+
+    [object] ReadLine([string]$Prompt) {
+        if (-not $this.HasKeyboard()) {
+            if ($Prompt) { return [string](Read-Host $Prompt) }
+            return [string](Read-Host)
+        }
+        $Prior = $null
+        try {
+            $Prior = [Console]::TreatControlCAsInput
+            [Console]::TreatControlCAsInput = $true
+        } catch { }
+        try {
+            if ($Prompt) { Write-Host -NoNewline "${Prompt}: " }
+            $Text = ""
+            while ($true) {
+                $Info = [Console]::ReadKey($true)
+                $Key = $Info.Key
+                if ($Key -eq [ConsoleKey]::Enter) { break }
+                if ($Key -eq [ConsoleKey]::Escape) {
+                    Write-Host ""
+                    return $null
+                }
+                if ($Key -eq [ConsoleKey]::C -and ($Info.Modifiers -band [ConsoleModifiers]::Control)) {
+                    Write-Host ""
+                    return $null
+                }
+                if ($Key -eq [ConsoleKey]::Backspace) {
+                    if ($Text.Length -gt 0) {
+                        $Text = $Text.Substring(0, $Text.Length - 1)
+                        Write-Host -NoNewline "`b `b"
+                    }
+                    continue
+                }
+                if ($Info.KeyChar -and -not [char]::IsControl($Info.KeyChar)) {
+                    $Text += $Info.KeyChar
+                    Write-Host -NoNewline $Info.KeyChar
+                }
+            }
+            Write-Host ""
+            return $Text
+        } finally {
+            if ($null -ne $Prior) {
+                try { [Console]::TreatControlCAsInput = $Prior } catch { }
+            }
+        }
     }
 }
 
@@ -184,62 +239,73 @@ class MenuCli {
         $Top = if ($null -ne $Cursor) { $Cursor - ($Visible + 1 + $Extra) } else { 0 }
         $CanPaint = ($null -ne $Cursor) -and ($Top -ge 0)
 
-        while ($true) {
-            $Key = $this.Console.ReadKey()
-            $Last = $Count - 1
-            $Moved = $true
+        $Prior = $null
+        try {
+            $Prior = [Console]::TreatControlCAsInput
+            [Console]::TreatControlCAsInput = $true
+        } catch { }
+        try {
+            while ($true) {
+                $Key = $this.Console.ReadKey()
+                $Last = $Count - 1
+                $Moved = $true
 
-            switch ($Key) {
-                ([ConsoleKey]::UpArrow) {
-                    $this.Current = if ($this.Current -eq 0) { $Last } else { $this.Current - 1 }
-                }
-                ([ConsoleKey]::DownArrow) {
-                    $this.Current = if ($this.Current -eq $Last) { 0 } else { $this.Current + 1 }
-                }
-                { $_ -eq [ConsoleKey]::Spacebar -and $this.Multi } {
-                    $this.Items[$this.Current].Checked = -not $this.Items[$this.Current].Checked
-                }
-                ([ConsoleKey]::Enter) {
-                    if ($CanPaint) { $null = $this.Console.SetTop($Top + $Visible + 1 + $Extra) }
-                    if ($this.Multi) {
-                        return @($this.Items | Where-Object { $_.Checked })
+                switch ($Key) {
+                    ([ConsoleKey]::UpArrow) {
+                        $this.Current = if ($this.Current -eq 0) { $Last } else { $this.Current - 1 }
                     }
-                    return $this.Items[$this.Current]
-                }
-                ([ConsoleKey]::Escape) {
-                    if ($CanPaint) { $null = $this.Console.SetTop($Top + $Visible + 1 + $Extra) }
-                    return $null
-                }
-                { ($_ -ge [ConsoleKey]::D1 -and $_ -le [ConsoleKey]::D9) -or
-                  ($_ -ge [ConsoleKey]::NumPad1 -and $_ -le [ConsoleKey]::NumPad9) } {
-                    $Wanted = if ($_ -ge [ConsoleKey]::NumPad1) { [int]$_ - [int][ConsoleKey]::NumPad1 }
-                              else { [int]$_ - [int][ConsoleKey]::D1 }
-                    if ($Wanted -lt $Count) {
+                    ([ConsoleKey]::DownArrow) {
+                        $this.Current = if ($this.Current -eq $Last) { 0 } else { $this.Current + 1 }
+                    }
+                    { $_ -eq [ConsoleKey]::Spacebar -and $this.Multi } {
+                        $this.Items[$this.Current].Checked = -not $this.Items[$this.Current].Checked
+                    }
+                    ([ConsoleKey]::Enter) {
+                        if ($CanPaint) { $null = $this.Console.SetTop($Top + $Visible + 1 + $Extra) }
                         if ($this.Multi) {
-                            $this.Items[$Wanted].Checked = -not $this.Items[$Wanted].Checked
-                        } else {
-                            if ($CanPaint) { $null = $this.Console.SetTop($Top + $Visible + 1 + $Extra) }
-                            return $this.Items[$Wanted]
+                            return @($this.Items | Where-Object { $_.Checked })
+                        }
+                        return $this.Items[$this.Current]
+                    }
+                    ([ConsoleKey]::Escape) {
+                        if ($CanPaint) { $null = $this.Console.SetTop($Top + $Visible + 1 + $Extra) }
+                        return $null
+                    }
+                    { ($_ -ge [ConsoleKey]::D1 -and $_ -le [ConsoleKey]::D9) -or
+                      ($_ -ge [ConsoleKey]::NumPad1 -and $_ -le [ConsoleKey]::NumPad9) } {
+                        $Wanted = if ($_ -ge [ConsoleKey]::NumPad1) { [int]$_ - [int][ConsoleKey]::NumPad1 }
+                                  else { [int]$_ - [int][ConsoleKey]::D1 }
+                        if ($Wanted -lt $Count) {
+                            if ($this.Multi) {
+                                $this.Items[$Wanted].Checked = -not $this.Items[$Wanted].Checked
+                            } else {
+                                if ($CanPaint) { $null = $this.Console.SetTop($Top + $Visible + 1 + $Extra) }
+                                return $this.Items[$Wanted]
+                            }
                         }
                     }
+                    default {
+                        $Moved = $false
+                    }
                 }
-                default {
-                    $Moved = $false
+
+                if (-not $Moved -or -not $CanPaint) { continue }
+
+                if ($this.Current -lt $First) { $First = $this.Current }
+                if ($this.Current -ge ($First + $Visible)) { $First = $this.Current - $Visible + 1 }
+
+                $Placed = $true
+                for ($Row = 0; $Row -lt $Visible; $Row++) {
+                    if (-not $this.Console.SetTop($Top + $Row)) { $Placed = $false; break }
+                    $this.DrawRow($First + $Row, $Shown)
+                }
+                if (-not $Placed) {
+                    for ($Row = 0; $Row -lt $Visible; $Row++) { $this.DrawRow($First + $Row, $Shown) }
                 }
             }
-
-            if (-not $Moved -or -not $CanPaint) { continue }
-
-            if ($this.Current -lt $First) { $First = $this.Current }
-            if ($this.Current -ge ($First + $Visible)) { $First = $this.Current - $Visible + 1 }
-
-            $Placed = $true
-            for ($Row = 0; $Row -lt $Visible; $Row++) {
-                if (-not $this.Console.SetTop($Top + $Row)) { $Placed = $false; break }
-                $this.DrawRow($First + $Row, $Shown)
-            }
-            if (-not $Placed) {
-                for ($Row = 0; $Row -lt $Visible; $Row++) { $this.DrawRow($First + $Row, $Shown) }
+        } finally {
+            if ($null -ne $Prior) {
+                try { [Console]::TreatControlCAsInput = $Prior } catch { }
             }
         }
 

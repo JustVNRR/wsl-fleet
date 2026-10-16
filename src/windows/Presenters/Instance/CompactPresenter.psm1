@@ -31,6 +31,10 @@ class CompactPresenter : BasePresenter {
         $view = $this.GetView("Compact")
         $view.ShowBeforeQuestions()
         $archiveFirst = $view.Confirm("Archive it first?", $false)
+        if ($null -eq $archiveFirst) {
+            $view.ShowCancelled("modified")
+            return [ActionResult]::Ok("Compact : cancelled")
+        }
         if (-not $archiveFirst) {
             $view.ShowNoArchive()
         } elseif (@($rows | Where-Object { $_.IsArchive -and "$($_.Name)" -eq "$($name)_archive" }).Count -gt 0) {

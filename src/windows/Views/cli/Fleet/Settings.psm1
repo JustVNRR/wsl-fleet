@@ -33,8 +33,10 @@ class CliSettingsView : BaseViewCli {
         return $Picked
     }
 
-    [string] AskName([string]$current) {
-        return [string](Read-Host "Name of the copy of '$current' (Enter to cancel)").Trim()
+    [object] AskName([string]$current) {
+        $answer = $this.AskLine("Name of the copy of '$current' (Enter to cancel)")
+        if ($null -eq $answer) { return $null }
+        return "$answer".Trim()
     }
 
     [void] ShowOpening([string]$name) {

@@ -2,10 +2,12 @@ using module ..\BaseViewCli.psm1
 
 class CliMigrateView : BaseViewCli {
 
-    [string] AskTarget([string]$root) {
+    [object] AskTarget([string]$root) {
         Write-Host ""
         Write-Host -NoNewline "Move the fleet from '$root' to: "
-        return [string](Read-Host).Trim()
+        $answer = $this.AskLine("")
+        if ($null -eq $answer) { return $null }
+        return "$answer".Trim()
     }
 
     [void] ShowSameFolder() {

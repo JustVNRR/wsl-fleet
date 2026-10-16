@@ -40,11 +40,11 @@ class CliManagePacksView : BaseViewCli {
 
         Write-Host ""
         if ($response.Installed.Count -gt 0) {
-            Write-Host "==> '$($response.InstanceName)' now carries: $($response.Installed -join ', ')" -ForegroundColor $this.Colour("success")
+            Write-Host "==> $($response.Installed -join ', ') successfully installed on '$($response.InstanceName)'" -ForegroundColor $this.Colour("success")
             Write-Host "    Open a shell in it to use them:  .\wsl-fleet.ps1 shell" -ForegroundColor $this.Colour("muted")
         }
         if ($response.Removed.Count -gt 0) {
-            Write-Host "==> Gone from '$($response.InstanceName)': $($response.Removed -join ', ')" -ForegroundColor $this.Colour("success")
+            Write-Host "==> $($response.Removed -join ', ') successfully removed from '$($response.InstanceName)'" -ForegroundColor $this.Colour("success")
         }
     }
 }

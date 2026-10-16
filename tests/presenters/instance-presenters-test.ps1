@@ -32,6 +32,7 @@ class FakeRemoveView {
     [System.Collections.Generic.List[string]]$Orders
     [string]$Typed = ""
     [bool]$ArchiveFirst = $false
+    [bool]$Escape = $false
 
     FakeRemoveView() { $this.Orders = [System.Collections.Generic.List[string]]::new() }
 
@@ -43,8 +44,10 @@ class FakeRemoveView {
     [void] ShowReplacingArchive([string]$name) { $this.Orders.Add("replacing $name") }
     [void] ShowRemovingSteps() { $this.Orders.Add("steps") }
     [void] Show() { $this.Orders.Add("report") }
-    [bool] Confirm([string]$question, [bool]$defaultNo) {
+    [void] ShowCancelled([string]$what) { $this.Orders.Add("cancelled $what") }
+    [object] Confirm([string]$question, [bool]$defaultNo) {
         $this.Orders.Add("confirm $question")
+        if ($this.Escape) { return $null }
         return $this.ArchiveFirst
     }
 }
@@ -52,16 +55,19 @@ class FakeRemoveView {
 class FakeCompactView {
     [System.Collections.Generic.List[string]]$Orders
     [bool]$ArchiveFirst = $false
+    [bool]$Escape = $false
 
     FakeCompactView() { $this.Orders = [System.Collections.Generic.List[string]]::new() }
 
     [void] ShowBeforeQuestions() { $this.Orders.Add("breath") }
     [void] ShowNoArchive() { $this.Orders.Add("no-archive") }
+    [void] ShowCancelled([string]$what) { $this.Orders.Add("cancelled $what") }
     [void] ShowReplacingArchive([string]$name) { $this.Orders.Add("replacing $name") }
     [void] ShowCompacting([string]$name, [bool]$archiveFirst) { $this.Orders.Add("compacting $name archive=$archiveFirst") }
     [void] Show([object]$response) { $this.Orders.Add("report $($response.InstanceName) restarted=$($response.Restarted) gained=$($response.Gained)") }
-    [bool] Confirm([string]$question, [bool]$defaultNo) {
+    [object] Confirm([string]$question, [bool]$defaultNo) {
         $this.Orders.Add("confirm $question")
+        if ($this.Escape) { return $null }
         return $this.ArchiveFirst
     }
 }
@@ -85,7 +91,11 @@ class FakeRestoreView {
     [void] ShowCancelled([string]$what) { $this.Orders.Add("cancelled $what") }
     [object] AskArchive([object[]]$archives) { $this.Orders.Add("ask-archive"); return $this.Archive }
     [void] ShowRestoring([string]$archiveName) { $this.Orders.Add("restoring $archiveName") }
-    [string] AskNewName() { $this.Orders.Add("ask-name"); return $this.Name }
+    [object] AskNewName() {
+        $this.Orders.Add("ask-name")
+        if ($this.Name -eq "ESCAPE") { return $null }
+        return $this.Name
+    }
     [void] Show([object]$response) { $this.Orders.Add("report $($response.ArchiveName)") }
 }
 
@@ -97,11 +107,12 @@ class FakeDuplicateView {
 
     FakeDuplicateView() { $this.Orders = [System.Collections.Generic.List[string]]::new() }
 
-    [string] AskCopyName() {
+    [object] AskCopyName() {
         $this.Orders.Add("ask-name")
         $answer = ""
         if ($this.Asked -lt $this.Answers.Count) { $answer = $this.Answers[$this.Asked] }
         $this.Asked++
+        if ($answer -eq "ESCAPE") { return $null }
         return $answer
     }
     [void] ShowNameHint() { $this.Orders.Add("hint") }
@@ -201,6 +212,19 @@ try {
     Check "  ... stop before unregister" (($fake.Called.IndexOf("--terminate $Instance")) -lt ($fake.Called.IndexOf("--unregister $Instance"))) $true
     Check "  ... and the report" ($removeView.Orders -contains "report") $true
 
+    # 2b. The escape at the copy question abandons: the gate was opened, and
+    # nothing is destroyed.
+    Reset-World
+    $removeView.Orders.Clear()
+    $removeView.Typed = $Instance
+    $removeView.Escape = $true
+    $fake.Called.Clear()
+    $result = $presenter.Run("")
+    Check "the escape at the copy question cancels the removal" "$($result.Status)/$($result.Message)" "Ok/Remove : cancelled"
+    Check "  ... said, nothing destroyed" ("$(($removeView.Orders -contains 'cancelled deleted'))/$(($fake.Called.Count))") "True/0"
+    Check "  ... and the folder stays" (Test-Path $FakeFolder) $true
+    $removeView.Escape = $false
+
     # 3. Archive first: the export comes before anything is destroyed.
     Reset-World
     $removeView.Orders.Clear()
@@ -265,6 +289,15 @@ try {
     $fake.TruncateVhdx = ""
     Check "  ... the compact before the start" (($fake.Called.IndexOf("--manage $Instance --compact")) -lt ($fake.Called.IndexOf("-d $Instance --exec /bin/true"))) $true
 
+    # 5b. The escape at the avis abandons: nothing is compacted.
+    $compactView.Orders.Clear()
+    $compactView.Escape = $true
+    $fake.Called.Clear()
+    $result = $presenter.Run("")
+    Check "the escape at the avis cancels the compact" "$($result.Status)/$($result.Message)" "Ok/Compact : cancelled"
+    Check "  ... said, and nothing compacted" ("$(($compactView.Orders -contains 'cancelled modified'))/$(($fake.Called -join ' | '))") "True/"
+    $compactView.Escape = $false
+
     # ---- restore -----------------------------------------------------------
 
     Reset-World
@@ -301,6 +334,17 @@ try {
     Check "an empty name cancels the restore" "$($result.Status)/$($result.Message)" "Ok/Restore : cancelled"
     Check "  ... and nothing was imported" ($fake.Called.Count) 0
 
+    # 8b. The escape at the new name abandons the same way.
+    Reset-World
+    $restoreView.Orders.Clear()
+    $restoreView.Archive = "$($Instance)_archive"
+    $restoreView.Name = "ESCAPE"
+    $fake.Called.Clear()
+    $result = $presenter.Run("")
+    Check "the escape at the new name cancels the restore" "$($result.Status)/$($result.Message)" "Ok/Restore : cancelled"
+    Check "  ... and nothing was imported" ($fake.Called.Count) 0
+    $restoreView.Name = ""
+
     # ---- duplicate ---------------------------------------------------------
 
     Reset-World
@@ -317,6 +361,16 @@ try {
     $result = $presenter.Run("")
     Check "a refused copy name is asked again, the empty cancels" "$($result.Status)/$($result.Message)" "Ok/Duplicate : cancelled"
     Check "  ... the hint was shown between the two" (($duplicateView.Orders -join " | ") -like "ask-name | hint | ask-name | cancelled created") $true
+
+    # 9b. The escape at the copy name abandons before the avis.
+    Reset-World
+    $duplicateView.Orders.Clear()
+    $duplicateView.Answers = @("ESCAPE")
+    $duplicateView.Asked = 0
+    $fake.Called.Clear()
+    $result = $presenter.Run("")
+    Check "the escape at the copy name cancels" "$($result.Status)/$($result.Message)" "Ok/Duplicate : cancelled"
+    Check "  ... before the avis, nothing exported" ("$(($duplicateView.Orders -contains 'confirm Continue?'))/$(($fake.Called.Count))") "False/0"
 
     # 10. A good name, the disk avis, the leads, the call: export to the
     # temporary tar, import at version 2, the marker - and the report.

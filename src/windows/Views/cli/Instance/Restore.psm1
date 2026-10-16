@@ -25,8 +25,10 @@ class CliRestoreView : BaseViewCli {
         Write-Host "Restoring $archiveName as a new instance." -ForegroundColor $this.Colour("info")
     }
 
-    [string] AskNewName() {
-        return [string](Read-Host "Name of the new instance (Enter to cancel)").Trim()
+    [object] AskNewName() {
+        $answer = $this.AskLine("Name of the new instance (Enter to cancel)")
+        if ($null -eq $answer) { return $null }
+        return "$answer".Trim()
     }
 
     [void] Show([object]$response) {

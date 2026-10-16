@@ -21,8 +21,8 @@ class CliRemoveView : BaseViewCli {
         Write-Host " To confirm DESTRUCTION, type the name of the distribution:" -ForegroundColor $this.Colour("hint")
     }
 
-    [string] AskTypedName() {
-        return [string](Read-Host " Confirm")
+    [object] AskTypedName() {
+        return $this.AskLine(" Confirm")
     }
 
     [void] ShowGateClose() {

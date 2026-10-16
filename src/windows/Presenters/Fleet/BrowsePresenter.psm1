@@ -10,6 +10,8 @@ class BrowsePresenter : BasePresenter {
     hidden [object]$RegisterAction
     hidden [object]$UnregisterAction
     hidden [object[]]$ArchiveActions
+    [string]$Miss = ""
+    [string]$Error = ""
 
     BrowsePresenter([InstanceService]$service, [string]$viewsRoot, [string]$viewType, [object[]]$liveActions, [object]$registerAction, [object]$unregisterAction, [object[]]$archiveActions) : base($viewsRoot, $viewType, "Fleet") {
         $this.Service = $service
@@ -19,7 +21,9 @@ class BrowsePresenter : BasePresenter {
         $this.ArchiveActions = $archiveActions
     }
 
-    [ActionResult] Run([hashtable]$Presenters, [string]$kind) {
+    [object] AskInstances() {
+        $this.Miss = ""
+        $this.Error = ""
         $view = $this.GetView("Browse")
         try {
             $rows = @($this.Service.GetAll())
@@ -27,38 +31,55 @@ class BrowsePresenter : BasePresenter {
             $orphans = @($this.Service.GetOrphans())
         } catch {
             $this.ShowFailure($_.Exception.Message)
-            return [ActionResult]::Nok("Browse : $($_.Exception.Message)")
+            $this.Miss = "failure"
+            $this.Error = $_.Exception.Message
+            return $null
         }
-
-        if ($kind -eq "archives") {
-            $archives = @($rows | Where-Object { $_.IsArchive })
-            if ($archives.Count -eq 0) {
-                $view.ShowNoArchives()
-                return [ActionResult]::Nok("Archives : none")
-            }
-            $picked = $view.PickArchive($archives)
-            if (-not $picked) { return [ActionResult]::Ok("Archives : cancelled") }
-            $action = $view.PickAction("What to do with '$($picked.Name)'", $this.ArchiveActions)
-            if (-not $action) { return [ActionResult]::Ok("Archives : cancelled") }
-            return (& $action.Action "$($picked.Name)" $Presenters)
-        }
-
         $instances = @($rows | Where-Object { -not $_.IsArchive })
         if ($instances.Count -eq 0) {
             $view.ShowNoInstances($orphans)
-            return [ActionResult]::Nok("Instances : none")
+            $this.Miss = "none"
+            return $null
         }
         $picked = $view.PickInstance($instances, $orphans, $running)
-        if (-not $picked) { return [ActionResult]::Ok("Instances : cancelled") }
+        if (-not $picked) { $this.Miss = "cancelled"; return $null }
+        return $picked
+    }
 
-        $docker = if ("$($picked.Docker)" -eq "yes") { $this.UnregisterAction } else { $this.RegisterAction }
+    [object] AskArchives() {
+        $this.Miss = ""
+        $this.Error = ""
+        $view = $this.GetView("Browse")
+        try {
+            $rows = @($this.Service.GetAll())
+        } catch {
+            $this.ShowFailure($_.Exception.Message)
+            $this.Miss = "failure"
+            $this.Error = $_.Exception.Message
+            return $null
+        }
+        $archives = @($rows | Where-Object { $_.IsArchive })
+        if ($archives.Count -eq 0) {
+            $view.ShowNoArchives()
+            $this.Miss = "none"
+            return $null
+        }
+        $picked = $view.PickArchive($archives)
+        if (-not $picked) { $this.Miss = "cancelled"; return $null }
+        return $picked
+    }
+
+    [object] AskAction([object]$row) {
+        $view = $this.GetView("Browse")
+        if ($row.IsArchive) {
+            return $view.PickAction("Availables actions for '$($row.Name)'", $this.ArchiveActions)
+        }
+        $docker = if ("$($row.Docker)" -eq "yes") { $this.UnregisterAction } else { $this.RegisterAction }
         $actions = @()
         foreach ($item in @($this.LiveActions)) {
             if ("$($item.Key)" -eq "unregister") { $actions += $docker }
             $actions += $item
         }
-        $action = $view.PickAction("What to do with '$($picked.Name)'", $actions)
-        if (-not $action) { return [ActionResult]::Ok("Instances : cancelled") }
-        return (& $action.Action "$($picked.Name)" $Presenters)
+        return $view.PickAction("Availables actions for '$($row.Name)'", $actions)
     }
 }

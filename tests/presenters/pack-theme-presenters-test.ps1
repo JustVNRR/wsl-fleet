@@ -143,7 +143,6 @@ class FakeThemeView {
     }
 
     [void] ShowNoFragmentWarning() { $this.Orders.Add("warning") }
-    [void] ClearScreen() { $this.Orders.Add("clear") }
 
     [string] AskTheme([string]$name) {
         $answer = $this.Next($this.ThemeAnswers, $this.ThemeAt)
@@ -175,10 +174,11 @@ class FakeThemeView {
         return $answer
     }
 
-    [string] AskLetters([string]$question) {
+    [object] AskLetters([string]$question) {
         $answer = $this.Next($this.LetterAnswers, $this.LetterAt)
         $this.LetterAt++
         $this.Orders.Add("letters [$question] $answer")
+        if ($answer -eq "ESCAPE") { return $null }
         return $answer
     }
 
@@ -194,10 +194,11 @@ class FakeThemeView {
         return [PSCustomObject]@{ Name = "picked"; Top = $parts[0]; Bottom = $parts[1]; TextColor = $parts[2] }
     }
 
-    [string] AskImagePath() {
+    [object] AskImagePath() {
         $answer = $this.Next($this.ImageAnswers, $this.ImageAt)
         $this.ImageAt++
         $this.Orders.Add("image-path $answer")
+        if ($answer -eq "ESCAPE") { return $null }
         return $answer
     }
 
@@ -397,7 +398,7 @@ try {
     $terminal.Called.Clear()
     $result = $presenter.Run("")
     Check "the escape at the menu abandons" "$($result.Status)/$($result.Message)" "Ok/SetAppearance : cancelled"
-    Check "  ... after the menu and one last breath" ($themeView.Orders -join " | ") "clear | theme  | clear"
+    Check "  ... after the menu and one last breath" ($themeView.Orders -join " | ") "theme "
     Check "  ... and the look was never written" ($terminal.Called.Count) 0
 
     # 13. The warning when our fragment is missing, and the font change: the
@@ -411,17 +412,29 @@ try {
     $terminal.Font = "Missing Font"
     $terminal.TerminalFonts = @([PSCustomObject]@{ Name = "FiraCode NF" })
     $config.FontNames = @("MesloLGS NF")
-    $themeView.ThemeAnswers = @("font", "")
+    $themeView.ThemeAnswers = @("font", "font")
     $themeView.FontAnswers = @("FiraCode NF", "")
     $result = $presenter.Run("")
-    Check "the font change goes" "$($result.Status)/$($result.Message)" "Ok/SetAppearance : $Instance"
+    Check "the font change goes" "$($result.Status)/$($result.Message)" "Ok/SetAppearance : cancelled"
     Check "  ... the missing-fragment warning first" ($themeView.Orders[0]) "warning"
     Check "  ... the in-use font offered whatever it carries" ($themeView.FontList) "MesloLGS NF,FiraCode NF,Missing Font"
-    Check "  ... the mark read on each asking" (($themeView.Orders -join " | ").Contains("font FiraCode NF current=Missing Font | clear | font  current=FiraCode NF")) $true
+    Check "  ... the mark read on each asking" ((($themeView.Orders -join " | ").Contains("font FiraCode NF current=Missing Font")) -and (($themeView.Orders -join " | ").Contains("theme font | font  current=FiraCode NF"))) $true
     Check "  ... and the profile written with it" ($terminal.Called -join " | ") "savefragment guid-bench font=FiraCode NF scheme=One Half Dark icon=||| | touch"
     # The instance's own file, written too - the font is kept there.
     Check "  ... the instance's file carries it" ((Get-Content (Join-Path $FakeFolder "instance.json") -Raw) -match "FiraCode NF") $true
     $terminal.Fragment = $true
+
+    # 13b. The escape at the hub with nothing chosen: nothing is written -
+    # colour and font are applied the moment they are picked.
+    Reset-World
+    Seed-Recipe
+    Reset-ThemeAnswers $themeView
+    $themeView.Orders.Clear()
+    $terminal.Called.Clear()
+    $themeView.ThemeAnswers = @("")
+    $result = $presenter.Run("")
+    Check "the hub's escape, nothing chosen" "$($result.Status)/$($result.Message)" "Ok/SetAppearance : cancelled"
+    Check "  ... and nothing was written" (@($terminal.Called | Where-Object { $_ -like "savefragment*" }).Count) 0
 
     # 14. The colours: each line painted of its scheme, and the pick written.
     Reset-World
@@ -435,10 +448,10 @@ try {
         [PSCustomObject]@{ Name = "One Half Light"; Background = "#FAFAFA"; Foreground = "#383A42" },
         [PSCustomObject]@{ Name = "One Half Dark";  Background = "#282C34"; Foreground = "#DCDFE4" }
     )
-    $themeView.ThemeAnswers = @("color", "")
+    $themeView.ThemeAnswers = @("color")
     $themeView.ColourAnswers = @("One Half Light", "")
     $result = $presenter.Run("")
-    Check "the colour change goes" "$($result.Status)/$($result.Message)" "Ok/SetAppearance : $Instance"
+    Check "the colour change goes" "$($result.Status)/$($result.Message)" "Ok/SetAppearance : cancelled"
     Check "  ... the schemes read are the service's" ($themeView.SchemeList) "One Half Light,One Half Dark"
     Check "  ... the current one marked" (($themeView.Orders -join " | ").Contains("colour One Half Light current=One Half Dark")) $true
     Check "  ... and the profile written with it" ($terminal.Called -join " | ") "savefragment guid-bench font=MesloLGS NF scheme=One Half Light icon=||| | touch"
@@ -451,11 +464,11 @@ try {
     $themeView.Orders.Clear()
     $terminal.Called.Clear()
     $terminal.Font = "MesloLGS NF"
-    $themeView.ThemeAnswers = @("icon", "")
+    $themeView.ThemeAnswers = @("icon")
     $themeView.TypeAnswers = @("letters", "")
     $themeView.LetterAnswers = @("abc4", "ab")
     $result = $presenter.Run("")
-    Check "the letters change goes" "$($result.Status)/$($result.Message)" "Ok/SetAppearance : $Instance"
+    Check "the letters change goes" "$($result.Status)/$($result.Message)" "Ok/SetAppearance : cancelled"
     Check "  ... the refused shape hinted" (@($themeView.Orders | Where-Object { $_ -eq "hint" }).Count) 1
     Check "  ... the question carrying the suggestion" (($themeView.Orders -join " | ").Contains("letters [Letters, 1 to 3 [XX]] abc4")) $true
     Check "  ... and the drawing written up-cased" ($terminal.Called -contains "savefragment guid-bench font=MesloLGS NF scheme=One Half Dark icon=AB|#111111|#222222|#FFFFFF") $true
@@ -468,9 +481,23 @@ try {
     $terminal.Font = "MesloLGS NF"
     $themeView.TypeAnswers = @("letters", "")
     $themeView.LetterAnswers = @("")
-    $themeView.ThemeAnswers = @("icon", "")
+    $themeView.ThemeAnswers = @("icon")
     $result = $presenter.Run("")
     Check "Entrée takes the suggestion" ($terminal.Called -contains "savefragment guid-bench font=MesloLGS NF scheme=One Half Dark icon=XX|#111111|#222222|#FFFFFF") $true
+
+    # 15b. The escape at the letters climbs back to the icon menu, relit -
+    # nothing written, and the walk ending cancelled at the hub.
+    Reset-World
+    Reset-ThemeAnswers $themeView
+    $themeView.Orders.Clear()
+    $terminal.Called.Clear()
+    $themeView.ThemeAnswers = @("icon", "")
+    $themeView.TypeAnswers = @("letters", "")
+    $themeView.LetterAnswers = @("ESCAPE")
+    $result = $presenter.Run("")
+    Check "the letters' escape ends the walk cancelled" "$($result.Status)/$($result.Message)" "Ok/SetAppearance : cancelled"
+    Check "  ... the icon menu relit" (@($themeView.Orders | Where-Object { $_ -like "icon-type*" }).Count) 2
+    Check "  ... and nothing written" (@($terminal.Called | Where-Object { $_ -like "savefragment*" }).Count) 0
 
     # 16. The tile's colours: the pair picked replaces top and bottom, and the
     # suggestion rides into the question.
@@ -481,11 +508,11 @@ try {
     $terminal.Called.Clear()
     $terminal.Font = "MesloLGS NF"
     $terminal.Pairs = @([PSCustomObject]@{ Name = "Pair A"; Top = "#0C0C0C"; Bottom = "#1F1F1F"; TextColor = "#FFFFFF" })
-    $themeView.ThemeAnswers = @("icon", "")
+    $themeView.ThemeAnswers = @("icon")
     $themeView.TypeAnswers = @("colours", "")
     $themeView.PairAnswers = @("#0C0C0C|#1F1F1F|#FFFFFF", "")
     $result = $presenter.Run("")
-    Check "the pair change goes" "$($result.Status)/$($result.Message)" "Ok/SetAppearance : $Instance"
+    Check "the pair change goes" "$($result.Status)/$($result.Message)" "Ok/SetAppearance : cancelled"
     Check "  ... the suggestion and the current mark carried" ($themeView.Orders -contains "pair suggestion=XX current=#111111/#222222") $true
     Check "  ... the pairs read are the service's" ($themeView.PairList) "Pair A"
     Check "  ... and the drawing written with the pair" ($terminal.Called -contains "savefragment guid-bench font=MesloLGS NF scheme=One Half Dark icon=XX|#0C0C0C|#1F1F1F|#FFFFFF") $true
@@ -497,10 +524,10 @@ try {
     $terminal.Called.Clear()
     $terminal.Font = "MesloLGS NF"
     $terminal.Pairs = @()
-    $themeView.ThemeAnswers = @("icon", "")
+    $themeView.ThemeAnswers = @("icon")
     $themeView.TypeAnswers = @("auto", "")
     $result = $presenter.Run("")
-    Check "By Default goes" "$($result.Status)/$($result.Message)" "Ok/SetAppearance : $Instance"
+    Check "By Default goes" "$($result.Status)/$($result.Message)" "Ok/SetAppearance : cancelled"
     Check "  ... the drawing emptied, image included" ($terminal.Called -contains "savefragment guid-bench font=MesloLGS NF scheme=One Half Dark icon=|||") $true
 
     # 18. The local file: a missing path and a wrong shape are refused, the
@@ -509,16 +536,28 @@ try {
     Reset-ThemeAnswers $themeView
     $themeView.Orders.Clear()
     $terminal.Called.Clear()
-    $themeView.ThemeAnswers = @("icon", "")
+    $themeView.ThemeAnswers = @("icon")
     $themeView.TypeAnswers = @("image", "")
     $themeView.ImageAnswers = @("nope.png", (Join-Path $World "icon.txt"), (Join-Path $World "icon.png"))
     $result = $presenter.Run("")
-    Check "the image change goes" "$($result.Status)/$($result.Message)" "Ok/SetAppearance : $Instance"
+    Check "the image change goes" "$($result.Status)/$($result.Message)" "Ok/SetAppearance : cancelled"
     Check "  ... the missing path and the wrong shape refused, in order" `
         ((($themeView.Orders -join " | ").Contains("nofile | image-path")) -and (($themeView.Orders -join " | ").Contains("badext | image-path"))) $true
     Check "  ... the file copied to the seat" (Test-Path (Join-Path $FakeFolder "terminal-icon.png")) $true
     Check "  ... and the profile untouched" (@($terminal.Called | Where-Object { $_ -like "savefragment*" }).Count) 0
     Check "  ... the report saying the image went in" ($themeView.Orders -contains "report icon image") $true
+
+    # 18b. The escape at the image path climbs back the same way.
+    Reset-World
+    Reset-ThemeAnswers $themeView
+    $themeView.Orders.Clear()
+    $terminal.Called.Clear()
+    $themeView.ThemeAnswers = @("icon", "")
+    $themeView.TypeAnswers = @("image", "")
+    $themeView.ImageAnswers = @("ESCAPE")
+    $result = $presenter.Run("")
+    Check "the image path's escape ends the walk cancelled" "$($result.Status)/$($result.Message)" "Ok/SetAppearance : cancelled"
+    Check "  ... the icon menu relit, nothing written" ("$(@($themeView.Orders | Where-Object { $_ -like 'icon-type*' }).Count)/$(@($terminal.Called | Where-Object { $_ -like 'savefragment*' }).Count)") "2/0"
 
     # 19. A look asked without a Terminal profile to write: the service
     # refuses, and the refusal is a fault.
@@ -527,7 +566,7 @@ try {
     $themeView.Orders.Clear()
     $terminal.Called.Clear()
     $terminal.Guid = ""
-    $themeView.ThemeAnswers = @("font", "")
+    $themeView.ThemeAnswers = @("font")
     $themeView.FontAnswers = @("FiraCode NF", "")
     $result = $presenter.Run("")
     Check "no profile is a fault" "$($result.Status)" "Nok"

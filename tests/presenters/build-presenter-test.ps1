@@ -40,6 +40,7 @@ class FakeBuildView {
     [string[]]$BootPicks = @()
     [int]$BootAt = 0
     [bool]$RunOnboarding = $true
+    [bool]$EscapeOnboarding = $false
     [string[]]$UserAnswers = @()
     [int]$UserAt = 0
     [bool]$Keep = $false
@@ -56,7 +57,6 @@ class FakeBuildView {
         return ""
     }
 
-    [void] ClearScreen() { $this.Orders.Add("clear") }
     [void] ShowNameHint() { $this.Orders.Add("hint-name") }
     [void] ShowUserHint() { $this.Orders.Add("hint-user") }
     [void] ShowBeforeAccount() { $this.Orders.Add("account-breath") }
@@ -100,6 +100,7 @@ class FakeBuildView {
         $answer = $this.Next($this.SourcePicks, $this.SourceAt)
         $this.SourceAt++
         $this.Orders.Add("source $label")
+        if (-not $answer) { return "" }
         foreach ($row in @($rows)) {
             if ("$($row.Name)" -like "$answer*") { return $row }
         }
@@ -119,8 +120,9 @@ class FakeBuildView {
         return $chosen
     }
 
-    [bool] AskRunOnboarding([bool]$defaultNo) {
+    [object] AskRunOnboarding([bool]$defaultNo) {
         $this.Orders.Add("onboarding-run default-no=$defaultNo")
+        if ($this.EscapeOnboarding) { return $null }
         return $this.RunOnboarding
     }
 
@@ -128,6 +130,7 @@ class FakeBuildView {
         $answer = $this.Next($this.BootPicks, $this.BootAt)
         $this.BootAt++
         $this.Orders.Add("onboarding")
+        if (-not $answer) { return "" }
         foreach ($row in @($boots)) {
             if ("$($row.Name)" -like "$answer*") { return $row }
         }
@@ -234,17 +237,17 @@ try {
     $view.Orders.Clear()
     $result = $presenter.Run()
     Check "an empty name cancels" "$($result.Status)/$($result.Message)" "Ok/Build : cancelled"
-    Check "  ... said once, after the breath" ($view.Orders -join " | ") "clear | name | cancelled modified"
+    Check "  ... said once, after the breath" ($view.Orders -join " | ") "name | cancelled modified"
 
     # 2. A refused shape comes back to the question, and the escape at the
-    # road cancels.
+    # road climbs back to the name - whose empty answer then cancels.
     $view.NameAnswers = @("bad name", "bench-build")
     $view.RoadAnswers = @("")
     Reset-BuildAnswers $view
     $view.Orders.Clear()
     $result = $presenter.Run()
-    Check "a refused name is hinted, then taken" ($view.Orders -join " | ") "clear | name | hint-name | name | clear | road  | cancelled modified"
-    Check "  ... and the road's escape cancels" "$($result.Status)/$($result.Message)" "Ok/Build : cancelled"
+    Check "a refused name is hinted, then taken" ($view.Orders -join " | ") "name | hint-name | name | road  | name | cancelled modified"
+    Check "  ... the road's escape climbs to the name, whose empty cancels" "$($result.Status)/$($result.Message)" "Ok/Build : cancelled"
 
     # 3. The registry road: an unknown name comes back with the door's own
     # words, and an empty answer cancels.
@@ -316,7 +319,7 @@ try {
     Check "  ... a refused account is hinted, the empty takes the proposal" `
         (($view.Orders -join " | ").Contains("account-breath | user | hint-user | user | keep | register")) $true
     Check "  ... and the conversation in order" `
-        ($view.Orders -join " | ") "clear | name | clear | road dockerfile | source Dockerfile | clear | packs | onboarding-run default-no=False | onboarding | account-breath | user | hint-user | user | keep | register"
+        ($view.Orders -join " | ") "name | road dockerfile | source Dockerfile | packs | onboarding-run default-no=False | onboarding | account-breath | user | hint-user | user | keep | register"
     Check "  ... the builder called with the Dto's own shape" `
         (($docker.Called -join " | ") -like "running | build wsl-fleet:bench-build*bench-b*") $true
     Check "  ... and the refusal painted" ($failureView.Orders -join " | ") "error the builder refused"
@@ -357,7 +360,7 @@ try {
     Reset-BuildAnswers $view
     $view.RoadAnswers = @("dockerfile")
     $view.SourcePicks = @("Dockerfile")
-    $view.PackPicks = @("ESCAPE")
+    $view.PackPicks = @()
     $view.RunOnboarding = $true
     $view.BootPicks = @("onboarding")
     $view.UserAnswers = @("bench-user")
@@ -389,7 +392,7 @@ try {
     Reset-BuildAnswers $view
     $view.RoadAnswers = @("recipe")
     $view.SourcePicks = @("default")
-    $view.PackPicks = @("ESCAPE")
+    $view.PackPicks = @()
     $view.RunOnboarding = $false
     $view.Orders.Clear()
     $docker.Called.Clear()
@@ -408,7 +411,7 @@ try {
     Reset-BuildAnswers $view
     $view.RoadAnswers = @("recipe")
     $view.SourcePicks = @("empty")
-    $view.PackPicks = @("ESCAPE")
+    $view.PackPicks = @()
     $view.Orders.Clear()
     $failureView.Orders.Clear()
     $result = $recipe.Run()
@@ -425,7 +428,7 @@ try {
     $one.Views = @{ "Build" = $view; "Error" = $failureView }
     Reset-BuildAnswers $view
     $view.RoadAnswers = @("dockerfile")
-    $view.PackPicks = @("ESCAPE")
+    $view.PackPicks = @()
     $view.Orders.Clear()
     $docker.Running = $false
     $docker.StartOk = $false
@@ -434,6 +437,49 @@ try {
     Check "  ... the onboarding absent is said, not asked" ($view.Orders -contains "no-onboarding") $true
     Check "  ... and the checklist empty is said too" ($view.Orders -contains "no-pack") $true
     Check "  ... to the docker refusal" "$($result.Status)/$($result.Message)" "Nok/Build : Docker is not responding."
+
+    # 10b. A single row is no question: the checklist's escape climbs straight
+    # to the road, with no source list to relit on the way.
+    Reset-BuildAnswers $view
+    $view.NameAnswers = @("bench-build")
+    $view.RoadAnswers = @("dockerfile", "")
+    $view.PackPicks = @("ESCAPE")
+    $view.Orders.Clear()
+    $result = $one.Run()
+    Check "the checklist's escape climbs straight to the road" ($view.Orders -join " | ") "name | road dockerfile | packs | road  | name | cancelled modified"
+    Check "  ... with no source list above the packs" (@($view.Orders | Where-Object { $_ -like "source*" }).Count) 0
+    $view.PackPicks = @()
+
+    # 11. The escape at the checklist climbs one question at a time - the
+    # source list relit and re-read, the road, then the name - and the empty
+    # name there cancels the whole questionnaire.
+    $view.NameAnswers = @("bench-build")
+    $view.RoadAnswers = @("dockerfile")
+    $view.SourcePicks = @("bench-b")
+    $view.PackPicks = @("ESCAPE")
+    Reset-BuildAnswers $view
+    $view.Orders.Clear()
+    $result = $presenter.Run()
+    Check "the checklist's escape climbs source, road, name" ($view.Orders -join " | ") "name | road dockerfile | source Dockerfile | packs | source Dockerfile | road  | name | cancelled modified"
+    Check "  ... and the empty name ends it" "$($result.Status)/$($result.Message)" "Ok/Build : cancelled"
+
+    # 12. No packs to offer: the checklist too is no question - the escape at
+    # the onboarding climbs straight to the source.
+    $NoPacks = Join-Path $World "no-packs"
+    New-Item -ItemType Directory -Path $NoPacks -Force | Out-Null
+    $PacklessService = [InstanceService]::new($instances, $archives, $fake, $terminal, $docker, [PackCatalogRepository]::new($NoPacks), [ConfigRepository]::new($Assets))
+    $packless = [BuildPresenter]::new($PacklessService, (New-ViewsRoot), "cli")
+    $packless.Views = @{ "Build" = $view; "Error" = $failureView }
+    Reset-BuildAnswers $view
+    $view.NameAnswers = @("bench-build")
+    $view.RoadAnswers = @("dockerfile", "")
+    $view.SourcePicks = @("bench-b")
+    $view.RunOnboarding = $true
+    $view.EscapeOnboarding = $true
+    $view.Orders.Clear()
+    $result = $packless.Run()
+    Check "with no packs, the onboarding's escape climbs to the source" ($view.Orders -join " | ") "name | road dockerfile | source Dockerfile | onboarding-run default-no=False | source Dockerfile | road  | name | cancelled modified"
+    $view.EscapeOnboarding = $false
 } finally {
     Remove-Item -Recurse -Force $World -ErrorAction SilentlyContinue
 }

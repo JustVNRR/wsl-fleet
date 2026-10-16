@@ -18,8 +18,9 @@
 # What it proves:
 #   - the pack checklist is asked after the name and the source, and before
 #     the run goes on to the build - the shell pack opens ticked, applied
-#     as-is it chooses it; cancelling means no pack, says so, and is asked no
-#     confirmation
+#     as-is it chooses it; applied with nothing ticked it means no pack, says
+#     so, and is asked no confirmation; its cancel (0, Escape) abandons it and
+#     climbs back to the source list, relit
 #   - the user name is asked with the other questions (after the checklist,
 #     before the making), and refused names come back to the question - the
 #     case ('Root'), and the leading underscore adduser would not take
@@ -129,16 +130,16 @@ DockerfilePick=$(printf '%s' "$(sed -n '/^Dockerfile$/,/^   0\./p' "$Out" | grep
 if [ -z "$DockerfilePick" ]; then DockerfilePick=1; fi
 DOCKERFILE_ROAD="1\n$DockerfilePick"
 
-echo "--- cancelled at the checklist (answer 0)"
-# The user name is left empty: the proposed Windows name must be taken - the
-# check on the hint is what says the empty was understood and not a refusal.
-# The build then dies on the stand-in import, which is the end of every scene
-# here.
-run_build "pack-qtest-1\n${DOCKERFILE_ROAD}\n0\n\n1\n\n\n\n"
-check "says no pack was selected"     "$(contains '[OK] No pack selected.')" "yes"
-check "an empty answer takes the proposed name" "$(contains 'Lowercase letters, digits')" "no"
-check "and the run goes on to the making" "$(contains 'could not be imported')" "yes"
-check "exit code 1"                      "$Code" "1"
+echo "--- the checklist's cancel climbs back to the source list, relit"
+# 0 (or ESC) at the checklist is an abandon: the source list comes back, the
+# checklist too, and the second 0 climbs on to the road and the name - whose
+# empty answer cancels the run. The source list is shown three times: the
+# first asking, and one per climb.
+run_build "pack-qtest-1\n${DOCKERFILE_ROAD}\n0\n${DockerfilePick}\n0\n\n\n\n"
+check "the source list is relit by the climb" "$(grep -acE '^Dockerfile$' "$Out")" "3"
+check "nothing is made"                "$(contains 'could not be imported')" "no"
+check "and the empty name cancels the run" "$(contains '[ABORT] Operation cancelled by user.')" "yes"
+check "exit code 0"                    "$Code" "0"
 
 echo ""
 echo "--- the pre-ticked shell, applied as-is (answer v, then the confirmation)"
@@ -165,8 +166,7 @@ echo ""
 echo "--- the onboarding skipped (answer n): no account is asked for"
 # 'Root' follows the 'n': if the account question were asked, the rule would
 # refuse it and print the hint - with the onboarding off, nothing reads it.
-run_build "pack-qtest-5\n${DOCKERFILE_ROAD}\n0\nn\nRoot\n\n\n"
-check "says no pack was selected"         "$(contains '[OK] No pack selected.')" "yes"
+run_build "pack-qtest-5\n${DOCKERFILE_ROAD}\nv\nn\nRoot\n\n\n"
 check "the account question is not asked" "$(contains 'Lowercase letters')" "no"
 check "and the run goes on to the making" "$(contains 'could not be imported')" "yes"
 check "exit code 1"                       "$Code" "1"
@@ -178,12 +178,13 @@ echo "--- the registry road: the Hub door and the host door, each refusing and g
 # Hub's API (the stand-in curl answers 200 for the one reference the scenes
 # know, 404 for the rest - fake-docker\curl), one naming its host keeps the
 # daemon's road (the stand-in docker refuses them all) - both with no network.
-run_build 'reg-qtest-1\n3\nzrgzrg\nalpine:latest\n0\nn\n\n'
+run_build 'reg-qtest-1\n3\nzrgzrg\nalpine:latest\nv\nn\n\n'
 check "the road question offers the registry" "$(contains 'Docker registry')" "yes"
 check "and asks for the reference"            "$(contains 'Docker image from a registry')" "yes"
 check "an unknown name comes back to the question" "$(contains "Unknown registry image 'zrgzrg'")" "yes"
 check "the Hub door's own words carry the why" "$(contains 'no such image or tag on Docker Hub')" "yes"
 check "before the packs are asked"            "$(before "Unknown registry image" "Packs for 'reg-qtest-1'")" "yes"
+check "applied with nothing ticked means no pack" "$(contains '[OK] No pack selected.')" "yes"
 check "the run reaches the making"            "$(contains 'could not be imported')" "yes"
 check "exit code 1"                           "$Code" "1"
 

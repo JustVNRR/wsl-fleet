@@ -95,8 +95,13 @@ ensure_file "$Assets/packs/oh_my_shell/pack.conf" "PACK_DESCRIPTION := The shell
 ensure_dir  "$Assets/packs/question-a"
 ensure_file "$Assets/packs/question-a/pack.conf" "PACK_DESCRIPTION := A question test pack"
 
+# A child that stops reading its pipe and waits would hold the run forever -
+# give each one a ceiling, so a hang comes back as a failure, never a stuck job.
+TO=()
+command -v timeout >/dev/null 2>&1 && TO=(timeout 120)
+
 run_build() {
-    printf '%b' "$1" | $PS -NoProfile -ExecutionPolicy Bypass -File "$Run" build > "$Out" 2>&1
+    printf '%b' "$1" | "${TO[@]}" "$PS" -NoProfile -ExecutionPolicy Bypass -File "$Run" build > "$Out" 2>&1
     Code=$?
 }
 

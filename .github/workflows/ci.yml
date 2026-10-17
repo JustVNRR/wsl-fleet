@@ -13,9 +13,10 @@
 #   - make reads the Makefile and every include; the help menu is asserted with
 #     and without the packs' folders, and the *_commands.sh cheatsheets are
 #     compared against it, both ways
-#   - documentation coverage: every make/*.mk has its doc page, linked from the
-#     README; every workflow is named there; every target is in a cheatsheet;
-#     templates.tsv is four columns ending in a known tool
+#   - documentation coverage: every pack has its README, linking back to the
+#     README's packs table; the shell's gmake targets are in the oh_my_shell
+#     page; every workflow is named in the README; every target is in a
+#     cheatsheet; templates.tsv is four columns ending in a known tool
 #   - the docs and the menu say the same words (tests/tree/doc-drift.sh)
 #
 # The second job, on windows-latest, is the one that RUNS the code instead of
@@ -211,51 +212,29 @@ jobs:
       - name: Documentation coverage
         run: |
           missing=0
-          # A module is fully documented when: its doc page exists, the README
-          # index links it, and the README tree lists the .mk file
+          # A pack documents itself in one page, inside its own folder: its
+          # README carries the catalogue's line and links back to the README's
+          # packs table.
+          for conf in src/distro/packs/*/pack.conf; do
+            pack=$(basename "$(dirname "$conf")")
+            page="src/distro/packs/${pack}/README.md"
+            [ -f "$page" ] || {
+              echo "::error::pack '${pack}' has no README.md"
+              missing=1
+              continue
+            }
+            grep -q 'README.md#optional-tooling-packs' "$page" || {
+              echo "::error::pack '${pack}': the README does not link back to the packs table"
+              missing=1
+            }
+          done
+          # The shell's gmake targets are documented in the oh_my_shell page,
+          # where the shell lives.
+          shell_page=src/distro/packs/oh_my_shell/README.md
           for mk in src/distro/packs/oh_my_shell/config/gmake/make/*.mk; do
-            name=$(basename "$mk" .mk)
-            [ -f "docs/make/${name}.md" ] || {
-              echo "::error::module '${name}' has no doc page (docs/make/${name}.md)"
-              missing=1
-            }
-            grep -q "docs/make/${name}.md" README.md || {
-              echo "::error::doc page of module '${name}' not linked from the README index"
-              missing=1
-            }
-            grep -q "${name}.mk" README.md || {
-              echo "::error::'${name}.mk' missing from the README project structure tree"
-              missing=1
-            }
-          done
-          # No orphan doc pages either
-          for doc in docs/make/*.md; do
-            name=$(basename "$doc" .md)
-            [ -f "src/distro/packs/oh_my_shell/config/gmake/make/${name}.mk" ] || {
-              echo "::error::orphan doc page: ${doc} has no matching module"
-              missing=1
-            }
-          done
-          # A pack documents itself inside the pack, so it stays one folder
-          # that moves as a whole; the README links the pack, not each page.
-          # A page that documents no module still has to be reachable, or it is
-          # a page nobody will ever open.
-          for pack_dir in src/distro/packs/*/; do
-            pack=$(basename "$pack_dir")
-            # A pack's modules, and only those: the way in is a script at the
-            # root, so make/ is the whole of what it offers.
-            for mk in "$pack_dir"make/*.mk; do
-              [ -f "$mk" ] || continue
-              name=$(basename "$mk" .mk)
-              [ -f "${pack_dir}docs/${name}.md" ] || {
-                echo "::error::pack '${pack}': module '${name}' has no doc page (${pack_dir}docs/${name}.md)"
-                missing=1
-              }
-            done
-            for doc in "$pack_dir"docs/*.md; do
-              name=$(basename "$doc" .md)
-              [ -f "${pack_dir}make/${name}.mk" ] || grep -q "$doc" README.md || {
-                echo "::error::orphan pack page: ${doc} documents no module and the README does not link it"
+            for target in $(grep -hoE '^[A-Za-z0-9_.-]+:[^#]*##' "$mk" | sed 's/:.*//' | sort -u); do
+              grep -qF "\`${target}\`" "$shell_page" || {
+                echo "::error::gmake target '${target}' is not documented in the oh_my_shell page"
                 missing=1
               }
             done

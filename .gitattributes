@@ -16,4 +16,4 @@ Dockerfile text eol=lf
 *.xaml text eol=crlf
 
 # Binary assets
-*.png binary
+*.png binary*.exe binary

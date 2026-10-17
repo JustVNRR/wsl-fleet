@@ -66,7 +66,9 @@ for page in docs/user-cli.md docs/user-gui.md; do
 done
 
 # And the other way round: a section the guide still offers that the entries no
-# longer know.
+# longer know. The backticks below are the guide's own markdown, not a command
+# substitution.
+# shellcheck disable=SC2016
 while read -r name; do
     { grep -q "Add(\"$name\"" wsl-fleet.ps1 || grep -q "\"$name\"\{1,\}[ ]*=" src/windows/Start-Cli.ps1; } || {
         echo "  EXTRA: '$name' is offered by the guide, and the entries do not know it"

@@ -4,7 +4,7 @@
 # ==========================================
 # The raw gcloud commands for the one-time setup, then the gmake targets that
 # drive the same services — the full walkthrough lives in the pack's
-# onboarding guide (packs/oh_my_cloud/docs/onboarding.md).
+# page (packs/oh_my_cloud/README.md).
 # Offered only while the CLI is installed, and the pack with it. Removed by
 # hand (`sudo apt remove google-cloud-cli`), the sheet hides itself - which is
 # what the header above is for: commands that would not run are not shown.

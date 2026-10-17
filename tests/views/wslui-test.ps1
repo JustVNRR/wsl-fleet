@@ -31,7 +31,7 @@ Check "the window's word calls Start-Gui.ps1" ($entry -match 'Join-Path \$Window
 Check "the console's word calls Start-Cli.ps1" ($entry -match 'Join-Path \$Windows "Start-Cli\.ps1"') $true
 Check "a command word travels with its name" ($entry -match '& \$Cli \$Command \$Name') $true
 Check "a bare cli opens the console's menu" ($entry -match 'if \(\$Word -eq "cli"\) \{\s*& \$Cli\s*\}') $true
-Check "both entries are checked before they are called" ($entry -match 'function Test-Entry' -and ([regex]::Matches($entry, 'Test-Entry \$Gui').Count -ge 1) -and ([regex]::Matches($entry, 'Test-Entry \$Cli').Count -ge 1)) $true
+Check "both entries are checked before they are called" ($entry -match 'function Test-Entry' -and ($entry -match 'Test-Entry \(Join-Path \$Windows "Start-Gui\.ps1"\)') -and ($entry -match 'Test-Entry \$Cli')) $true
 Check "a missing entry is said, not a crash" ($entry -match 'is missing - the src\\windows\\ folder is incomplete') $true
 Check "the entry's code is handed back" ([regex]::Matches($entry, 'exit \$LASTEXITCODE').Count -ge 2) $true
 

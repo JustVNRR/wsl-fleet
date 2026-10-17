@@ -3,7 +3,7 @@
 # FIREFOX - THE PRIVACY SETS - WHAT THE LAUNCHERS AND THE TARGETS CALL
 # ==============================================================================
 # Two profiles live beside this script, fox-privacy-light.js and
-# fox-privacy-strict.js (contents: docs/fox.md). One is ever in place.
+# fox-privacy-strict.js (contents: README.md). One is ever in place.
 #
 # Firefox reads defaults from /usr/lib/firefox/defaults/pref: that path is a
 # LINK to ~/.config/fox-privacy.js, a file of the user's own - so choosing a
@@ -116,7 +116,7 @@ usage: fox.sh <command>
                         (gmake fox_tweak_off)
 
 The first switch sets the link up (one sudo, once); after that a switch costs
-no password. docs/fox.md tells what each profile holds.
+no password. README.md tells what each profile holds.
 USAGE
     exit 2
     ;;

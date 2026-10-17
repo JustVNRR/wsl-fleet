@@ -1,7 +1,7 @@
 // The oh_my_web pack's LIGHT privacy profile - what `fox` puts in place, and what
 // the install leaves there. Nothing here is noticed day to day; the strict
 // profile adds anti-fingerprinting and WebRTC off. Defaults: about:config
-// wins. What each line does: docs/fox.md.
+// wins. What each line does: README.md.
 
 // --- Tracking protection: the Strict preset, named pref by pref ---
 // (the category line is what the Settings page shows; the engines read the
@@ -28,7 +28,7 @@ pref("network.dns.disablePrefetch", true);
 // --- TLS and DNS ---
 // HTTPS-only in every window: a site served over plain http gets a warning
 // page with a way through. DoH is off on purpose - the DNS of this instance is
-// the tunnel's business (docs/vpn.md), and Firefox answering it itself would
+// the tunnel's business (README.md), and Firefox answering it itself would
 // step around the tunnel.
 pref("dom.security.https_only_mode", true);
 pref("network.trr.mode", 5);

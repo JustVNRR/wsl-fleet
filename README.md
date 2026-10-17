@@ -1,30 +1,36 @@
 # Wsl Fleet
 
-A reproducible WSL2 stack: one PowerShell command builds a fresh Ubuntu 24.04 distro with:
-- the shell,
-- optional tooling as packs, added with `.\wsl-fleet.ps1 manage_packs`:
-  - `oh_my_py`: Python 3, `uv` and ruff
-  - `oh_my_cloud`: the Google Cloud CLI
-  - `oh_my_peg`: ffmpeg, ImageMagick and Tesseract OCR
-  - `oh_my_web`: Firefox and a WireGuard tunnel
-  - `oh_my_code`: Claude Code (CLI)
-  - `oh_my_doc`: Pandoc and XeLaTeX, to build a markdown document into a PDF
+Wsl Fleet is a WSL distribution manager written in PowerShell 7. It builds a
+distro from a Docker recipe, and lets you open it, restart it, copy it, archive
+it or remove it.
+
+Optional packs install the tools a project needs inside the instance - the
+shell, Python, the Docker gmake targets, the Google Cloud CLI.
+
+Every action is available both as a GUI and as a CLI.
 
 ## Features
 
-- **Minimal setup** — the build asks for your username, then whether sudo should ask for a password (say no and it never does); Ubuntu then asks for your region and city.
-- **A modern shell** — Zsh, Oh My Zsh, and Starship, with fzf everywhere and Rust-based replacements for `ls` and `cat` ([shell environment](#shell-environment-zsh)).
-- **Command memory** — cheatsheets stored as plain files, injected into the prompt with `Alt + z`.
-- **Data Science ready** — the `oh_my_py` pack brings `uv`, Python 3 and the C build toolchain most wheels are compiled with; `oh_my_peg` brings the media and OCR tools.
-- **Project scaffolding** — `fnew` fuzzy-picks a template from the catalogs the installed packs curate, or takes one by URL, and the pack the row came from finishes the job: a Python project gets its virtual environment and direnv.
-- **Modular targets** — `gmake` exposes its targets, and the packs add their own: `hide_my_ops` (Docker, GitHub PRs), `oh_my_cloud` (BigQuery, Cloud Run, VMs), `oh_my_py` (lint, tests), `oh_my_doc` (PDF). They appear as the packs do ([the gmake Makefile](#makefile-gmake), [optional tooling](#optional-tooling)).
-- **A browser, and a tunnel** — the `oh_my_web` pack installs Firefox from Mozilla's own repository and opens it with `fox`, on its light privacy profile, with `pfox` for the strict one in private; its `vpn_*` targets connect the instance to your WireGuard server — the servers live in one JSON, the settings in `.env.global` — and bring it up with the distro.
+- **Build an instance** - from a recipe, a Dockerfile, a saved image, or a
+  registry reference - with an onboarding script and the packs it should carry
+- **Manage the packs** of an instance, from the catalogue
+- **The recipes themselves** - Dockerfiles, onboarding scripts, recipes:
+  uploaded, edited, deleted - and the saved images
+- **Live with an instance** - restart it, open a shell, change the look (icon,
+  font, colours), duplicate it, compact it, register it with Docker Desktop or
+  take it out
+- **Archive and restore** - to a named archive, and back
+- **Remove** an instance, and delete an archive
+- **The fleet** - move the working folder (migrate), open the Windows-wide
+  `.wslconfig`
 
 ---
 
 ## Prerequisites
 
-- Windows 10/11 with **WSL2** installed and enabled.
+- Windows 10/11.
+- **WSL2** - `wsl --install` on a machine without it; every instance lives
+  inside it.
 - **Docker Desktop** (or Docker Engine running via WSL).
 - **PowerShell 7** (`winget install Microsoft.PowerShell`), allowed to run
   local scripts — check it:
@@ -48,331 +54,77 @@ Make sure Docker Desktop is running before you start.
    git clone https://github.com/JustVNRR/wsl-fleet.git
    cd wsl-fleet
    ```
-
-2. **Build and register the instance:**
-
+2. **Start it** - the script asks whether you want the window or the console:
    ```powershell
-   .\wsl-fleet.ps1 build
+   .\wsl-fleet.ps1
    ```
 
-   It asks for the instance's name, then confirms where it will live —
-   `D:\WSL\<name>` by default. Ctrl+C aborts.
-
+3. **Or launch the same entry as an executable**:
+   ```powershell
+   .\wsl-fleet.exe     # GUI
+   .\wsl-fleet.exe cli # CLI
+   ```
 ---
 
-## Shell Environment (zsh)
-
-The shell experience is documented per topic under [`docs/zsh/`](docs/zsh/):
-
-| Topic | Doc | Highlights |
-| :--- | :--- | :--- |
-| Plugins | [Oh My Zsh plugins](docs/zsh/plugins.md) | `git`, `fzf`, autosuggestions, syntax highlighting |
-| Keybindings | [ZLE shortcuts](docs/zsh/keybindings.md) | fuzzy-open in VS Code, insert paths, aliases, cheatsheet commands |
-| Aliases | [Custom aliases](docs/zsh/aliases.md) | modern `ls` / `cat` / `grep`, `ports`, `reload` |
-| Interactive tools | [fzf-powered commands](docs/zsh/interactive.md) | fuzzy navigation, git pickers, `fcheat`, `extract` |
-
----
-
-## Makefile (`gmake`)
-
-- **Cascading configuration** — what all projects share lives in
-  `.env.global`; what identifies one project lives in its own `.env`. Both are
-  gitignored and built from committed samples by [`gmake
-  env_global_enable` / `gmake env_project_enable`](docs/make/env.md), and the
-  commands only ever add what is missing.
-
-- **`gmake` vs `make`:**
-  - Type `gmake` (without any arguments) to display a formatted help menu listing every gmake target (GCP compute, BigQuery, Docker, Cloud Run, etc.).
-  - Type `gmake` then Tab to complete a target — the same list, each entry followed by its description.
-  - Use `fnew (recommended)`, `gmake copier_project`, `gmake cruft_project` or `gmake ccds_project` from `~/projects` to scaffold a project template.
-  - Use `gmake <target>` from `~/projects/<your-project-folder>` to run project relative tasks from the `Makefile` in `~/.config/zsh/gmake`.
-  - Use `make <target>` from `~/projects/<your-project-folder>` to run project relative tasks from the local `Makefile` in your current project folder.
-
-The gmake Makefile is one module per domain, each documented beside it: the
-shell's under `gmake/make/`, with their pages in [`docs/make/`](docs/make/); a
-pack carries its modules *and* its pages in its own folder, so it can be lifted
-out whole. Indexed along a project's lifecycle:
-
-| Stage | Module | Main targets |
-| :--- | :--- | :--- |
-| Any | [The colours, written once](docs/make/colours.md) | — (the roles a recipe asks for) |
-| Any | [Environment files](docs/make/env.md) | `env_global_enable`, `env_global_manage`, `env_project_enable`, `env_project_manage` |
-| Any | [What a target says](docs/make/macros.md) | — (the two macros a module calls) |
-| Any | [Packs installed here](docs/make/packs.md) | `packs_list` |
-| Any | [The instance's own settings](docs/make/wsl.md) | `wsl_config`, `dns_resolve`, `fstab_config`, `wsl_status`, `systemd_*`, `automount_*`, `interop_*`, `windows_path_*`, `fstab_up`, `fstab_down` |
-
-Everything else a project needs — its image, its pull requests — is a pack's.
-The shell stops at what an instance with no project can still do: carry packs,
-write the `.env` files, report what it runs on, open `/etc/wsl.conf` and
-`/etc/resolv.conf`, and turn WSL's features on and off.
-
-Then the packs — each listed once: a pack leaves with its folder.
-
+## Optional Tooling (Packs)
 | Pack | Start here | Main targets |
 | :--- | :--- | :--- |
-| `oh_my_code` | [Claude Code](src/distro/packs/oh_my_code/docs/claude.md) | `claude_status`, `claude_profile`, `claude_edit_profiles`, `claude_project` |
-| `hide_my_ops` | [The hide_my_ops pack](src/distro/packs/hide_my_ops/docs/devops.md) | `docker_*`, `gh_pr_*` |
-| `oh_my_cloud` | [GCP onboarding guide](src/distro/packs/oh_my_cloud/docs/onboarding.md) | `gcp_*`, `gcs_*`, `iam_*`, `bigquery_*`, `cloudrun_*`, `vm_*`, `artifact_registry_*` |
-| `oh_my_doc` | [Pandoc & PDF](src/distro/packs/oh_my_doc/docs/pandoc.md) | `pdf_from_md`, `pdf_open`, `docx_from_md`, `csl_from_catalog`, `font_from_*` |
-| `oh_my_py` | [Python](src/distro/packs/oh_my_py/docs/python.md) | `lint*`, `test*` |
-| `hide_my_scaff` | [Project scaffolding, the pack](src/distro/packs/hide_my_scaff/docs/scaffold.md) | `fnew`, `copier_project`, `cruft_project`, `ccds_project` |
-| `oh_my_peg` | [Vision & OCR](src/distro/packs/oh_my_peg/docs/vision.md) | — |
-| `oh_my_web` | [Web browser and tunnel](src/distro/packs/oh_my_web/docs/web.md) | `fox`, `pfox`, `fox_tweak_*`, `vpn_*` |
-
-The table holds a pack's extremes: `hide_my_ops` brings targets and no tool,
-`oh_my_peg` a tool and no target. `hide_my_ops` and `hide_my_scaff` are the two nobody
-chooses — `oh_my_py` and `oh_my_cloud` require the first, `oh_my_py` the second.
-
-What a pack is, what it must contain, and how to add one:
-[`docs/packs.md`](docs/packs.md). One reaches an instance with
-[`.\wsl-fleet.ps1 manage_packs`](docs/wsl/commands.md#manage_packs) — or by being chosen
-while the instance is built, [`.\wsl-fleet.ps1 build`](docs/wsl/commands.md#build) — and
-leaves by unticking it there.
+| `oh_my_shell` | [The shell](src/distro/packs/oh_my_shell/README.md) | `wsl_config`, `wsl_status`, `env_*`, `packs_list` - and the whole shell: aliases, bindings, navigation, `fcheat`, `gmake` |
+| `oh_my_code` | [Claude Code](src/distro/packs/oh_my_code/README.md) | `claude_status`, `claude_profile`, `claude_edit_profiles`, `claude_project` |
+| `hide_my_ops` | [Project targets](src/distro/packs/hide_my_ops/README.md) | `docker_*`, `gh_pr_*` |
+| `oh_my_cloud` | [The Google Cloud CLI](src/distro/packs/oh_my_cloud/README.md) | `gcp_*`, `gcs_*`, `iam_*`, `bigquery_*`, `cloudrun_*`, `vm_*`, `artifact_registry_*` |
+| `oh_my_doc` | [Pandoc & PDF](src/distro/packs/oh_my_doc/README.md) | `pdf_from_md`, `pdf_open`, `docx_from_md`, `csl_from_catalog`, `font_from_*` |
+| `oh_my_py` | [Python](src/distro/packs/oh_my_py/README.md) | `lint*`, `test*` |
+| `hide_my_scaff` | [Scaffolding](src/distro/packs/hide_my_scaff/README.md) | `fnew`, `copier_project`, `cruft_project`, `ccds_project` |
+| `oh_my_peg` | [Vision & OCR](src/distro/packs/oh_my_peg/README.md) | — |
+| `oh_my_web` | [Firefox & VPN](src/distro/packs/oh_my_web/README.md) | `fox`, `pfox`, `fox_tweak_*`, `vpn_*` |
 
 ---
 
-## Bundled Software & Stack
+## Repo Structure
 
-### Core System & CLI Utilities
-
-| Category | Tools |
-| :--- | :--- |
-| Core | `zsh`, `sudo`, `adduser`, `ca-certificates`, `curl`, `wget`, `openssh-client`, `iputils-ping`, `tzdata`, `nano`, `less`, `tree`, `strace`, `lsof`, `rlwrap`, `tar`, `unzip`, `bzip2`, `unrar`, `p7zip-full`, `gzip`, `xz-utils`, `zstd` |
-| Search & navigation | `fzf` (fuzzy search), `fd-find` (linked to `fd`), `zoxide` (directory hopping), `ripgrep` (ultra-fast grep) |
-| Inspection & display | `eza` (modern `ls` replacement), `batcat` (syntax highlighting, linked to `bat`), `jq` (JSON processor), `tldr` (command examples, an alternative to man pages) |
-| DevOps & cloud | `gh` (GitHub CLI), `direnv`, `shellcheck`, `sqlite3` |
-
-### Optional Tooling
-
-| Category | Tools |
-| :--- | :--- |
-| Claude Code | [Claude Code](src/distro/packs/oh_my_code/docs/claude.md), [`.\wsl-fleet.ps1 manage_packs`](docs/wsl/commands.md#manage_packs) |
-| Google Cloud CLI | [GCP onboarding guide](src/distro/packs/oh_my_cloud/docs/onboarding.md), [`.\wsl-fleet.ps1 manage_packs`](docs/wsl/commands.md#manage_packs) |
-| Pandoc & PDF | [Pandoc & PDF](src/distro/packs/oh_my_doc/docs/pandoc.md), [`.\wsl-fleet.ps1 manage_packs`](docs/wsl/commands.md#manage_packs) |
-| Python | [Python](src/distro/packs/oh_my_py/docs/python.md), [`.\wsl-fleet.ps1 manage_packs`](docs/wsl/commands.md#manage_packs) |
-| Vision & OCR | [Vision & OCR](src/distro/packs/oh_my_peg/docs/vision.md), [`.\wsl-fleet.ps1 manage_packs`](docs/wsl/commands.md#manage_packs) |
-| Firefox & VPN | [Web browser and tunnel](src/distro/packs/oh_my_web/docs/web.md), [`.\wsl-fleet.ps1 manage_packs`](docs/wsl/commands.md#manage_packs) |
-| The shell | [The shell, as a pack](src/distro/packs/oh_my_shell/docs/zsh.md) — the settings; the image carries the tools, and [`.\wsl-fleet.ps1 manage_packs`](docs/wsl/commands.md#manage_packs) also dresses a foreign base with them |
-
-### Python & Data Science
-
-None of it is in the image: `uv`, Python 3, ruff and the compiler a wheel needs
-(`build-essential`, `python3-dev`, `libffi-dev`, `libssl-dev`) arrive with the
-[`oh_my_py` pack](src/distro/packs/oh_my_py/docs/python.md); the scaffolding tools with
-[`hide_my_scaff`](src/distro/packs/hide_my_scaff/docs/scaffold.md), which `oh_my_py` requires and which
-takes each tool from uv's cache the day it is first used.
-
----
-
-## Project Structure
-
-Two distinct trees: the **repository** you clone and version, and the **distro**
-the build produces. The `src/` folder holds both sides: the instance
-administration (`src/windows/` — the entry, the module, the commands), and the
-distro's recipe and baggage — the build recipe (`src/distro/build/`) and the
-packs (`src/distro/packs/`), both seeded into the writable `assets\` folder
-on the first run — from there they are read, and are yours to edit or
-delete.
-The image carries the tools; the packs carry the settings, the `oh_my_shell` pack
-first of all: its `config/` folder is what fills `~/.config/zsh`.
-
-### The repository
+### Instance Manager Structure
 
 ```text
-├── src/                     # The project's sources: the distro's recipe and
-│                            #   baggage (distro/), the instance administration
-│                            #   (windows/)
-│   ├── distro/              # The repository's half of the two trees: what the
-│   │                        #   build bakes (build/) and deploys (packs/ - the
-│   │                        #   oh_my_shell pack's config/ is the shell's settings)
-│   │   ├── packs/           # Optional tooling, one folder per pack - the oh_my_shell
-│   │   │                    #   pack carrying the shell's settings
-│   │   │   ├── cleanup_orphans.sh # The one thing a removal runs inside an instance
-│   │   │   ├── oh_my_code/  # Claude Code, the agentic CLI, under ~/.local
-│   │   │   │   ├── pack.conf # what it installs, and the line `manage_packs` shows
-│   │   │   │   ├── install.sh # what `wsl-fleet.ps1 manage_packs` runs inside the instance
-│   │   │   │   ├── remove.sh # what `wsl-fleet.ps1 manage_packs` runs before the folder goes
-│   │   │   │   ├── profiles.sample # the providers, in JSON, waiting for your tokens
-│   │   │   │   ├── env.global.sample # CLAUDE_PROFILE, for .env.global
-│   │   │   │   ├── bin/     # the script behind its targets, and the status line
-│   │   │   │   ├── make/    # its gmake module: claude_status, claude_profile, claude_project
-│   │   │   │   ├── cheatsheets/ # its fcheat sheet: the CLI, the provider, the projects, the disk
-│   │   │   │   └── docs/    # the pack's page
-│   │   │   ├── hide_my_ops/ # the project targets: Docker, GitHub PRs
-│   │   │   │   ├── pack.conf # what it installs, and the line `manage_packs` shows
-│   │   │   │   ├── install.sh # what `wsl-fleet.ps1 manage_packs` runs inside the instance
-│   │   │   │   ├── remove.sh # what `wsl-fleet.ps1 manage_packs` runs before the folder goes
-│   │   │   │   ├── env.project.sample # the pack's project variables (PACKAGE_NAME, DOCKER_*)
-│   │   │   │   ├── make/    # the pack's modules, loaded as soon as the folder is there
-│   │   │   │   ├── cheatsheets/ # its fcheat sheets: the docker commands, its gmake targets
-│   │   │   │   └── docs/    # the pack's pages, one per module
-│   │   │   ├── oh_my_cloud/ # Google Cloud CLI, BigQuery, Cloud Run, VMs, Artifact Registry
-│   │   │   │   ├── install.sh # what `wsl-fleet.ps1 manage_packs` runs inside the instance
-│   │   │   │   ├── install_root.sh # the root half of the install, run by the engine as root, before install.sh
-│   │   │   │   ├── remove.sh # what `wsl-fleet.ps1 manage_packs` runs before the folder goes
-│   │   │   │   ├── remove_root.sh # the root half of the removal, run by remove.sh
-│   │   │   │   ├── env.global.sample # the pack's shared defaults (GCP_REGION, CLOUDRUN_MEMORY…)
-│   │   │   │   ├── env.project.sample # the pack's project variables (GCP_PROJECT, BUCKET_NAME…)
-│   │   │   │   ├── make/    # the pack's modules, loaded as soon as the folder is there
-│   │   │   │   ├── cheatsheets/ # the pack's fcheat sheets, each with its `# requires:` header
-│   │   │   │   └── docs/    # the pack's pages, onboarding walkthrough included
-│   │   │   ├── oh_my_doc/   # Pandoc and XeLaTeX: Markdown to PDF, bibliography included
-│   │   │   │   ├── pack.conf # what it installs, and the line `manage_packs` shows
-│   │   │   │   ├── install.sh # what `wsl-fleet.ps1 manage_packs` runs inside the instance
-│   │   │   │   ├── install_root.sh # the root half of the install, run by the engine as root, before install.sh
-│   │   │   │   ├── remove.sh # what `wsl-fleet.ps1 manage_packs` runs before the folder goes
-│   │   │   │   ├── env.project.sample # the pack's project variables (PDF_SRC, DOCX_REFERENCE...)
-│   │   │   │   ├── bin/     # the scripts behind the targets: the build, the viewer, the styles, the fonts
-│   │   │   │   ├── make/    # its gmake module: the document targets, the styles, the fonts
-│   │   │   │   ├── cheatsheets/ # its fcheat sheet: the targets, the commands, the PDF tools
-│   │   │   │   └── docs/    # the pack's page
-│   │   │   ├── oh_my_py/ # Python 3, uv, ruff, the compiler a wheel is built with
-│   │   │   │   ├── pack.conf # what it installs, and the line `manage_packs` shows
-│   │   │   │   ├── install.sh # what `wsl-fleet.ps1 manage_packs` runs inside the instance
-│   │   │   │   ├── install_root.sh # the root half of the install, run by the engine as root, before install.sh
-│   │   │   │   ├── remove.sh # what `wsl-fleet.ps1 manage_packs` runs before the folder goes
-│   │   │   │   ├── make/    # its modules: lint, the test lanes, the venv
-│   │   │   │   ├── cheatsheets/ # its fcheat sheets, and the catalog fnew reads
-│   │   │   │   ├── zsh/     # its shell files: uv's PATH and completions
-│   │   │   │   └── docs/    # the pack's pages, one per module
-│   │   │   ├── hide_my_scaff/ # making a project: fnew, the picker, the three targets
-│   │   │   │   ├── pack.conf # what it installs, and the line `manage_packs` shows
-│   │   │   │   ├── install.sh # what `wsl-fleet.ps1 manage_packs` runs inside the instance
-│   │   │   │   ├── remove.sh # what `wsl-fleet.ps1 manage_packs` runs before the folder goes
-│   │   │   │   ├── env.global.sample # the direct-call variables (PROJECT_TEMPLATE_*, TEMPLATE_PACK)
-│   │   │   │   ├── make/    # the scaffolding targets, and the after-copy step
-│   │   │   │   ├── cheatsheets/ # its fcheat sheets: the scaffolding commands
-│   │   │   │   ├── zsh/     # its shell files: uv's PATH, the fnew picker
-│   │   │   │   └── docs/    # the pack's pages, one per module
-│   │   │   ├── oh_my_peg/   # ffmpeg, ImageMagick, Tesseract: media and OCR tools
-│   │   │   │   ├── pack.conf # what it installs, and the line `manage_packs` shows
-│   │   │   │   ├── install.sh # what `wsl-fleet.ps1 manage_packs` runs inside the instance
-│   │   │   │   ├── install_root.sh # the root half of the install, run by the engine as root, before install.sh
-│   │   │   │   ├── remove.sh # what `wsl-fleet.ps1 manage_packs` runs before the folder goes
-│   │   │   │   ├── cheatsheets/ # their commands, in the fcheat picker
-│   │   │   │   └── docs/    # the pack's page
-│   │   │   ├── oh_my_web/   # Firefox (Mozilla's repository) and the WireGuard tunnel
-│   │   │   │   ├── pack.conf # what it installs, and the line `manage_packs` shows
-│   │   │   │   ├── install.sh # what `wsl-fleet.ps1 manage_packs` runs inside the instance
-│   │   │   │   ├── install_root.sh # the root half of the install, run by the engine as root, before install.sh
-│   │   │   │   ├── remove.sh # what `wsl-fleet.ps1 manage_packs` runs before the folder goes
-│   │   │   │   ├── fox-privacy-*.js # the two privacy profiles (light, strict) the launchers choose
-│   │   │   │   ├── privacy-check.html # the live check page pfox opens
-│   │   │   │   ├── vpn.servers.sample # the servers, in JSON, waiting for your keys
-│   │   │   │   ├── env.global.sample # VPN_PROFILE and VPN_KILL_SWITCH, for .env.global
-│   │   │   │   ├── bin/     # the two scripts: the tunnel's, the browser's - and the boot hook's
-│   │   │   │   ├── make/    # its gmake modules: the vpn_* and the fox_tweak_* targets
-│   │   │   │   ├── zsh/     # its shell files: the `fox` and `pfox` functions
-│   │   │   │   ├── cheatsheets/ # its fcheat sheets: the browser and the tunnel
-│   │   │   │   └── docs/    # the pack's pages, one per module
-│   │   │   └── oh_my_shell/ # The shell's settings as a pack; on a foreign Debian
-│   │   │       │            #   the pack carries the tools too
-│   │   │       ├── pack.conf # what it installs, and the line `manage_packs` shows
-│   │   │       ├── install.sh # what `wsl-fleet.ps1 manage_packs` runs inside the instance
-│   │   │       ├── install_root.sh # the root half of the install, run by the engine as root, before install.sh
-│   │   │       ├── remove.sh # what `wsl-fleet.ps1 manage_packs` runs before the folder goes
-│   │   │       ├── docs/    # the pack's page
-│   │   │       └── config/  # The shell's files, copied into ~/.config/zsh
-│   │   │           ├── .zshrc       # Main orchestrator (loads OMZ, modules, prompts)
-│   │   │           ├── aliases.zsh  # Custom shortcuts and interactive falias picker
-│   │   │           ├── bindings.zsh # ZLE widgets and keybindings
-│   │   │           ├── cheatsheet.zsh # Interactive cheatsheet selector (fcheat)
-│   │   │           ├── cheatsheets/ # Auto-scanned data files: CTRL+H command lists (fcheat)
-│   │   │           │   └── *_commands.sh # The commands an instance always has: bash, git, the gmake menu
-│   │   │           ├── completion.zsh # gmake's targets on Tab, read from the Makefile itself
-│   │   │           ├── gmake/       # Makefile ecosystem (the gmake command)
-│   │   │           │   ├── Makefile # Entrypoint: loads the modules, builds the menu, gates where targets run
-│   │   │           │   └── make/    # The shell's modules (pages in docs/make/)
-│   │   │           │       ├── colours.mk # the colours a recipe asks for, written once
-│   │   │           │       ├── env.mk # the .env files, and the commands that build them
-│   │   │           │       ├── macros.mk # what a target calls before it runs (check_vars, confirm_action)
-│   │   │           │       ├── packs.mk # what this instance carries (gmake packs_list)
-│   │   │           │       └── wsl.mk # the instance itself: its files, its state, its switches
-│   │   │           ├── exports.zsh  # Environment variables and dynamic PATH exports
-│   │   │           ├── fzf.zsh      # Fuzzy finder engines, layout, and preview templates
-│   │   │           ├── history.zsh  # History file sizing, persistence, and what is kept out of it
-│   │   │           ├── lib/         # The colours, and the messages built on them
-│   │   │           │   ├── colours.sh #   the only shell file writing a colour code
-│   │   │           │   └── message.sh #   a line says its kind (hint, error...); the colour follows
-│   │   │           ├── navigation.zsh # Advanced directory hopping (cdv, cda, fv, fa)
-│   │   │           ├── prompts/
-│   │   │           │   ├── starship.toml # Starship visual configuration
-│   │   │           │   └── starship.zsh # Starship initialization hook
-│   │   │           └── unzip.zsh    # Interactive archive extraction handler
-│   │   └── build/
-│   │       ├── Dockerfile   # Rootfs build recipe: Ubuntu 24.04 and the tools
-│   │       ├── Dockerfile.dockerignore # Keeps the context lean, keeps .env.global out of the image
-│   │       └── onboarding.sh # User creation, sudo, timezone, /etc/wsl.conf
-│   ├── windows/             # Instance administration, one file per command
-│   │   ├── WslFleet/        # The module: one nested file per family - the
-│   │                        #   messages, the instances' family, the pack
-│   │                        #   moves, the questions and the menus
-│   │   ├── WslUI.psm1       # The menu's classes, a module the naming files
-│   │                        #   pull in by using: the rows, the console, the
-│   │                        #   ask
-│   │   ├── make-icon.ps1    # Draws an instance's icon from its name (standalone PowerShell)
-│   │   ├── WslCommands/     # The commands themselves, one file per word: the
-│   │                        #   sixteen the menu offers, and theme's three
-│   │                        #   children - icon, font and color
-│   │   ├── gui/             # The window's furniture, out of the command
-│   │                        #   file: Theme/ (the chart every window merges
-│   │                        #   - the colours live in one place - and its
-│   │                        #   manager: the faces and the dresser), Views/
-│   │                        #   (the fleet window, and the popups
-│   │                        #   under Popups/), Runners/ (the three child
-│   │                        #   scripts) and Controllers/ (the jobs, the
-│   │                        #   dialogs' doors, the fleet's desk)
-│   │   └── WslModel/        # The model, one file per class - a module the
-│   │                        #   naming files pull in by using: the manager
-│   │                        #   (one door per command), the instance, the
-│   │                        #   packs, the theme, the state
+├── src/                     # The project's sources
+│   ├── distro/              # The image's recipe, and the packs deployed into it
+│   │   ├── build/           # The Dockerfile, the onboarding script, the ignore file
+│   │   └── packs/           # One folder per pack, each with its README.md
+│   ├── windows/             # The instance manager
+│   │   ├── Start-Gui.ps1    # The GUI's entry
+│   │   ├── Start-Cli.ps1    # The CLI's entry
+│   │   ├── Views/           # The XAML views and the console views
+│   │   ├── Presenters/      # One presenter per screen
+│   │   ├── ViewModels/      # The WPF view models
+│   │   ├── Services/        # What the gestures do, over the repositories
+│   │   ├── Repositories/    # wsl.exe, the instance folders, Terminal, Docker, the packs
+│   │   ├── Runners/         # The long gestures, one process each
+│   │   ├── Entities/        # The domain types
+│   │   ├── Dtos/            # What crosses the layers
+│   │   ├── Mappers/         # Entity to DTO, and back
+│   │   └── Tools/           # Shared helpers, native calls, the icon drawing
 ├── assets/
-│   ├── themes/             # The window's themes, dark and light versions
-│   │   ├── phosphor.xaml    #   in one file each; the settings window lists
-│   │   ├── amber.xaml       #   them, the header's sun/moon switches version
-│   │   └── ice.xaml
-│   └── fonts/               # One folder per face (the settings window
-│       ├── VT323/           #   uploads into its own too): the manager
-│       │   ├── VT323-Regular.ttf  # window's face - retro terminal, OFL (see OFL.txt)
-│       │   └── OFL.txt
-│       └── FontAwesome/     # The buttons' icons - Font Awesome 6 Free Solid
-│           ├── fa-solid-900.ttf
-│           └── fa-LICENSE.txt
+│   ├── themes/              # The GUI's themes
+│   ├── fonts/               # The GUI's fonts
+│   ├── dockerfiles/         # Seeded on first use from src\distro\build
+│   ├── packs/               # Seeded on first use from src\distro\packs
+│   └── dockerimages/        # Saved Docker images
 ├── docs/
-│   ├── make/                # Documentation of the shell's gmake modules
-│   ├── wsl/                 # Instance administration: the commands, their options, examples
-│   └── zsh/                 # Shell environment documentation (plugins, keys, aliases, tools)
-├── tests/                   # The suites that RUN the code, by kind:
-│   ├── presenters/          # Six benches driving presenters over stand-in
-│                            # repositories - every call recorded
-│   ├── commands/            # The icon, font and colour commands, starting and
-│                            # restarting over a stand-in wsl, archiving and
-│                            # coming back from an archive, removing an
-│                            # instance, the icon a name draws
-│   ├── views/               # The arrow menu with a scripted keyboard, the pack
-│                            # checklist, packs-select, the way in, the colour a
-│                            # message takes, the name a Windows account proposes
-│   ├── gui/                 # The window's own files - the XAML, the theme's
-│                            # keys, the colour sets, the runners' calls
-│   ├── tree/                # Whole-repo readers: parse, the module's surface,
-│                            # doc drift, and build's questions over a stand-in
-│                            # docker
-│   └── support/             # The stand-ins: wsl (logs every call, writes what an
-│                            # export would, creates what an import would), docker
-│                            # (answers the preflight, fails the import), the
-│                            # scripted console, and the shared harness
+│   ├── user-cli.md          # The console's guide
+│   └── user-gui.md          # The window's guide
+├── tests/                   # The suites that run the code
 ├── .github/
 │   └── workflows/
 │       ├── ci.yml           # Static checks, then the code suites on Windows
 │       └── image.yml        # Rootfs image build (push/PR + weekly, catches upstream drift)
-├── wsl-fleet.ps1                  # The way in: one command at the root, the scripts in src\windows\
+├── wsl-fleet.ps1            # The entry: one command at the root, the scripts in src\windows
 ├── .gitattributes           # Enforces strict LF line endings for shell scripts
 ├── .gitignore               # Prevents committing build artifacts (*.tar, *.vhdx)
 ├── LICENSE                  # MIT
 └── README.md
 ```
 
-### Inside the distro
+### WSL Instance structure
 
 Written by the build or by `gmake` targets. None of it is versioned, and
 deleting the distro deletes all of it.
@@ -407,55 +159,45 @@ deleting the distro deletes all of it.
 /etc/fstab                   # Mounts to apply at start (reopened by gmake fstab_config)
 ```
 
+### Pack structure
+
+```text
+<pack>/
+├── pack.conf              # the catalogue's line: description, family, requires, packages
+├── install.sh             # what manage_packs runs inside the instance
+├── install_root.sh        # the root half: run as WSL's root, before install.sh
+├── remove.sh              # what runs before the folder goes
+├── remove_root.sh         # the root half of the removal
+├── make/*.mk              # its gmake targets, loaded as soon as the folder is there
+├── zsh/*.zsh              # its shell files, read where they live (never copied)
+├── cheatsheets/*.sh       # its fcheat sheets, each with a `# requires:` header
+├── env.global.sample      # its share of the shared defaults
+├── env.project.sample     # its share of a project's variables
+├── config/                # oh_my_shell's own: the shell's files, copied into ~/.config/zsh
+└── README.md              # its one page
+```
 ---
 
-## Continuous Integration
+### Pack configuration (pack.conf)
 
-Two GitHub Actions workflows, in `.github/workflows/`:
-
-| Workflow | Runs on | What it proves |
-| :--- | :--- | :--- |
-| `ci.yml` — Checks | every push, PRs onto `main` | shellcheck, `zsh -n`, the colour codes confined to their files, the makefile parses with a complete help menu, docs and cheatsheets in sync with the `gmake` modules — then fifteen suites on Windows drive the real code under PowerShell 7 |
-| `image.yml` — Rootfs image build | every push, PRs onto `main`, weekly, manual | the Dockerfile still resolves end to end: apt repositories, download URLs, git clones |
-
-They check the **repository** — the files, and the code run against stand-ins,
-never a running distro — so none replaces a real `.\wsl-fleet.ps1 build` run. The
-weekly `image.yml` run is the one that catches **upstream drift** — a package
-that moved, a URL that changed — while the repository sits untouched. Each
-workflow is documented in full at the top of its own file.
-
----
-
-## Instance Administration (wsl-fleet.ps1)
-
-Instances are listed, built, restarted, opened, copied, archived, restored,
-compacted and removed from `wsl-fleet.ps1`, at the root of the repository.
-The scripts themselves live in `src\windows\` — `wsl-fleet.ps1` is the only thing to type.
-
-| Command | What it does |
+```text
+| Declaration | What it says |
 | :--- | :--- |
-| [`.\wsl-fleet.ps1 gui`](docs/wsl/commands.md#gui) | WSL Fleet GUI |
-| [`.\wsl-fleet.ps1 instances`](docs/wsl/commands.md#instances) | choose an instance and act on it |
-| [`.\wsl-fleet.ps1 archives`](docs/wsl/commands.md#archives) | choose an archive: restore or delete |
-| [`.\wsl-fleet.ps1 build`](docs/wsl/commands.md#build) | build an instance from the image |
-| [`.\wsl-fleet.ps1 settings`](docs/wsl/commands.md#settings) | the working folder, .wslconfig, and the packs catalog |
-| [`.\wsl-fleet.ps1 restart`](docs/wsl/commands.md#restart) | restart an instance |
-| [`.\wsl-fleet.ps1 shell`](docs/wsl/commands.md#shell) | open a shell inside an instance |
-| [`.\wsl-fleet.ps1 manage_packs`](docs/wsl/commands.md#manage_packs) | choose the packs an instance should carry |
-| [`.\wsl-fleet.ps1 theme`](docs/wsl/commands.md#theme) | choose the icon, font and colours |
-| [`.\wsl-fleet.ps1 register_docker`](docs/wsl/commands.md#register_docker) | register an instance with Docker Desktop |
-| [`.\wsl-fleet.ps1 unregister_docker`](docs/wsl/commands.md#unregister_docker) | take an instance out of Docker Desktop |
-| [`.\wsl-fleet.ps1 unregister`](docs/wsl/commands.md#unregister) | remove an instance |
-| [`.\wsl-fleet.ps1 archive`](docs/wsl/commands.md#archive) | write an instance to a named archive |
-| [`.\wsl-fleet.ps1 restore`](docs/wsl/commands.md#restore) | rebuild an instance from an archive |
-| [`.\wsl-fleet.ps1 delete_archive`](docs/wsl/commands.md#delete_archive) | delete an archive |
-| [`.\wsl-fleet.ps1 duplicate`](docs/wsl/commands.md#duplicate) | copy an instance under another name |
-| [`.\wsl-fleet.ps1 compact`](docs/wsl/commands.md#compact) | reclaim the space an instance has freed |
-| [`.\wsl-fleet.ps1 wslconfig`](docs/wsl/commands.md#wslconfig) | open the Windows-wide WSL settings |
-| [`.\wsl-fleet.ps1 migrate`](docs/wsl/commands.md#migrate) | move the fleet to another folder |
+| `PACK_DESCRIPTION` | the pack's description |
+| `PACK_REQUIRES` | the packs it requires |
+| `PACK_VISIBLE` | whether the pack appears on the list of installable packs |
+| `PACK_FAMILY` | the apt family it is offered on (default `debian`) |
+| `PACK_PACKAGES` | the apt packages it installs |
+| `PACK_OUTSIDE_APT` | the tools it installs outside apt, in `~/.local` |
+| `PACK_IDENTIFYING_VARS` | the variables refused in a shared `.env.global` |
+| `PACK_WELCOME` | the hint `build` prints after the build, when this pack was chosen |
+```
+---
 
-Each command, with its options, its examples and what it prints, is documented
-in [**Instance commands**](docs/wsl/commands.md).
+## User Guide
+
+- [CLI](docs/user-cli.md)
+- [GUI](docs/user-gui.md)
 
 ---
 

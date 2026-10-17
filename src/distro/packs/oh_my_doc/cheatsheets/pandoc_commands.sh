@@ -4,7 +4,7 @@
 # ==========================================
 # Pandoc, the LaTeX engine and the PDF tools the `oh_my_doc` pack installs
 # (`.\wsl-fleet.ps1 manage_packs`), and the seven targets it adds.
-# The pack is removed the same way; its page is packs/oh_my_doc/docs/pandoc.md.
+# The pack is removed the same way; its page is packs/oh_my_doc/README.md.
 # Offered only while pandoc is installed - the header above is what hides the
 # sheet when it was removed by hand.
 

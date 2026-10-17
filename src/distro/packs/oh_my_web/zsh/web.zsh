@@ -3,7 +3,7 @@
 # ============================================================
 # The pack's shell file, read where it lives (~/.config/packs/oh_my_web/zsh/web.zsh).
 # `fox` opens the light privacy profile, `pfox` the strict one in a private
-# window, with the check page first (docs/fox.md).
+# window, with the check page first (README.md).
 
 # X11, not Wayland: WSLg announces Wayland, and that path misbehaves under WSL.
 # Ask for it back for one call: `MOZ_ENABLE_WAYLAND=1 fox`.

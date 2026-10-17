@@ -2,7 +2,7 @@
 // fox_tweak_on) puts in place: the light profile, plus anti-fingerprinting
 // (English pages, UTC hours, letterboxing) and WebRTC off. `fox` puts the
 // light one back. Defaults: about:config wins. What each line does:
-// docs/fox.md.
+// README.md.
 
 // --- Tracking protection: the Strict preset, named pref by pref ---
 // (the category line is what the Settings page shows; the engines read the
@@ -29,7 +29,7 @@ pref("network.dns.disablePrefetch", true);
 // --- TLS and DNS ---
 // HTTPS-only in every window: a site served over plain http gets a warning
 // page with a way through. DoH is off on purpose - the DNS of this instance is
-// the tunnel's business (docs/vpn.md), and Firefox answering it itself would
+// the tunnel's business (README.md), and Firefox answering it itself would
 // step around the tunnel.
 pref("dom.security.https_only_mode", true);
 pref("network.trr.mode", 5);
